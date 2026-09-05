@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-body antialiased;
+  }
+
+  ::selection {
+    background-color: rgba(139, 92, 246, 0.35);
+    color: #f8fafc;
+  }
+
+  /* Visible keyboard focus, per every interactive element */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* kpi-card / generic surface card, per design.md `kpi-card` spec */
+  .card {
+    @apply rounded-xl border border-border bg-surface p-5;
+  }
+
+  /* button-primary, per design.md `components.button-primary` spec */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary
+      px-6 py-3 font-semibold text-text-on-primary shadow-glow transition-colors
+      hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border
+      border-border bg-surface-2 px-6 py-3 font-semibold text-text-primary
+      transition-colors hover:bg-surface-hover disabled:pointer-events-none
+      disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2
+      font-medium text-text-secondary transition-colors hover:text-text-primary;
+  }
+
+  /* input-field, per design.md `components.input-field` spec */
+  .input-field {
+    @apply w-full rounded-lg border border-border bg-surface-2 px-4 py-3
+      text-body text-text-primary placeholder:text-text-muted transition-colors
+      focus:border-primary focus:outline-none;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .glow-border {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
+  }
+
+  .glass {
+    background: rgba(18, 14, 34, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(139, 92, 246, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 92, 246, 0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+}
