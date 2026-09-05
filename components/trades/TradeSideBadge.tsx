@@ -6,7 +6,7 @@ export function TradeSideBadge({ side }: { side: TradeSide }) {
     <span
       className={cx(
         "inline-flex rounded-md px-2.5 py-1 text-caption font-bold",
-        side === "LONG"
+        side === "BUY"
           ? "bg-success-subtle text-success"
           : "bg-error-subtle text-error"
       )}
