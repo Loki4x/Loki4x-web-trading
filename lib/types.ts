@@ -22,6 +22,7 @@ export interface Trade {
   trade_date: string;
   status: TradeStatus;
   notes: string | null;
+  confluence: string | null;
   before_photo_url: string | null;
   after_photo_url: string | null;
   created_at: string;
