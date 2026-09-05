@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-background">
       <Sidebar isAdmin={isAdmin} />
-      <div className="lg:pl-sidebar">{children}</div>
+      <div className="pt-topbar lg:pl-sidebar lg:pt-0">{children}</div>
     </div>
   );
 }
