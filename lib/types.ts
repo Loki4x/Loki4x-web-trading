@@ -1,4 +1,4 @@
-export type TradeSide = "LONG" | "SHORT";
+export type TradeSide = "BUY" | "SELL";
 export type TradeStatus = "OPEN" | "CLOSED";
 export type NewsImpact = "HIGH" | "MEDIUM" | "LOW";
 
@@ -17,10 +17,13 @@ export interface Trade {
   side: TradeSide;
   entry_price: number;
   exit_price: number | null;
+  pips: number | null;
   pnl: number | null;
   trade_date: string;
   status: TradeStatus;
   notes: string | null;
+  before_photo_url: string | null;
+  after_photo_url: string | null;
   created_at: string;
 }
 
