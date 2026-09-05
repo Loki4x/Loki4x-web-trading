@@ -43,6 +43,13 @@ export function AddTradeModal({ onClose }: { onClose: () => void }) {
 
           <Input name="pips" type="number" step="0.1" label="Total Pips (optional)" placeholder="e.g. 25 or -10" />
 
+          <Input name="pnl_manual" type="number" step="0.01" label="Profit/Loss ($) (optional)" placeholder="e.g. 50 or -25.50" />
+
+          <div className="flex flex-col gap-2">
+            <label className="text-body-sm font-medium text-text-secondary">Confluence (Trade Reasoning)</label>
+            <textarea name="confluence" rows={3} className="input-field resize-none" placeholder="Why did you take this trade? e.g. support/resistance, trend, news, indicator confirmation..." />
+          </div>
+
           <Input name="trade_date" type="date" label="Trade Date" required defaultValue={new Date().toISOString().slice(0, 10)} />
 
           <div className="grid grid-cols-2 gap-4">
