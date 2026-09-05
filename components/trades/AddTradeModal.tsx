@@ -30,9 +30,9 @@ export function AddTradeModal({ onClose }: { onClose: () => void }) {
 
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Side</label>
-            <select name="side" required className="input-field" defaultValue="LONG">
-              <option value="LONG">LONG</option>
-              <option value="SHORT">SHORT</option>
+            <select name="side" required className="input-field" defaultValue="BUY">
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
             </select>
           </div>
 
@@ -41,7 +41,20 @@ export function AddTradeModal({ onClose }: { onClose: () => void }) {
             <Input name="exit_price" type="number" step="0.00001" label="Exit Price (optional)" />
           </div>
 
+          <Input name="pips" type="number" step="0.1" label="Total Pips (optional)" placeholder="e.g. 25 or -10" />
+
           <Input name="trade_date" type="date" label="Trade Date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-body-sm font-medium text-text-secondary">Before Photo</label>
+              <input name="before_photo" type="file" accept="image/*" className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-body-sm font-medium text-text-secondary">After Photo</label>
+              <input name="after_photo" type="file" accept="image/*" className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary" />
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Notes</label>
