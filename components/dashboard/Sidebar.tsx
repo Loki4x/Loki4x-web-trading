@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
@@ -21,7 +22,7 @@ const links = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -51,6 +52,21 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={cx(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-sm font-medium transition-colors",
+              pathname.startsWith("/admin")
+                ? "bg-primary-subtle text-primary"
+                : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+            )}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Admin Panel
+          </Link>
+        )}
       </nav>
 
       <form action={signOut}>
