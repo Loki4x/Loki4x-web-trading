@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { StatusBadge } from "@/components/trades/StatusBadge";
+import { WinLossBadge } from "@/components/trades/WinLossBadge";
 import { formatCurrency, formatDate, pnlColorClass } from "@/lib/utils";
 import { deleteTrade } from "@/app/(dashboard)/trades/actions";
 import type { Trade } from "@/lib/types";
@@ -22,7 +23,7 @@ export function TradesTable({ trades }: { trades: Trade[] }) {
       <table className="w-full min-w-[720px] border-collapse">
         <thead>
           <tr className="border-b border-border bg-surface text-left">
-            {["Symbol", "Side", "Entry", "Exit", "Pips", "P&L", "Date", "Status", "Photos", ""].map((h) => (
+            {["Symbol", "Side", "Entry", "Exit", "Pips", "P&L", "Result", "Date", "Status", "Photos", ""].map((h) => (
               <th
                 key={h}
                 className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary"
@@ -35,7 +36,7 @@ export function TradesTable({ trades }: { trades: Trade[] }) {
         <tbody>
           {trades.length === 0 && (
             <tr>
-              <td colSpan={10} className="px-4 py-10 text-center text-body-sm text-text-muted">
+              <td colSpan={11} className="px-4 py-10 text-center text-body-sm text-text-muted">
                 No trades match your filters yet.
               </td>
             </tr>
@@ -57,6 +58,9 @@ export function TradesTable({ trades }: { trades: Trade[] }) {
               </td>
               <td className={`tabular-nums px-4 py-3 text-right text-body-sm font-semibold ${pnlColorClass(trade.pnl ?? 0)}`}>
                 {trade.pnl !== null ? formatCurrency(trade.pnl) : "—"}
+              </td>
+              <td className="px-4 py-3">
+                <WinLossBadge pnl={trade.pnl} />
               </td>
               <td className="px-4 py-3 text-body-sm text-text-secondary">{formatDate(trade.trade_date)}</td>
               <td className="px-4 py-3">
