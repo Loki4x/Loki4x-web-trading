@@ -1,9 +1,21 @@
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { createClient } from "@/lib/supabase/server";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+    isAdmin = !!profile?.is_admin;
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar isAdmin={isAdmin} />
       <div className="lg:pl-sidebar">{children}</div>
     </div>
   );
