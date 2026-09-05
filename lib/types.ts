@@ -6,7 +6,11 @@ export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  email: string | null;
   is_admin?: boolean;
+  tier: "FREE" | "VIP";
+  vip_expires_at: string | null;
+  is_suspended: boolean;
   created_at: string;
 }
 
