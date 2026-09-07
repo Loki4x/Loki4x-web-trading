@@ -42,3 +42,27 @@ export interface NewsEvent {
   forecast: string | null;
   previous: string | null;
 }
+
+export type SignalSide = "BUY" | "SELL";
+export type SignalStatus = "OPEN" | "TP_HIT" | "SL_HIT" | "CLOSED";
+
+export interface Signal {
+  id: string;
+  symbol: string;
+  side: SignalSide;
+  entry_price: number;
+  take_profit: number | null;
+  stop_loss: number | null;
+  status: SignalStatus;
+  result_pips: number | null;
+  notes: string | null;
+  posted_at: string;
+}
+
+export interface Positioning {
+  id: string;
+  symbol: string;
+  long_percent: number;
+  short_percent: number;
+  updated_at: string;
+}
