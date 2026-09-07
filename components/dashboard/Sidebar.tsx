@@ -41,6 +41,7 @@ const groups = [
       { href: "/trades", label: "Journal", icon: NotebookText },
       { href: "/reports", label: "Report & Performance", icon: BarChart3 },
       { href: "/calculator", label: "Lot Calculator", icon: Calculator },
+      { href: "/news", label: "Economic News", icon: Newspaper },
     ],
   },
   {
@@ -54,10 +55,7 @@ const groups = [
   },
 ];
 
-const bottomLinks = [
-  { href: "/news", label: "Economic News", icon: Newspaper },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+const bottomLinks = [{ href: "/settings", label: "Settings", icon: Settings }];
 
 export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
   const pathname = usePathname();
@@ -66,6 +64,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
     "Analisa Market": true,
     "Trading Tools": true,
     Academy: true,
+    Admin: false,
   });
 
   function toggleGroup(label: string) {
@@ -175,14 +174,33 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
           ))}
 
           {isAdmin && (
-            <Link
-              href="/admin"
-              onClick={() => setMobileOpen(false)}
-              className={linkClass(pathname.startsWith("/admin"))}
-            >
-              <ShieldCheck className="h-4 w-4" />
-              Admin Panel
-            </Link>
+            <div className="mt-2">
+              <button
+                onClick={() => toggleGroup("Admin")}
+                className={cx(
+                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-caption font-bold uppercase tracking-wide",
+                  pathname.startsWith("/admin") ? "text-primary" : "text-text-muted"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Admin
+                </span>
+                <ChevronDown className={cx("h-3.5 w-3.5 transition-transform", openGroups.Admin && "rotate-180")} />
+              </button>
+              {openGroups.Admin && (
+                <div className="flex flex-col gap-1 pl-2">
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileOpen(false)}
+                    className={linkClass(pathname.startsWith("/admin"))}
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Admin Panel
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
         </nav>
 
