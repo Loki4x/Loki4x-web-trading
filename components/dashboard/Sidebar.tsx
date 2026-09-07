@@ -19,6 +19,7 @@ import {
   Compass,
   Calculator,
   GraduationCap,
+  CircleUserRound,
 } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
@@ -93,10 +94,12 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
     <>
       {/* Mobile top bar */}
       <div className="fixed inset-x-0 top-0 z-30 flex h-topbar items-center justify-between border-b border-border bg-surface px-4 lg:hidden">
-        <Link href="/dashboard">{brand}</Link>
         <button onClick={() => setMobileOpen(true)} className="text-text-primary" aria-label="Open menu">
           <Menu className="h-6 w-6" />
         </button>
+        <Link href="/settings" className="text-text-primary" aria-label="Profile & Settings">
+          <CircleUserRound className="h-6 w-6" />
+        </Link>
       </div>
 
       {/* Mobile overlay */}
