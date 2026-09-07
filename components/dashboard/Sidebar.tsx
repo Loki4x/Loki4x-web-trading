@@ -71,7 +71,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
 
   function linkClass(active: boolean) {
     return cx(
-      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
+      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium transition-colors",
       active
         ? "bg-primary-subtle text-primary"
         : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
@@ -135,7 +135,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
                 <button
                   onClick={() => toggleGroup(group.label)}
                   className={cx(
-                    "flex w-full items-center justify-between rounded-lg px-3 py-2 text-caption font-bold uppercase tracking-wide",
+                    "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium",
                     groupActive ? "text-primary" : "text-text-muted"
                   )}
                 >
@@ -171,7 +171,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
               <button
                 onClick={() => toggleGroup("Admin")}
                 className={cx(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-caption font-bold uppercase tracking-wide",
+                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium",
                   pathname.startsWith("/admin") ? "text-primary" : "text-text-muted"
                 )}
               >
