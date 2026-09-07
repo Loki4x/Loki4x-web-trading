@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { CircleUserRound } from "lucide-react";
-
 export function Topbar({ userName }: { userName: string }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -11,15 +8,6 @@ export function Topbar({ userName }: { userName: string }) {
         <h1 className="text-h3 text-text-primary">
           {greeting}, {userName}
         </h1>
-      </div>
-      <div className="flex items-center gap-3">
-        <Link
-          href="/settings"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-text-secondary hover:bg-surface-hover hover:text-text-primary"
-          aria-label="Profile & Settings"
-        >
-          <CircleUserRound className="h-6 w-6" />
-        </Link>
       </div>
     </header>
   );
