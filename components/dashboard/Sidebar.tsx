@@ -71,7 +71,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
 
   function linkClass(active: boolean) {
     return cx(
-      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-caption font-medium transition-colors",
+      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium transition-colors",
       active
         ? "bg-primary-subtle text-primary"
         : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
@@ -201,7 +201,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
         <form action={signOut}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-caption font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-error"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-error"
           >
             <LogOut className="h-4 w-4" />
             Logout
