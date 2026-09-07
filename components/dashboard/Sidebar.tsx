@@ -135,7 +135,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
                 <button
                   onClick={() => toggleGroup(group.label)}
                   className={cx(
-                    "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium",
+                    "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium uppercase tracking-wide",
                     groupActive ? "text-primary" : "text-text-muted"
                   )}
                 >
@@ -171,7 +171,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
               <button
                 onClick={() => toggleGroup("Admin")}
                 className={cx(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium",
+                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium uppercase tracking-wide",
                   pathname.startsWith("/admin") ? "text-primary" : "text-text-muted"
                 )}
               >
