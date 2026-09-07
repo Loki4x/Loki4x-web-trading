@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, CircleUserRound } from "lucide-react";
+import { CircleUserRound } from "lucide-react";
 
 export function Topbar({ userName }: { userName: string }) {
   const hour = new Date().getHours();
@@ -13,10 +13,6 @@ export function Topbar({ userName }: { userName: string }) {
         </h1>
       </div>
       <div className="flex items-center gap-3">
-        <Link href="/trades?add=1" className="btn-primary !px-4 !py-2 text-body-sm">
-          <Plus className="h-4 w-4" />
-          Add Trade
-        </Link>
         <Link
           href="/settings"
           className="flex h-9 w-9 items-center justify-center rounded-full text-text-secondary hover:bg-surface-hover hover:text-text-primary"
