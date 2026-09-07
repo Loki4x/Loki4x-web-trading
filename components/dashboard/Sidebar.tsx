@@ -9,7 +9,6 @@ import {
   NotebookText,
   Newspaper,
   BarChart3,
-  Settings,
   LogOut,
   ShieldCheck,
   Menu,
@@ -55,8 +54,6 @@ const groups = [
     ],
   },
 ];
-
-const bottomLinks = [{ href: "/settings", label: "Settings", icon: Settings }];
 
 export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
   const pathname = usePathname();
@@ -122,101 +119,4 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1">
-          {topLinks.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={linkClass(pathname === href)}>
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
-
-          {groups.map((group) => {
-            const isOpen = openGroups[group.label];
-            const groupActive = group.links.some((l) => pathname.startsWith(l.href));
-            return (
-              <div key={group.label} className="mt-2">
-                <button
-                  onClick={() => toggleGroup(group.label)}
-                  className={cx(
-                    "flex w-full items-center justify-between rounded-lg px-3 py-2 text-caption font-bold uppercase tracking-wide",
-                    groupActive ? "text-primary" : "text-text-muted"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    <group.icon className="h-3.5 w-3.5" />
-                    {group.label}
-                  </span>
-                  <ChevronDown className={cx("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
-                </button>
-                {isOpen && (
-                  <div className="flex flex-col gap-1 pl-2">
-                    {group.links.map(({ href, label, icon: Icon }) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setMobileOpen(false)}
-                        className={linkClass(pathname.startsWith(href))}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          <div className="my-2 border-t border-border" />
-
-          {bottomLinks.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={linkClass(pathname === href)}>
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
-
-          {isAdmin && (
-            <div className="mt-2">
-              <button
-                onClick={() => toggleGroup("Admin")}
-                className={cx(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-caption font-bold uppercase tracking-wide",
-                  pathname.startsWith("/admin") ? "text-primary" : "text-text-muted"
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Admin
-                </span>
-                <ChevronDown className={cx("h-3.5 w-3.5 transition-transform", openGroups.Admin && "rotate-180")} />
-              </button>
-              {openGroups.Admin && (
-                <div className="flex flex-col gap-1 pl-2">
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileOpen(false)}
-                    className={linkClass(pathname.startsWith("/admin"))}
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    Admin Panel
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-        </nav>
-
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-body-sm font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-error"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
-        </form>
-      </aside>
-    </>
-  );
-}
+        <nav class
