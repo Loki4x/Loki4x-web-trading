@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ArrowLeft, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X } from "lucide-react";
 import { cx } from "@/lib/utils";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/signals", label: "Signals", icon: LineChart },
+  { href: "/admin/positioning", label: "Positioning", icon: Compass },
 ];
 
 export function AdminSidebar() {
