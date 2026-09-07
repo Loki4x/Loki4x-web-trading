@@ -89,12 +89,12 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
 
   return (
     <>
-      {/* Mobile top bar */}
-      <div className="fixed inset-x-0 top-0 z-30 flex h-topbar items-center justify-between border-b border-border bg-surface px-4 lg:hidden">
-        <button onClick={() => setMobileOpen(true)} className="text-text-primary" aria-label="Open menu">
+      {/* Top bar - persistent across mobile and desktop */}
+      <div className="fixed inset-x-0 top-0 z-30 flex h-topbar items-center justify-between border-b border-border bg-surface px-4 lg:pl-sidebar">
+        <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label="Open menu">
           <Menu className="h-6 w-6" />
         </button>
-        <Link href="/settings" className="text-text-primary" aria-label="Profile & Settings">
+        <Link href="/settings" className="ml-auto text-text-primary" aria-label="Profile & Settings">
           <CircleUserRound className="h-6 w-6" />
         </Link>
       </div>
