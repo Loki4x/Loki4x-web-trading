@@ -121,3 +121,53 @@ export async function deletePositioning(id: string) {
   revalidatePath("/admin/positioning");
   revalidatePath("/positioning");
 }
+
+export async function addAcademyVideo(formData: FormData) {
+  const supabase = await assertIsAdmin();
+
+  await supabase.from("academy_videos").insert({
+    category: String(formData.get("category")),
+    title: String(formData.get("title")),
+    description: String(formData.get("description") ?? "") || null,
+    thumbnail_url: String(formData.get("thumbnail_url")),
+    video_url: String(formData.get("video_url")),
+  });
+
+  revalidatePath("/admin/academy");
+  revalidatePath("/academy/technical");
+  revalidatePath("/academy/fundamental");
+  revalidatePath("/academy/psychology");
+}
+
+export async function deleteAcademyVideo(id: string) {
+  const supabase = await assertIsAdmin();
+  await supabase.from("academy_videos").delete().eq("id", id);
+  revalidatePath("/admin/academy");
+  revalidatePath("/academy/technical");
+  revalidatePath("/academy/fundamental");
+  revalidatePath("/academy/psychology");
+}
+
+export async function addNewsEvent(formData: FormData) {
+  const supabase = await assertIsAdmin();
+
+  await supabase.from("news").insert({
+    event_title: String(formData.get("event_title")),
+    currency: String(formData.get("currency")).toUpperCase(),
+    impact_level: String(formData.get("impact_level")),
+    release_time: String(formData.get("release_time")),
+    actual: String(formData.get("actual") ?? "") || null,
+    forecast: String(formData.get("forecast") ?? "") || null,
+    previous: String(formData.get("previous") ?? "") || null,
+  });
+
+  revalidatePath("/admin/news");
+  revalidatePath("/news");
+}
+
+export async function deleteNewsEvent(id: string) {
+  const supabase = await assertIsAdmin();
+  await supabase.from("news").delete().eq("id", id);
+  revalidatePath("/admin/news");
+  revalidatePath("/news");
+}
