@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound } from "lucide-react";
+import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound, Newspaper, GraduationCap } from "lucide-react";
 import { cx } from "@/lib/utils";
 
 const links = [
@@ -12,6 +12,8 @@ const links = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/signals", label: "Signals", icon: LineChart },
   { href: "/admin/positioning", label: "Positioning", icon: Compass },
+  { href: "/admin/news", label: "Economic News", icon: Newspaper },
+  { href: "/admin/academy", label: "Academy", icon: GraduationCap },
 ];
 
 export function AdminSidebar() {
