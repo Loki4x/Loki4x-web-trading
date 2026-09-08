@@ -183,20 +183,31 @@ export async function syncNewsFromApi() {
   const supabase = await assertIsAdmin();
 
   const apiKey = process.env.FINNHUB_API_KEY;
-  if (!apiKey) throw new Error("FINNHUB_API_KEY belum diset di Environment Variables");
+  if (!apiKey) {
+    return { success: false as const, message: "FINNHUB_API_KEY belum diset di Environment Variables" };
+  }
 
   const from = new Date().toISOString().slice(0, 10);
   const toDate = new Date();
   toDate.setDate(toDate.getDate() + 14);
   const to = toDate.toISOString().slice(0, 10);
 
-  const res = await fetch(
-    `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${apiKey}`,
-    { cache: "no-store" }
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${apiKey}`,
+      { cache: "no-store" }
+    );
+  } catch {
+    return { success: false as const, message: "Gagal menghubungi server Finnhub (network error)." };
+  }
 
   if (!res.ok) {
-    throw new Error(`Gagal ambil data dari Finnhub (status ${res.status})`);
+    const bodyText = await res.text().catch(() => "");
+    return {
+      success: false as const,
+      message: `Finnhub menolak request (status ${res.status}). ${bodyText || "Kemungkinan endpoint ini butuh akun premium Finnhub."}`,
+    };
   }
 
   const data = await res.json();
@@ -215,11 +226,14 @@ export async function syncNewsFromApi() {
     }));
 
   if (rows.length > 0) {
-    await supabase.from("news").upsert(rows, { onConflict: "event_title,currency,release_time" });
+    const { error } = await supabase.from("news").upsert(rows, { onConflict: "event_title,currency,release_time" });
+    if (error) {
+      return { success: false as const, message: `Gagal simpan ke database: ${error.message}` };
+    }
   }
 
   revalidatePath("/admin/news");
   revalidatePath("/news");
 
-  return { count: rows.length };
+  return { success: true as const, count: rows.length };
 }
