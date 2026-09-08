@@ -171,3 +171,55 @@ export async function deleteNewsEvent(id: string) {
   revalidatePath("/admin/news");
   revalidatePath("/news");
 }
+
+function mapImpact(raw: unknown): "HIGH" | "MEDIUM" | "LOW" {
+  const s = String(raw ?? "").toLowerCase();
+  if (s.includes("high") || s === "3") return "HIGH";
+  if (s.includes("medium") || s === "2") return "MEDIUM";
+  return "LOW";
+}
+
+export async function syncNewsFromApi() {
+  const supabase = await assertIsAdmin();
+
+  const apiKey = process.env.FINNHUB_API_KEY;
+  if (!apiKey) throw new Error("FINNHUB_API_KEY belum diset di Environment Variables");
+
+  const from = new Date().toISOString().slice(0, 10);
+  const toDate = new Date();
+  toDate.setDate(toDate.getDate() + 14);
+  const to = toDate.toISOString().slice(0, 10);
+
+  const res = await fetch(
+    `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${apiKey}`,
+    { cache: "no-store" }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Gagal ambil data dari Finnhub (status ${res.status})`);
+  }
+
+  const data = await res.json();
+  const events: any[] = data.economicCalendar ?? [];
+
+  const rows = events
+    .filter((e) => e.event && e.time)
+    .map((e) => ({
+      event_title: String(e.event),
+      currency: String(e.country ?? "").toUpperCase(),
+      impact_level: mapImpact(e.impact),
+      release_time: new Date(e.time).toISOString(),
+      actual: e.actual !== null && e.actual !== undefined ? String(e.actual) : null,
+      forecast: e.estimate !== null && e.estimate !== undefined ? String(e.estimate) : null,
+      previous: e.prev !== null && e.prev !== undefined ? String(e.prev) : null,
+    }));
+
+  if (rows.length > 0) {
+    await supabase.from("news").upsert(rows, { onConflict: "event_title,currency,release_time" });
+  }
+
+  revalidatePath("/admin/news");
+  revalidatePath("/news");
+
+  return { count: rows.length };
+}
