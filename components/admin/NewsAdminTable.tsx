@@ -18,8 +18,12 @@ export function NewsAdminTable({ events }: { events: NewsEvent[] }) {
     setSyncing(true);
     try {
       const result = await syncNewsFromApi();
-      alert(`Berhasil sync ${result.count} event berita dari Finnhub.`);
-      router.refresh();
+      if (result.success) {
+        alert(`Berhasil sync ${result.count} event berita dari Finnhub.`);
+        router.refresh();
+      } else {
+        alert(`Gagal sync: ${result.message}`);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal sync data.");
     } finally {
