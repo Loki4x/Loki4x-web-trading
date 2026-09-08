@@ -2,16 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, RefreshCw } from "lucide-react";
 import { NewsImpactBadge } from "@/components/news/NewsImpactBadge";
 import { AddNewsModal } from "@/components/admin/AddNewsModal";
 import { formatDate, formatTime } from "@/lib/utils";
-import { deleteNewsEvent } from "@/app/admin/actions";
+import { deleteNewsEvent, syncNewsFromApi } from "@/app/admin/actions";
 import type { NewsEvent } from "@/lib/types";
 
 export function NewsAdminTable({ events }: { events: NewsEvent[] }) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const result = await syncNewsFromApi();
+      alert(`Berhasil sync ${result.count} event berita dari Finnhub.`);
+      router.refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal sync data.");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function handleDelete(id: string) {
     if (!confirm("Hapus event berita ini?")) return;
@@ -21,7 +35,11 @@ export function NewsAdminTable({ events }: { events: NewsEvent[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-3">
+        <button onClick={handleSync} disabled={syncing} className="btn-secondary text-body-sm">
+          <RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+          {syncing ? "Syncing..." : "Sync from API"}
+        </button>
         <button onClick={() => setModalOpen(true)} className="btn-primary text-body-sm">
           <Plus className="h-4 w-4" />
           Add News Event
