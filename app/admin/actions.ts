@@ -172,57 +172,55 @@ export async function deleteNewsEvent(id: string) {
   revalidatePath("/news");
 }
 
-function mapImpact(raw: unknown): "HIGH" | "MEDIUM" | "LOW" {
-  const s = String(raw ?? "").toLowerCase();
-  if (s.includes("high") || s === "3") return "HIGH";
-  if (s.includes("medium") || s === "2") return "MEDIUM";
+function mapVolatility(raw: unknown): "HIGH" | "MEDIUM" | "LOW" {
+  const s = String(raw ?? "").toUpperCase();
+  if (s === "HIGH") return "HIGH";
+  if (s === "MEDIUM") return "MEDIUM";
   return "LOW";
 }
 
 export async function syncNewsFromApi() {
   const supabase = await assertIsAdmin();
 
-  const apiKey = process.env.FINNHUB_API_KEY;
+  const apiKey = process.env.RAPIDAPI_KEY;
   if (!apiKey) {
-    return { success: false as const, message: "FINNHUB_API_KEY belum diset di Environment Variables" };
+    return { success: false as const, message: "RAPIDAPI_KEY belum diset di Environment Variables" };
   }
-
-  const from = new Date().toISOString().slice(0, 10);
-  const toDate = new Date();
-  toDate.setDate(toDate.getDate() + 14);
-  const to = toDate.toISOString().slice(0, 10);
 
   let res: Response;
   try {
-    res = await fetch(
-      `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${apiKey}`,
-      { cache: "no-store" }
-    );
+    res = await fetch("https://economic-calendar-api.p.rapidapi.com/calendar?limit=100", {
+      headers: {
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": "economic-calendar-api.p.rapidapi.com",
+      },
+      cache: "no-store",
+    });
   } catch {
-    return { success: false as const, message: "Gagal menghubungi server Finnhub (network error)." };
+    return { success: false as const, message: "Gagal menghubungi server API (network error)." };
   }
 
   if (!res.ok) {
     const bodyText = await res.text().catch(() => "");
     return {
       success: false as const,
-      message: `Finnhub menolak request (status ${res.status}). ${bodyText || "Kemungkinan endpoint ini butuh akun premium Finnhub."}`,
+      message: `API menolak request (status ${res.status}). ${bodyText}`,
     };
   }
 
   const data = await res.json();
-  const events: any[] = data.economicCalendar ?? [];
+  const events: any[] = Array.isArray(data) ? data : data.data ?? data.events ?? data.results ?? data.calendar ?? [];
 
   const rows = events
-    .filter((e) => e.event && e.time)
+    .filter((e) => e.name && e.dateUtc)
     .map((e) => ({
-      event_title: String(e.event),
-      currency: String(e.country ?? "").toUpperCase(),
-      impact_level: mapImpact(e.impact),
-      release_time: new Date(e.time).toISOString(),
-      actual: e.actual !== null && e.actual !== undefined ? String(e.actual) : null,
-      forecast: e.estimate !== null && e.estimate !== undefined ? String(e.estimate) : null,
-      previous: e.prev !== null && e.prev !== undefined ? String(e.prev) : null,
+      event_title: String(e.name),
+      currency: String(e.currencyCode ?? e.countryCode ?? "").toUpperCase(),
+      impact_level: mapVolatility(e.volatility),
+      release_time: new Date(e.dateUtc).toISOString(),
+      actual: e.actual !== null && e.actual !== undefined && e.actual !== "" ? String(e.actual) : null,
+      forecast: e.consensus !== null && e.consensus !== undefined && e.consensus !== "" ? String(e.consensus) : null,
+      previous: e.previous !== null && e.previous !== undefined && e.previous !== "" ? String(e.previous) : null,
     }));
 
   if (rows.length > 0) {
