@@ -7,7 +7,12 @@ import type { NewsEvent, NewsImpact } from "@/lib/types";
 
 type ImpactFilter = "ALL" | NewsImpact;
 
+function toDateInputValue(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
 export function NewsTable({ events }: { events: NewsEvent[] }) {
+  const [date, setDate] = useState("");
   const [impact, setImpact] = useState<ImpactFilter>("ALL");
   const [currency, setCurrency] = useState("ALL");
 
@@ -18,17 +23,32 @@ export function NewsTable({ events }: { events: NewsEvent[] }) {
 
   const filtered = useMemo(() => {
     return events.filter((e) => {
+      if (date && toDateInputValue(new Date(e.release_time)) !== date) return false;
       if (impact !== "ALL" && e.impact_level !== impact) return false;
       if (currency !== "ALL" && e.currency !== currency) return false;
       return true;
     });
-  }, [events, impact, currency]);
+  }, [events, date, impact, currency]);
 
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h2 text-text-primary">Economic Calendar &amp; Market News</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="input-field w-auto"
+          />
+          {date && (
+            <button
+              onClick={() => setDate("")}
+              className="text-caption font-semibold text-primary hover:underline"
+            >
+              Reset tanggal
+            </button>
+          )}
           <select value={impact} onChange={(e) => setImpact(e.target.value as ImpactFilter)} className="input-field w-auto">
             <option value="ALL">All Impact</option>
             <option value="HIGH">High</option>
