@@ -2,6 +2,14 @@ export type TradeSide = "BUY" | "SELL";
 export type TradeStatus = "OPEN" | "CLOSED";
 export type NewsImpact = "HIGH" | "MEDIUM" | "LOW";
 
+export interface TradingAccount {
+  id: string;
+  user_id: string;
+  name: string;
+  initial_balance: number;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   full_name: string | null;
@@ -17,6 +25,7 @@ export interface Profile {
 export interface Trade {
   id: string;
   user_id: string;
+  account_id: string | null;
   symbol: string;
   side: TradeSide;
   entry_price: number;
