@@ -1,19 +1,27 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveActiveAccount } from "@/lib/accounts";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { BreakdownChart } from "@/components/dashboard/BreakdownChart";
 import { formatCurrency } from "@/lib/utils";
 import type { Trade } from "@/lib/types";
 
-export default async function ReportsPage() {
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: { account?: string };
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { activeAccount } = await resolveActiveAccount(supabase, user?.id ?? "", searchParams.account);
+
   const { data: trades } = await supabase
     .from("trades")
     .select("*")
     .eq("user_id", user?.id ?? "")
+    .eq("account_id", activeAccount.id)
     .eq("status", "CLOSED")
     .order("trade_date", { ascending: true });
 
