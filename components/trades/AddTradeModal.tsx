@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { addTrade } from "@/app/(dashboard)/trades/actions";
 
-export function AddTradeModal({ onClose }: { onClose: () => void }) {
+export function AddTradeModal({ onClose, accountId }: { onClose: () => void; accountId: string }) {
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
@@ -26,6 +26,7 @@ export function AddTradeModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <form action={handleSubmit} className="flex flex-col gap-4">
+          <input type="hidden" name="account_id" value={accountId} />
           <Input name="symbol" label="Symbol" placeholder="XAUUSD" required />
 
           <div className="flex flex-col gap-2">
