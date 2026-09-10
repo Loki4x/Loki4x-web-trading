@@ -19,9 +19,12 @@ import {
   Calculator,
   GraduationCap,
   CircleUserRound,
+  Wallet,
 } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
+import { AccountSwitcher } from "@/components/accounts/AccountSwitcher";
+import type { TradingAccount } from "@/lib/types";
 
 const topLinks = [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }];
 
@@ -42,6 +45,7 @@ const groups = [
       { href: "/reports", label: "Report & Performance", icon: BarChart3 },
       { href: "/calculator", label: "Lot Calculator", icon: Calculator },
       { href: "/news", label: "Economic News", icon: Newspaper },
+      { href: "/accounts", label: "Akun Journaling", icon: Wallet },
     ],
   },
   {
@@ -55,7 +59,7 @@ const groups = [
   },
 ];
 
-export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
+export function Sidebar({ isAdmin, accounts = [] }: { isAdmin?: boolean; accounts?: TradingAccount[] }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -118,6 +122,8 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        <AccountSwitcher accounts={accounts} />
 
         <nav className="flex flex-1 flex-col gap-1">
           {topLinks.map(({ href, label, icon: Icon }) => (
