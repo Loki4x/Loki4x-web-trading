@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveActiveAccount } from "@/lib/accounts";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { EquityChart } from "@/components/dashboard/EquityChart";
@@ -7,20 +8,20 @@ import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
 import type { NewsEvent, Trade } from "@/lib/types";
 import { Wallet, TrendingUp, Percent, Hash, Target, Trophy } from "lucide-react";
 
-export default async function DashboardOverviewPage() {
+export default async function DashboardOverviewPage({
+  searchParams,
+}: {
+  searchParams: { account?: string };
+}) {
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: trades }, { data: news }] = await Promise.all([
+  const [{ data: profile }, { activeAccount }, { data: news }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user?.id ?? "").single(),
-    supabase
-      .from("trades")
-      .select("*")
-      .eq("user_id", user?.id ?? "")
-      .order("trade_date", { ascending: true }),
+    resolveActiveAccount(supabase, user?.id ?? "", searchParams.account),
     supabase
       .from("news")
       .select("*")
@@ -29,6 +30,13 @@ export default async function DashboardOverviewPage() {
       .order("release_time", { ascending: true })
       .limit(5),
   ]);
+
+  const { data: trades } = await supabase
+    .from("trades")
+    .select("*")
+    .eq("user_id", user?.id ?? "")
+    .eq("account_id", activeAccount.id)
+    .order("trade_date", { ascending: true });
 
   const allTrades = (trades ?? []) as Trade[];
   const closedTrades = allTrades.filter((t) => t.status === "CLOSED" && t.pnl !== null);
@@ -47,7 +55,7 @@ export default async function DashboardOverviewPage() {
     .filter((t) => t.trade_date === today)
     .reduce((sum, t) => sum + (t.pnl ?? 0), 0);
 
-  const startingBalance = 10000;
+  const startingBalance = activeAccount.initial_balance;
   const totalBalance = startingBalance + totalPnl;
 
   let running = startingBalance;
@@ -66,6 +74,13 @@ export default async function DashboardOverviewPage() {
       <Topbar userName={userName} />
 
       <main className="mx-auto max-w-content px-6 py-8">
+        <div className="mb-2">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-primary/15 px-2.5 py-1 text-caption font-semibold text-primary">
+            <Wallet className="h-3 w-3" />
+            {activeAccount.name}
+          </span>
+        </div>
+
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiCard
             label="Today's P&L"
