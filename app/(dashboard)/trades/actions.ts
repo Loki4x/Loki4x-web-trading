@@ -16,11 +16,15 @@ export async function addTrade(formData: FormData) {
   const exitPrice = exitPriceRaw ? Number(exitPriceRaw) : null;
   const pipsRaw = formData.get("pips");
   const pips = pipsRaw && String(pipsRaw).length > 0 ? Number(pipsRaw) : null;
+  const pnlManualRaw = formData.get("pnl_manual");
+  const pnlManual = pnlManualRaw && String(pnlManualRaw).length > 0 ? Number(pnlManualRaw) : null;
   const side = String(formData.get("side"));
-  const status = exitPrice !== null ? "CLOSED" : "OPEN";
+  const status = exitPrice !== null || pnlManual !== null ? "CLOSED" : "OPEN";
 
   let pnl: number | null = null;
-  if (exitPrice !== null) {
+  if (pnlManual !== null) {
+    pnl = pnlManual;
+  } else if (exitPrice !== null) {
     pnl = side === "BUY" ? exitPrice - entryPrice : entryPrice - exitPrice;
   }
 
@@ -34,6 +38,7 @@ export async function addTrade(formData: FormData) {
 
   await supabase.from("trades").insert({
     user_id: user.id,
+    account_id: String(formData.get("account_id")),
     symbol: String(formData.get("symbol")).toUpperCase(),
     side,
     entry_price: entryPrice,
@@ -43,6 +48,7 @@ export async function addTrade(formData: FormData) {
     trade_date: String(formData.get("trade_date")),
     status,
     notes: String(formData.get("notes") ?? ""),
+    confluence: String(formData.get("confluence") ?? ""),
     before_photo_url: beforePhotoUrl,
     after_photo_url: afterPhotoUrl,
   });
