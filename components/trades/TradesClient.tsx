@@ -11,7 +11,15 @@ import type { Trade, TradeSide, TradeStatus } from "@/lib/types";
 type SideFilter = "ALL" | TradeSide;
 type StatusFilter = "ALL" | TradeStatus;
 
-export function TradesClient({ trades, openModal }: { trades: Trade[]; openModal?: boolean }) {
+export function TradesClient({
+  trades,
+  openModal,
+  accountId,
+}: {
+  trades: Trade[];
+  openModal?: boolean;
+  accountId: string;
+}) {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<SideFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
@@ -77,7 +85,7 @@ export function TradesClient({ trades, openModal }: { trades: Trade[]; openModal
 
       <TradesTable trades={filtered} />
 
-      {modalOpen && <AddTradeModal onClose={() => setModalOpen(false)} />}
+      {modalOpen && <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} />}
     </div>
   );
 }
