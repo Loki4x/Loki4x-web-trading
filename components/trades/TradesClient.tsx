@@ -1,29 +1,41 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Wallet } from "lucide-react";
 import { TradesTable } from "@/components/trades/TradesTable";
 import { AddTradeModal } from "@/components/trades/AddTradeModal";
+import { ManageAccountsModal } from "@/components/accounts/ManageAccountsModal";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { formatCurrency } from "@/lib/utils";
-import type { Trade, TradeSide, TradeStatus } from "@/lib/types";
+import type { Trade, TradeSide, TradeStatus, TradingAccount } from "@/lib/types";
 
 type SideFilter = "ALL" | TradeSide;
 type StatusFilter = "ALL" | TradeStatus;
+
+interface TradeSummary {
+  account_id: string | null;
+  pnl: number | null;
+  status: string;
+}
 
 export function TradesClient({
   trades,
   openModal,
   accountId,
+  accounts,
+  allTradesSummary,
 }: {
   trades: Trade[];
   openModal?: boolean;
   accountId: string;
+  accounts: TradingAccount[];
+  allTradesSummary: TradeSummary[];
 }) {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<SideFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [modalOpen, setModalOpen] = useState(!!openModal);
+  const [accountsModalOpen, setAccountsModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return trades.filter((t) => {
@@ -49,6 +61,13 @@ export function TradesClient({
         <button onClick={() => setModalOpen(true)} className="btn-primary text-body-sm">
           <Plus className="h-4 w-4" />
           Add Manual Trade
+        </button>
+      </div>
+
+      <div className="mb-6 flex justify-end">
+        <button onClick={() => setAccountsModalOpen(true)} className="btn-secondary text-body-sm">
+          <Wallet className="h-4 w-4" />
+          Kelola Akun
         </button>
       </div>
 
@@ -86,6 +105,13 @@ export function TradesClient({
       <TradesTable trades={filtered} />
 
       {modalOpen && <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} />}
+      {accountsModalOpen && (
+        <ManageAccountsModal
+          accounts={accounts}
+          trades={allTradesSummary}
+          onClose={() => setAccountsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
