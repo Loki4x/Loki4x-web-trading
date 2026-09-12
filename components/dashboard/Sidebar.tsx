@@ -19,7 +19,6 @@ import {
   Calculator,
   GraduationCap,
   CircleUserRound,
-  Wallet,
 } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
@@ -45,7 +44,6 @@ const groups = [
       { href: "/reports", label: "Report & Performance", icon: BarChart3 },
       { href: "/calculator", label: "Lot Calculator", icon: Calculator },
       { href: "/news", label: "Economic News", icon: Newspaper },
-      { href: "/accounts", label: "Akun Journaling", icon: Wallet },
     ],
   },
   {
