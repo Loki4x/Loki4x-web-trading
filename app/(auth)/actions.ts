@@ -30,7 +30,6 @@ export async function signup(formData: FormData) {
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback`,
     },
   });
 
@@ -38,5 +37,41 @@ export async function signup(formData: FormData) {
     redirect(`/signup?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/login?confirmEmail=1");
+  redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
+}
+
+export async function verifyOtp(formData: FormData) {
+  const supabase = await createClient();
+
+  const email = String(formData.get("email") ?? "");
+  const token = String(formData.get("token") ?? "");
+
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
+
+  if (error) {
+    redirect(`/verify-otp?email=${encodeURIComponent(email)}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect("/dashboard");
+}
+
+export async function resendOtp(formData: FormData) {
+  const supabase = await createClient();
+
+  const email = String(formData.get("email") ?? "");
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+  });
+
+  if (error) {
+    redirect(`/verify-otp?email=${encodeURIComponent(email)}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect(`/verify-otp?email=${encodeURIComponent(email)}&resent=1`);
 }
