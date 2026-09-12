@@ -1,5 +1,5 @@
 import { AuthCard } from "@/components/auth/AuthCard";
-import { Input } from "@/components/ui/Input";
+import { OtpInput } from "@/components/auth/OtpInput";
 import { Button } from "@/components/ui/Button";
 import { verifyOtp, resendOtp } from "@/app/(auth)/actions";
 
@@ -27,19 +27,10 @@ export default function VerifyOtpPage({
         </p>
       )}
 
-      <form action={verifyOtp} className="flex flex-col gap-4">
+      <form action={verifyOtp} className="flex flex-col gap-6">
         <input type="hidden" name="email" value={email} />
-        <Input
-          id="token"
-          name="token"
-          type="text"
-          label="Kode OTP"
-          placeholder="123456"
-          inputMode="numeric"
-          maxLength={6}
-          required
-        />
-        <Button type="submit" withArrow className="mt-2 w-full justify-center">
+        <OtpInput />
+        <Button type="submit" withArrow className="w-full justify-center">
           Verifikasi
         </Button>
       </form>
