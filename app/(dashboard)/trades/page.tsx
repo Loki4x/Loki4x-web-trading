@@ -13,7 +13,7 @@ export default async function TradesPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { activeAccount } = await resolveActiveAccount(supabase, user?.id ?? "", searchParams.account);
+  const { accounts, activeAccount } = await resolveActiveAccount(supabase, user?.id ?? "", searchParams.account);
 
   const { data: trades } = await supabase
     .from("trades")
@@ -22,12 +22,19 @@ export default async function TradesPage({
     .eq("account_id", activeAccount.id)
     .order("trade_date", { ascending: false });
 
+  const { data: allTradesSummary } = await supabase
+    .from("trades")
+    .select("account_id, pnl, status")
+    .eq("user_id", user?.id ?? "");
+
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <TradesClient
         trades={(trades ?? []) as Trade[]}
         openModal={searchParams.add === "1"}
         accountId={activeAccount.id}
+        accounts={accounts}
+        allTradesSummary={allTradesSummary ?? []}
       />
     </main>
   );
