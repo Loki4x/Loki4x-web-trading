@@ -10,7 +10,7 @@ async function scrape() {
   const browser = await chromium.launch();
   const page = await browser.newPage();
 
-  await page.goto("https://www.investing.com/economic-calendar/", {
+  await page.goto("https://www.myfxbook.com/forex-economic-calendar", {
     waitUntil: "networkidle",
     timeout: 30000,
   });
@@ -18,15 +18,15 @@ async function scrape() {
   console.log("Judul halaman:", await page.title());
   await page.screenshot({ path: "debug-screenshot.png", fullPage: true });
 
-  const events = await page.$$eval("tr.js-event-item", (rows) =>
+  const events = await page.$$eval("tr.economicCalendarRow", (rows) =>
     rows.map((row) => ({
-      event_time: row.getAttribute("data-event-datetime"),
-      country: row.querySelector(".flagCur")?.textContent?.trim() ?? "",
-      event_name: row.querySelector(".event")?.textContent?.trim() ?? "",
-      importance: row.querySelectorAll(".grayFullBullishIcon").length,
-      actual: row.querySelector(".act")?.textContent?.trim() ?? "",
-      forecast: row.querySelector(".fore")?.textContent?.trim() ?? "",
-      previous: row.querySelector(".prev")?.textContent?.trim() ?? "",
+      event_time: row.getAttribute("data-event-datetime") ?? "",
+      country: row.querySelector(".flag")?.getAttribute("title") ?? "",
+      event_name: row.querySelector(".left")?.textContent?.trim() ?? "",
+      importance: row.querySelectorAll(".volatility span.on").length,
+      actual: row.querySelector(".actual")?.textContent?.trim() ?? "",
+      forecast: row.querySelector(".consensus")?.textContent?.trim() ?? "",
+      previous: row.querySelector(".previous")?.textContent?.trim() ?? "",
     }))
   );
 
