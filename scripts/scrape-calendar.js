@@ -12,7 +12,11 @@ async function scrape() {
 
   await page.goto("https://www.investing.com/economic-calendar/", {
     waitUntil: "networkidle",
+    timeout: 30000,
   });
+
+  console.log("Judul halaman:", await page.title());
+  await page.screenshot({ path: "debug-screenshot.png", fullPage: true });
 
   const events = await page.$$eval("tr.js-event-item", (rows) =>
     rows.map((row) => ({
