@@ -13,7 +13,7 @@ export function Navbar() {
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-topbar max-w-content items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="Loki4x Academy" width={32} height={32} className="rounded-full" />
+          <Image src="/logo.png" alt="Loki4x Academy" width={40} height={40} className="rounded-full" />
           <span className="text-body font-display font-extrabold tracking-wide text-text-primary">
             LOKI4X ACADEMY
           </span>
