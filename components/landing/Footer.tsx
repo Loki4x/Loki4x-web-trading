@@ -6,8 +6,8 @@ const legal = [
 ];
 
 const socials = [
-  { href: "https://twitter.com", label: "Twitter" },
-  { href: "https://instagram.com", label: "Instagram" },
+  { href: "https://t.me/LokiForex", label: "Telegram" },
+  { href: "https://www.tiktok.com/@lokiforex?_r=1&_t=ZS-99lRHOmRZht", label: "TikTok" },
 ];
 
 export function Footer() {
