@@ -18,7 +18,7 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-lg text-body-lg text-text-secondary">
-            Loki4x keeps your entries, exits and reasoning in one disciplined
+            Loki4x Academy keeps your entries, exits and reasoning in one disciplined
             journal, next to the economic releases that actually move price.
           </p>
 
