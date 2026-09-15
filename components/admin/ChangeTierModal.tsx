@@ -22,7 +22,7 @@ export function ChangeTierModal({ user, onClose }: { user: Profile; onClose: () 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-h3 text-text-primary">Change Tier</h2>
