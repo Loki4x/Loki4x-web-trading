@@ -56,7 +56,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t border-border pt-6">
-          <p className="text-body-sm text-text-muted">© 2026 Loki4x. All rights reserved.</p>
+          <p className="text-body-sm text-text-muted">© 2026 Loki4x Academy. All rights reserved.</p>
         </div>
       </div>
     </footer>
