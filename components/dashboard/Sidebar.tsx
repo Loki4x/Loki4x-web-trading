@@ -82,9 +82,9 @@ export function Sidebar({ isAdmin, accounts = [] }: { isAdmin?: boolean; account
 
   const brand = (
     <div className="flex items-center gap-2.5">
-      <Image src="/logo.png" alt="Loki4x" width={32} height={32} className="rounded-full" />
+      <Image src="/logo.png" alt="Loki4x Academy" width={32} height={32} className="rounded-full" />
       <span className="text-body font-display font-extrabold tracking-wide text-text-primary">
-        LOKI4X TRADER
+        LOKI4X ACADEMY
       </span>
     </div>
   );
