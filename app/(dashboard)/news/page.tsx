@@ -1,18 +1,18 @@
-import { createClient } from "@/lib/supabase/server";
-import { NewsTable } from "@/components/news/NewsTable";
-import type { NewsEvent } from "@/lib/types";
+import { EconomicCalendarWidget } from "@/components/news/EconomicCalendarWidget";
 
-export default async function NewsPage() {
-  const supabase = await createClient();
-
-  const { data: news } = await supabase
-    .from("news")
-    .select("*")
-    .order("release_time", { ascending: true });
-
+export default function NewsPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-8">
-      <NewsTable events={(news ?? []) as NewsEvent[]} />
+      <div className="mb-6">
+        <h1 className="text-h2 text-text-primary">Economic Calendar &amp; Market News</h1>
+        <p className="text-body-sm text-text-secondary">
+          Powered by TradingView — update otomatis secara real-time.
+        </p>
+      </div>
+
+      <div className="card !p-2">
+        <EconomicCalendarWidget />
+      </div>
     </main>
   );
 }
