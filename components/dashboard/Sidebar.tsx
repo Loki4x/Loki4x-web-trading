@@ -60,6 +60,7 @@ const groups = [
 export function Sidebar({ isAdmin, accounts = [] }: { isAdmin?: boolean; accounts?: TradingAccount[] }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     "Analisa Market": true,
     "Trading Tools": true,
@@ -96,9 +97,41 @@ export function Sidebar({ isAdmin, accounts = [] }: { isAdmin?: boolean; account
         <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label="Open menu">
           <Menu className="h-6 w-6" />
         </button>
-        <Link href="/settings" className="ml-auto text-text-primary" aria-label="Profile & Settings">
-          <CircleUserRound className="h-6 w-6" />
-        </Link>
+
+        <div className="relative ml-auto">
+          <button
+            onClick={() => setProfileOpen((prev) => !prev)}
+            className="text-text-primary"
+            aria-label="Profile & Settings"
+          >
+            <CircleUserRound className="h-6 w-6" />
+          </button>
+
+          {profileOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+              <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-border bg-surface p-2 shadow-lg">
+                <Link
+                  href="/settings"
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                >
+                  <CircleUserRound className="h-4 w-4" />
+                  Settings
+                </Link>
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-error"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mobile overlay */}
