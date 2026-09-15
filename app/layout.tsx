@@ -21,7 +21,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Loki4x — Trading Journal & Market News",
+  title: "Loki4x Academy — Trading Journal & Market News",
   description:
     "Log your trades with discipline and stay ahead of high-impact market news, all in one focused dark workspace.",
 };
