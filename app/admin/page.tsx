@@ -68,7 +68,7 @@ export default async function AdminDashboardPage() {
     id: `signup-${p.id}`,
     type: "signup",
     title: p.full_name || p.email || "New user",
-    subtitle: "Joined Loki4x",
+    subtitle: "Joined Loki4x Academy",
     timestamp: timeAgo(p.created_at),
   }));
   const tradeItems: ActivityItem[] = allTrades.slice(0, 5).map((t) => {
