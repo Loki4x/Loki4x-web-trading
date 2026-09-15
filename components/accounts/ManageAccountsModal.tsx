@@ -54,7 +54,7 @@ export function ManageAccountsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-h3 text-text-primary">Kelola Akun Journaling</h2>
