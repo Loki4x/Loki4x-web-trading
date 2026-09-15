@@ -5,7 +5,7 @@ const modules = [
     icon: NotebookPen,
     title: "Seamless trade logging",
     description:
-      "Record every entry and exit in seconds. Loki4x tracks your win rate, risk-reward, and running P&L as you go, so the numbers are always current.",
+      "Record every entry and exit in seconds. Loki4x Academy tracks your win rate, risk-reward, and running P&L as you go, so the numbers are always current.",
     points: ["Win / loss breakdown", "Risk-reward per trade", "Running P&L and balance"],
   },
   {
