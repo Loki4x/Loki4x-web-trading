@@ -11,6 +11,7 @@ import { signOut } from "@/app/(dashboard)/actions";
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/vip-requests", label: "VIP Requests", icon: BadgeCheck },
   { href: "/admin/signals", label: "Signals", icon: LineChart },
   { href: "/admin/positioning", label: "Positioning", icon: Compass },
   { href: "/admin/news", label: "Economic News", icon: Newspaper },
