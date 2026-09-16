@@ -16,7 +16,7 @@ async function assertIsAdmin() {
   return supabase;
 }
 
-export async function updateUserTier(userId: string, tier: "FREE" | "VIP", vipExpiresAt: string | null) {
+export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEMBERSHIP", vipExpiresAt: string | null) {
   const supabase = await assertIsAdmin();
 
   await supabase
