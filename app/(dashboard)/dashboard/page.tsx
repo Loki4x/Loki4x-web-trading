@@ -4,8 +4,13 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { EquityChart } from "@/components/dashboard/EquityChart";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
+import { UpgradeBanner } from "@/components/dashboard/UpgradeBanner";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { UpgradeOffers } from "@/components/dashboard/UpgradeOffers";
+import { UpgradeHistory } from "@/components/dashboard/UpgradeHistory";
 import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
-import type { NewsEvent, Trade } from "@/lib/types";
+import type { NewsEvent, Trade, VipIbRequest } from "@/lib/types";
+import type { Tier } from "@/lib/tier";
 import { Wallet, TrendingUp, Percent, Hash, Target, Trophy } from "lucide-react";
 
 export default async function DashboardOverviewPage({
@@ -19,8 +24,8 @@ export default async function DashboardOverviewPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { activeAccount }, { data: news }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", user?.id ?? "").single(),
+  const [{ data: profile }, { activeAccount }, { data: news }, { data: vipRequests }] = await Promise.all([
+    supabase.from("profiles").select("full_name, tier").eq("id", user?.id ?? "").single(),
     resolveActiveAccount(supabase, user?.id ?? "", searchParams.account),
     supabase
       .from("news")
@@ -29,6 +34,11 @@ export default async function DashboardOverviewPage({
       .gte("release_time", new Date().toISOString())
       .order("release_time", { ascending: true })
       .limit(5),
+    supabase
+      .from("vip_ib_requests")
+      .select("*")
+      .eq("user_id", user?.id ?? "")
+      .order("created_at", { ascending: false }),
   ]);
 
   const { data: trades } = await supabase
@@ -68,6 +78,22 @@ export default async function DashboardOverviewPage({
   }
 
   const userName = profile?.full_name?.split(" ")[0] ?? "Trader";
+  const tier = (profile?.tier ?? "FREE") as Tier;
+
+  const onboardingSteps = [
+    {
+      label: "Catat trade pertama kamu",
+      description: "Mulai isi Trade Journal",
+      done: allTrades.length > 0,
+      href: "/trades?add=1",
+    },
+    {
+      label: "Upgrade buat buka semua fitur",
+      description: "Unlock Signals, Journal, Academy, dan lainnya",
+      done: tier !== "FREE",
+      href: "/upgrade",
+    },
+  ];
 
   return (
     <div>
@@ -80,6 +106,8 @@ export default async function DashboardOverviewPage({
             {activeAccount.name}
           </span>
         </div>
+
+        <UpgradeBanner tier={tier} />
 
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiCard
@@ -113,6 +141,16 @@ export default async function DashboardOverviewPage({
           </div>
           <div>
             <NewsWidget events={(news ?? []) as NewsEvent[]} />
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <OnboardingChecklist steps={onboardingSteps} />
+            <UpgradeOffers tier={tier} />
+          </div>
+          <div>
+            <UpgradeHistory requests={(vipRequests ?? []) as VipIbRequest[]} />
           </div>
         </div>
       </main>
