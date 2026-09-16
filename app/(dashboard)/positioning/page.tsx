@@ -1,7 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { PositioningBars } from "@/components/positioning/PositioningBars";
+import { getCurrentUserTier, hasAccess } from "@/lib/tier";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 
 export default async function PositioningPage() {
+  const tier = await getCurrentUserTier();
+  if (!hasAccess(tier, "VIP")) {
+    return <AccessDenied requiredTier="VIP" />;
+  }
+
   const supabase = await createClient();
   const { data: positioning } = await supabase
     .from("positioning")
