@@ -11,6 +11,7 @@ import {
   BarChart3,
   LogOut,
   ShieldCheck,
+  Crown,
   Menu,
   X,
   ChevronDown,
