@@ -171,3 +171,28 @@ export async function deleteNewsEvent(id: string) {
   revalidatePath("/admin/news");
   revalidatePath("/news");
 }
+
+export async function approveVipRequest(requestId: string, userId: string) {
+  const supabase = await assertIsAdmin();
+
+  await supabase
+    .from("vip_ib_requests")
+    .update({ status: "APPROVED", reviewed_at: new Date().toISOString() })
+    .eq("id", requestId);
+
+  await supabase.from("profiles").update({ tier: "VIP" }).eq("id", userId);
+
+  revalidatePath("/admin/vip-requests");
+  revalidatePath("/upgrade");
+}
+
+export async function rejectVipRequest(requestId: string) {
+  const supabase = await assertIsAdmin();
+
+  await supabase
+    .from("vip_ib_requests")
+    .update({ status: "REJECTED", reviewed_at: new Date().toISOString() })
+    .eq("id", requestId);
+
+  revalidatePath("/admin/vip-requests");
+}
