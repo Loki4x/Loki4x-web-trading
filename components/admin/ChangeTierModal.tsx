@@ -9,13 +9,13 @@ import type { Profile } from "@/lib/types";
 
 export function ChangeTierModal({ user, onClose }: { user: Profile; onClose: () => void }) {
   const router = useRouter();
-  const [tier, setTier] = useState<"FREE" | "VIP">(user.tier);
+  const [tier, setTier] = useState<"FREE" | "VIP" | "MEMBERSHIP">(user.tier);
   const [expiresAt, setExpiresAt] = useState(user.vip_expires_at?.slice(0, 10) ?? "");
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
     setSaving(true);
-    await updateUserTier(user.id, tier, tier === "VIP" ? expiresAt || null : null);
+    await updateUserTier(user.id, tier, tier !== "FREE" ? expiresAt || null : null);
     router.refresh();
     setSaving(false);
     onClose();
@@ -38,13 +38,14 @@ export function ChangeTierModal({ user, onClose }: { user: Profile; onClose: () 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Tier</label>
-            <select value={tier} onChange={(e) => setTier(e.target.value as "FREE" | "VIP")} className="input-field">
+            <select value={tier} onChange={(e) => setTier(e.target.value as "FREE" | "VIP" | "MEMBERSHIP")} className="input-field">
               <option value="FREE">FREE</option>
               <option value="VIP">VIP</option>
+              <option value="MEMBERSHIP">MEMBERSHIP</option>
             </select>
           </div>
 
-          {tier === "VIP" && (
+          {tier !== "FREE" && (
             <div className="flex flex-col gap-2">
               <label className="text-body-sm font-medium text-text-secondary">VIP Expires On (optional)</label>
               <input
