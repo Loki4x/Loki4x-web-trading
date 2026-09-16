@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { VideoGrid } from "@/components/academy/VideoGrid";
+import { getCurrentUserTier, hasAccess } from "@/lib/tier";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 
 const categoryMap: Record<string, { db: string; title: string; subtitle: string }> = {
   technical: {
@@ -21,6 +23,11 @@ const categoryMap: Record<string, { db: string; title: string; subtitle: string 
 };
 
 export default async function AcademyCategoryPage({ params }: { params: { category: string } }) {
+  const tier = await getCurrentUserTier();
+  if (!hasAccess(tier, "MEMBERSHIP")) {
+    return <AccessDenied requiredTier="MEMBERSHIP" />;
+  }
+
   const meta = categoryMap[params.category];
   if (!meta) notFound();
 
