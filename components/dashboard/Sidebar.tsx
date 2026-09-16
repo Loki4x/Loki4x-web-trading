@@ -25,7 +25,10 @@ import { signOut } from "@/app/(dashboard)/actions";
 import { AccountSwitcher } from "@/components/accounts/AccountSwitcher";
 import type { TradingAccount } from "@/lib/types";
 
-const topLinks = [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }];
+ const topLinks = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/upgrade", label: "Upgrade", icon: Crown },
+];
 
 const groups = [
   {
