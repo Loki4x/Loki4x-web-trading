@@ -47,7 +47,7 @@ export function ChangeTierModal({ user, onClose }: { user: Profile; onClose: () 
 
           {tier !== "FREE" && (
             <div className="flex flex-col gap-2">
-              <label className="text-body-sm font-medium text-text-secondary">VIP Expires On (optional)</label>
+              <label className="text-body-sm font-medium text-text-secondary">Expires On (optional)</label>
               <input
                 type="date"
                 value={expiresAt}
