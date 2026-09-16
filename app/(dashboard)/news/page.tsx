@@ -1,6 +1,13 @@
 import { EconomicCalendarWidget } from "@/components/news/EconomicCalendarWidget";
+import { getCurrentUserTier, hasAccess } from "@/lib/tier";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  const tier = await getCurrentUserTier();
+  if (!hasAccess(tier, "MEMBERSHIP")) {
+    return <AccessDenied requiredTier="MEMBERSHIP" />;
+  }
+
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
