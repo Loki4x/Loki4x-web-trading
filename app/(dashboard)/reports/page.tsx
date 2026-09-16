@@ -4,12 +4,19 @@ import { KpiCard } from "@/components/dashboard/KpiCard";
 import { BreakdownChart } from "@/components/dashboard/BreakdownChart";
 import { formatCurrency } from "@/lib/utils";
 import type { Trade } from "@/lib/types";
+import { getCurrentUserTier, hasAccess } from "@/lib/tier";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 
 export default async function ReportsPage({
   searchParams,
 }: {
   searchParams: { account?: string };
 }) {
+  const tier = await getCurrentUserTier();
+  if (!hasAccess(tier, "MEMBERSHIP")) {
+    return <AccessDenied requiredTier="MEMBERSHIP" />;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
