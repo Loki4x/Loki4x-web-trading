@@ -23,7 +23,7 @@ export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEM
     .from("profiles")
     .update({
       tier,
-      vip_expires_at: tier === "VIP" ? vipExpiresAt : null,
+      vip_expires_at: tier !== "FREE" ? vipExpiresAt : null,
     })
     .eq("id", userId);
 
