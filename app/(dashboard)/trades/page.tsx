@@ -2,12 +2,19 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveActiveAccount } from "@/lib/accounts";
 import { TradesClient } from "@/components/trades/TradesClient";
 import type { Trade } from "@/lib/types";
+import { getCurrentUserTier, hasAccess } from "@/lib/tier";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 
 export default async function TradesPage({
   searchParams,
 }: {
   searchParams: { add?: string; account?: string };
 }) {
+  const tier = await getCurrentUserTier();
+  if (!hasAccess(tier, "MEMBERSHIP")) {
+    return <AccessDenied requiredTier="MEMBERSHIP" />;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
