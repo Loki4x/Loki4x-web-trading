@@ -75,3 +75,14 @@ export interface Positioning {
   short_percent: number;
   updated_at: string;
 }
+
+export interface VipIbRequest {
+  id: string;
+  user_id: string;
+  broker_email: string;
+  trading_account_id: string;
+  first_deposit: number;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  created_at: string;
+  reviewed_at: string | null;
+}
