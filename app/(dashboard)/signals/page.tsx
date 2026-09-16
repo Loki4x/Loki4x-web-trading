@@ -1,7 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { SignalsList } from "@/components/signals/SignalsList";
+import { getCurrentUserTier, hasAccess } from "@/lib/tier";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 
 export default async function SignalsPage() {
+  const tier = await getCurrentUserTier();
+  if (!hasAccess(tier, "VIP")) {
+    return <AccessDenied requiredTier="VIP" />;
+  }
+
   const supabase = await createClient();
   const { data: signals } = await supabase
     .from("signals")
