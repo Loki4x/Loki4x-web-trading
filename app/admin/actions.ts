@@ -226,8 +226,14 @@ export async function sendAdminNotification(formData: FormData) {
   const title = String(formData.get("title"));
   const message = String(formData.get("message"));
 
+  const channelValue = String(formData.get("channel") ?? "BOTH");
+  const channels = {
+    website: channelValue === "BOTH" || channelValue === "WEBSITE",
+    email: channelValue === "BOTH" || channelValue === "EMAIL",
+  };
+
   if (target === "ALL") {
-    await notifyAllUsers({ type: "ANNOUNCEMENT", title, message });
+    await notifyAllUsers({ type: "ANNOUNCEMENT", title, message, channels });
     return { message: "Notifikasi terkirim ke semua user." };
   }
 
@@ -244,6 +250,7 @@ export async function sendAdminNotification(formData: FormData) {
     type: "ANNOUNCEMENT",
     title,
     message,
+    channels,
   });
 
   return { message: `Notifikasi terkirim ke ${email}.` };
