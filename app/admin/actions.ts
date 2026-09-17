@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { notifyUser, notifyAllUsers } from "@/lib/notifications";
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -19,6 +20,8 @@ async function assertIsAdmin() {
 export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEMBERSHIP", vipExpiresAt: string | null) {
   const supabase = await assertIsAdmin();
 
+  const { data: targetProfile } = await supabase.from("profiles").select("email, tier").eq("id", userId).single();
+
   await supabase
     .from("profiles")
     .update({
@@ -27,10 +30,19 @@ export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEM
     })
     .eq("id", userId);
 
+  if ((tier === "VIP" || tier === "MEMBERSHIP") && targetProfile?.tier !== tier) {
+    await notifyUser({
+      userId,
+      email: targetProfile?.email ?? null,
+      type: "TIER_UPGRADE",
+      title: `Selamat! Akun kamu sekarang ${tier}`,
+      message: `Akun kamu berhasil di-upgrade ke tier ${tier}. Nikmati semua fitur yang terbuka sekarang!`,
+    });
+  }
+
   revalidatePath("/admin/users");
   revalidatePath("/admin");
 }
-
 export async function toggleSuspend(userId: string, suspend: boolean) {
   const supabase = await assertIsAdmin();
 
@@ -180,7 +192,17 @@ export async function approveVipRequest(requestId: string, userId: string) {
     .update({ status: "APPROVED", reviewed_at: new Date().toISOString() })
     .eq("id", requestId);
 
+  const { data: targetProfile } = await supabase.from("profiles").select("email").eq("id", userId).single();
+
   await supabase.from("profiles").update({ tier: "VIP" }).eq("id", userId);
+
+  await notifyUser({
+    userId,
+    email: targetProfile?.email ?? null,
+    type: "TIER_UPGRADE",
+    title: "Selamat! Akun kamu sekarang VIP",
+    message: "Pengajuan upgrade VIP kamu disetujui. Nikmati Signals & Positioning sekarang!",
+  });
 
   revalidatePath("/admin/vip-requests");
   revalidatePath("/upgrade");
@@ -195,4 +217,34 @@ export async function rejectVipRequest(requestId: string) {
     .eq("id", requestId);
 
   revalidatePath("/admin/vip-requests");
+}
+
+export async function sendAdminNotification(formData: FormData) {
+  const supabase = await assertIsAdmin();
+
+  const target = String(formData.get("target"));
+  const title = String(formData.get("title"));
+  const message = String(formData.get("message"));
+
+  if (target === "ALL") {
+    await notifyAllUsers({ type: "ANNOUNCEMENT", title, message });
+    return { message: "Notifikasi terkirim ke semua user." };
+  }
+
+  const email = String(formData.get("email") ?? "");
+  const { data: targetProfile } = await supabase.from("profiles").select("id, email").eq("email", email).single();
+
+  if (!targetProfile) {
+    return { message: "User dengan email itu nggak ketemu." };
+  }
+
+  await notifyUser({
+    userId: targetProfile.id,
+    email: targetProfile.email,
+    type: "ANNOUNCEMENT",
+    title,
+    message,
+  });
+
+  return { message: `Notifikasi terkirim ke ${email}.` };
 }
