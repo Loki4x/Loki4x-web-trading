@@ -11,10 +11,12 @@ export interface CalendarEvent {
   actual: string;
 }
 
+type WeekPeriod = "lastweek" | "thisweek" | "nextweek";
+
 // Unofficial weekly export feed used by many EAs/indicators (no API key required).
-// ForexFactory rate-limits this endpoint, so it's fetched with Next.js's fetch cache
-// (revalidate below) rather than on every request.
-const FEED_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
+// It only ever offers last/this/next week — there's no arbitrary date-range
+// endpoint — so we fetch all three and merge them for a ~3-week browsable window.
+const FEED_BASE_URL = "https://nfs.faireconomy.media/ff_calendar_";
 
 function normalizeImpact(raw: unknown): CalendarImpact {
   const value = String(raw ?? "").toLowerCase();
@@ -24,9 +26,9 @@ function normalizeImpact(raw: unknown): CalendarImpact {
   return "HOLIDAY";
 }
 
-export async function getEconomicCalendar(): Promise<CalendarEvent[]> {
+async function fetchWeek(period: WeekPeriod): Promise<CalendarEvent[]> {
   try {
-    const res = await fetch(FEED_URL, {
+    const res = await fetch(`${FEED_BASE_URL}${period}.json`, {
       next: { revalidate: 300 }, // 5 minutes — keeps us well under FF's rate limit
       headers: {
         Accept: "application/json",
@@ -50,7 +52,7 @@ export async function getEconomicCalendar(): Promise<CalendarEvent[]> {
         if (!title || !dateISO || Number.isNaN(new Date(dateISO).getTime())) return null;
 
         return {
-          id: `${dateISO}-${index}`,
+          id: `${period}-${dateISO}-${index}`,
           title,
           currency: String(record?.country ?? "").toUpperCase(),
           impact: normalizeImpact(record?.impact),
@@ -60,10 +62,31 @@ export async function getEconomicCalendar(): Promise<CalendarEvent[]> {
           actual: String(record?.actual ?? "").trim(),
         };
       })
-      .filter((event): event is CalendarEvent => event !== null)
-      .sort((a, b) => new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime());
+      .filter((event): event is CalendarEvent => event !== null);
   } catch {
     return [];
   }
 }
 
+/**
+ * Fetches last/this/next week and merges them into one deduplicated, sorted
+ * list, so the calendar page can offer a date picker instead of just "this week".
+ */
+export async function getEconomicCalendarRange(): Promise<CalendarEvent[]> {
+  const [last, current, next] = await Promise.all([
+    fetchWeek("lastweek"),
+    fetchWeek("thisweek"),
+    fetchWeek("nextweek"),
+  ]);
+
+  const seen = new Set<string>();
+  const merged: CalendarEvent[] = [];
+  for (const event of [...last, ...current, ...next]) {
+    const key = `${event.dateISO}|${event.title}|${event.currency}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(event);
+  }
+
+  return merged.sort((a, b) => new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime());
+}
