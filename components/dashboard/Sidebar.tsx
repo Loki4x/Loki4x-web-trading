@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
-import { AccountControl } from "@/components/accounts/AccountControl";
 import type { TradingAccount } from "@/lib/types";
 
  const topLinks = [
@@ -61,15 +60,7 @@ const groups = [
   },
 ];
 
-export function Sidebar({
-  isAdmin,
-  accounts = [],
-  tradesSummary = [],
-}: {
-  isAdmin?: boolean;
-  accounts?: TradingAccount[];
-  tradesSummary?: { account_id: string | null; pnl: number | null; status: string }[];
-}) {
+export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -165,8 +156,6 @@ export function Sidebar({
             <X className="h-5 w-5" />
           </button>
         </div>
-
-        <AccountControl accounts={accounts} tradesSummary={tradesSummary} />
 
         <nav className="flex flex-1 flex-col gap-1">
           {topLinks.map(({ href, label, icon: Icon }) => (
