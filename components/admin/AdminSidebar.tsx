@@ -16,6 +16,7 @@ const links = [
   { href: "/admin/positioning", label: "Positioning", icon: Compass },
   { href: "/admin/news", label: "Economic News", icon: Newspaper },
   { href: "/admin/academy", label: "Academy", icon: GraduationCap },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell },
 ];
 
 export function AdminSidebar() {
