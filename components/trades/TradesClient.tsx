@@ -4,13 +4,20 @@ import { useMemo, useState } from "react";
 import { Search, Plus, Wallet, TrendingUp, Percent, Hash, Target, Trophy } from "lucide-react";
 import { TradesTable } from "@/components/trades/TradesTable";
 import { AddTradeModal } from "@/components/trades/AddTradeModal";
+import { AccountControl } from "@/components/accounts/AccountControl";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { EquityChart } from "@/components/dashboard/EquityChart";
 import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
-import type { Trade, TradeSide, TradeStatus } from "@/lib/types";
+import type { Trade, TradeSide, TradeStatus, TradingAccount } from "@/lib/types";
 
 type SideFilter = "ALL" | TradeSide;
 type StatusFilter = "ALL" | TradeStatus;
+
+interface TradeSummary {
+  account_id: string | null;
+  pnl: number | null;
+  status: string;
+}
 
 interface Stats {
   todayPnl: number;
@@ -26,12 +33,16 @@ export function TradesClient({
   trades,
   openModal,
   accountId,
+  accounts,
+  allTradesSummary,
   stats,
   equityData,
 }: {
   trades: Trade[];
   openModal?: boolean;
   accountId: string;
+  accounts: TradingAccount[];
+  allTradesSummary: TradeSummary[];
   stats: Stats;
   equityData: { date: string; balance: number }[];
 }) {
@@ -60,6 +71,10 @@ export function TradesClient({
           <Plus className="h-4 w-4" />
           Add Manual Trade
         </button>
+      </div>
+
+      <div className="mb-6 max-w-xs">
+        <AccountControl accounts={accounts} tradesSummary={allTradesSummary} />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
