@@ -13,7 +13,7 @@ export default async function NewsPage() {
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Economic Calendar &amp; Market News</h1>
         <p className="text-body-sm text-text-secondary">
-          Powered by TradingView — update otomatis secara real-time.
+          Powered by MQL5 (Tradays) — update otomatis secara real-time.
         </p>
       </div>
 
