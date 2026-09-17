@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { submitVipRequest } from "@/app/(dashboard)/upgrade/actions";
@@ -18,6 +18,29 @@ const statusClass: Record<VipIbRequest["status"], string> = {
   APPROVED: "text-success",
   REJECTED: "text-error",
 };
+
+// Sama seperti pricing di landing page (components/landing/Pricing.tsx),
+// versi ringkas + copy Indonesia buat halaman upgrade.
+const paidPlans = [
+  {
+    key: "VIP",
+    name: "VIP",
+    price: "$20",
+    period: "/ bulan",
+    features: ["Signals & Track Record", "Market Positioning"],
+    featured: false,
+  },
+  {
+    key: "MEMBERSHIP",
+    name: "Membership",
+    price: "$35",
+    period: "/ bulan",
+    features: ["Semua fitur VIP", "Journal, Reports, Calculator", "Economic Calendar & Academy"],
+    featured: true,
+  },
+];
+
+const ADMIN_CONTACT_LINK = "https://t.me/LokiForex";
 
 export function VipRequestForm({
   ibLink,
@@ -62,8 +85,50 @@ export function VipRequestForm({
       <div className="card">
         <h2 className="text-h3 text-text-primary">Cara 1 — Bayar Langsung</h2>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Upgrade VIP seharga $20 lewat pembayaran langsung. Hubungi admin buat instruksi pembayaran.
+          Pilih paket di bawah, lalu hubungi admin buat instruksi pembayaran.
         </p>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {paidPlans.map((plan) => (
+            <div
+              key={plan.key}
+              className={`relative rounded-2xl border p-5 ${
+                plan.featured ? "border-primary bg-primary-subtle/30" : "border-border bg-surface-2"
+              }`}
+            >
+              {plan.featured && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-caption font-bold uppercase tracking-wide text-text-on-primary">
+                  Paling Populer
+                </span>
+              )}
+
+              <h3 className="text-body font-semibold text-text-primary">{plan.name}</h3>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-h2 font-display font-extrabold text-text-primary">{plan.price}</span>
+                <span className="text-body-sm text-text-muted">{plan.period}</span>
+              </div>
+
+              <ul className="mt-4 flex flex-col gap-2">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-body-sm text-text-secondary">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <a
+          href={ADMIN_CONTACT_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-primary mt-5 inline-flex w-fit items-center gap-2"
+        >
+          Hubungi Admin di Telegram
+          <ExternalLink className="h-4 w-4" />
+        </a>
       </div>
 
       <div className="card">
