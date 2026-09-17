@@ -7,6 +7,7 @@ import { sendAdminNotification } from "@/app/admin/actions";
 
 export function SendNotificationForm() {
   const [target, setTarget] = useState<"ALL" | "SPECIFIC">("ALL");
+  const [channel, setChannel] = useState<"BOTH" | "EMAIL" | "WEBSITE">("BOTH");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -14,6 +15,7 @@ export function SendNotificationForm() {
     setSending(true);
     setResult(null);
     formData.set("target", target);
+    formData.set("channel", channel);
     const res = await sendAdminNotification(formData);
     setResult(res.message);
     setSending(false);
@@ -30,6 +32,19 @@ export function SendNotificationForm() {
       </div>
 
       {target === "SPECIFIC" && <Input name="email" type="email" label="Email User" placeholder="user@example.com" required />}
+
+      <div className="flex flex-col gap-2">
+        <label className="text-body-sm font-medium text-text-secondary">Kirim melalui</label>
+        <select
+          value={channel}
+          onChange={(e) => setChannel(e.target.value as "BOTH" | "EMAIL" | "WEBSITE")}
+          className="input-field"
+        >
+          <option value="BOTH">Email & Notifikasi Website</option>
+          <option value="EMAIL">Email saja</option>
+          <option value="WEBSITE">Notifikasi Website saja</option>
+        </select>
+      </div>
 
       <Input name="title" type="text" label="Judul" placeholder="Pengumuman Penting" required />
 
