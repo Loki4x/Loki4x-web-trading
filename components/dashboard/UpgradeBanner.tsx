@@ -4,8 +4,8 @@ import type { Tier } from "@/lib/tier";
 
 const nextTierCopy: Record<Exclude<Tier, "MEMBERSHIP">, { title: string; desc: string }> = {
   FREE: {
-    title: "Akun kamu masih di paket Free",
-    desc: "Upgrade ke VIP atau Membership buat buka Signals, Positioning, Journal, dan fitur lainnya.",
+    title: "Membership kamu belum aktif",
+    desc: "Ambil paket VIP atau Membership buat unlock Signals, Positioning, Journal, dan fitur lainnya.",
   },
   VIP: {
     title: "Kamu VIP — upgrade ke Membership buat akses penuh",
