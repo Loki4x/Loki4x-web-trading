@@ -21,6 +21,7 @@ import {
   GraduationCap,
   CircleUserRound,
 } from "lucide-react";
+import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 import type { TradingAccount } from "@/lib/types";
@@ -60,7 +61,16 @@ const groups = [
   },
 ];
 
-export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
+interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export function Sidebar({ isAdmin, notifications = [] }: { isAdmin?: boolean; notifications?: NotificationItem[] }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -101,41 +111,44 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
           <Menu className="h-6 w-6" />
         </button>
 
-        <div className="relative ml-auto">
-          <button
-            onClick={() => setProfileOpen((prev) => !prev)}
-            className="text-text-primary"
-            aria-label="Profile & Settings"
-          >
-            <CircleUserRound className="h-6 w-6" />
-          </button>
+        <div className="ml-auto flex items-center gap-4">
+          <NotificationBell notifications={notifications} />
 
-          {profileOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-              <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-border bg-surface p-2 shadow-lg">
-                <Link
-                  href="/settings"
-                  onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
-                >
-                  <CircleUserRound className="h-4 w-4" />
-                  Settings
-                </Link>
-                <form action={signOut}>
-                  <button
-                    type="submit"
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-error"
+          <div className="relative">
+            <button
+              onClick={() => setProfileOpen((prev) => !prev)}
+              className="text-text-primary"
+              aria-label="Profile & Settings"
+            >
+              <CircleUserRound className="h-6 w-6" />
+            </button>
+
+            {profileOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-border bg-surface p-2 shadow-lg">
+                  <Link
+                    href="/settings"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
                   >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </button>
-                </form>
-              </div>
-            </>
-          )}
+                    <CircleUserRound className="h-4 w-4" />
+                    Settings
+                  </Link>
+                  <form action={signOut}>
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-error"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </button>
+                  </form>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
       {/* Mobile overlay */}
       {mobileOpen && (
