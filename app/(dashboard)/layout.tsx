@@ -8,14 +8,31 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser();
 
   let isAdmin = false;
+  let notifications: {
+    id: string;
+    type: string;
+    title: string;
+    message: string;
+    is_read: boolean;
+    created_at: string;
+  }[] = [];
+
   if (user) {
     const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
     isAdmin = !!profile?.is_admin;
+
+    const { data: notifs } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    notifications = notifs ?? [];
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar isAdmin={isAdmin} />
+      <Sidebar isAdmin={isAdmin} notifications={notifications} />
       <div className="pt-topbar lg:pl-sidebar">{children}</div>
     </div>
   );
