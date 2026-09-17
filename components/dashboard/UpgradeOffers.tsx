@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, Zap } from "lucide-react";
 import type { Tier } from "@/lib/tier";
 
 const offers = [
@@ -24,32 +24,42 @@ export function UpgradeOffers({ tier }: { tier: Tier }) {
   const visibleOffers = offers.filter((o) => o.key !== tier);
 
   return (
-    <div className="mb-6">
-      <h2 className="mb-4 text-h3 text-text-primary">Paket Langganan</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="card border-primary/30 bg-primary-subtle/20">
+      <div className="flex items-center gap-2">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15">
+          <Zap className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-caption font-semibold uppercase tracking-wide text-primary">Upgrade Membership</p>
+          <p className="text-body-sm font-semibold text-text-primary">Ambil paket buat unlock semua fitur</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3">
         {visibleOffers.map((offer) => (
-          <div key={offer.key} className="card">
+          <div key={offer.key} className="rounded-lg border border-border bg-surface p-3">
             <div className="flex items-baseline justify-between">
-              <h3 className="text-body font-semibold text-text-primary">{offer.name}</h3>
-              <p className="text-h3 text-text-primary">
+              <p className="text-body-sm font-semibold text-text-primary">{offer.name}</p>
+              <p className="text-body font-semibold text-text-primary">
                 {offer.price}
-                <span className="text-body-sm font-normal text-text-muted">{offer.period}</span>
+                <span className="text-caption font-normal text-text-muted">{offer.period}</span>
               </p>
             </div>
-            <ul className="mt-3 flex flex-col gap-2">
+            <ul className="mt-2 flex flex-col gap-1">
               {offer.features.map((f) => (
-                <li key={f} className="flex items-center gap-2 text-body-sm text-text-secondary">
-                  <Check className="h-4 w-4 shrink-0 text-primary" />
+                <li key={f} className="flex items-center gap-1.5 text-caption text-text-secondary">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
                   {f}
                 </li>
               ))}
             </ul>
-            <Link href="/upgrade" className="btn-primary mt-4 flex w-full items-center justify-center">
-              Ambil Paket
-            </Link>
           </div>
         ))}
       </div>
+
+      <Link href="/upgrade" className="btn-primary mt-4 flex w-full items-center justify-center">
+        Ambil Paket
+      </Link>
     </div>
   );
 }
