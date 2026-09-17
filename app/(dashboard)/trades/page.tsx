@@ -20,7 +20,7 @@ export default async function TradesPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { activeAccount } = await resolveActiveAccount(supabase, user?.id ?? "", searchParams.account);
+  const { accounts, activeAccount } = await resolveActiveAccount(supabase, user?.id ?? "", searchParams.account);
 
   const { data: tradesAsc } = await supabase
     .from("trades")
@@ -28,6 +28,11 @@ export default async function TradesPage({
     .eq("user_id", user?.id ?? "")
     .eq("account_id", activeAccount.id)
     .order("trade_date", { ascending: true });
+
+  const { data: allTradesSummary } = await supabase
+    .from("trades")
+    .select("account_id, pnl, status")
+    .eq("user_id", user?.id ?? "");
 
   const allTrades = (tradesAsc ?? []) as Trade[];
   const closedTrades = allTrades.filter((t) => t.status === "CLOSED" && t.pnl !== null);
@@ -61,6 +66,8 @@ export default async function TradesPage({
         trades={[...allTrades].reverse()}
         openModal={searchParams.add === "1"}
         accountId={activeAccount.id}
+        accounts={accounts}
+        allTradesSummary={allTradesSummary ?? []}
         stats={{ todayPnl, totalBalance, totalPnl, winRate, totalTrades: allTrades.length, profitFactor, bestDay }}
         equityData={equityData}
       />
