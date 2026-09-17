@@ -1,5 +1,5 @@
 import { EconomicCalendarTable } from "@/components/news/EconomicCalendarTable";
-import { getEconomicCalendar } from "@/lib/economic-calendar";
+import { getEconomicCalendarRange } from "@/lib/economic-calendar";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
 
@@ -9,7 +9,7 @@ export default async function NewsPage() {
     return <AccessDenied requiredTier="MEMBERSHIP" />;
   }
 
-  const events = await getEconomicCalendar();
+  const events = await getEconomicCalendarRange();
 
   return (
     <main className="mx-auto max-w-content px-6 py-8">
