@@ -55,6 +55,12 @@ const dayFormatter = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
+const shortDayFormatter = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  timeZone: "Asia/Jakarta",
+});
+
 const timeFormatter = new Intl.DateTimeFormat("id-ID", {
   hour: "2-digit",
   minute: "2-digit",
@@ -62,24 +68,42 @@ const timeFormatter = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
-// yyyy-mm-dd key in WIB, used to group events by local day (not UTC day)
+// yyyy-mm-dd key in WIB, used to group/filter events by local day (not UTC day)
 const dayKeyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" });
+
+function toWIBDayKey(dateISO: string) {
+  return dayKeyFormatter.format(new Date(dateISO));
+}
 
 export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
   const [filter, setFilter] = useState<FilterKey>("ALL");
+  const [selectedDate, setSelectedDate] = useState<string>(""); // "" = semua tanggal, else yyyy-mm-dd (WIB)
+
+  const availableDates = useMemo(() => {
+    const keys = new Set(events.map((e) => toWIBDayKey(e.dateISO)));
+    return Array.from(keys).sort();
+  }, [events]);
+
+  const minDate = availableDates[0];
+  const maxDate = availableDates[availableDates.length - 1];
+
+  const byDate = useMemo(
+    () => (selectedDate ? events.filter((e) => toWIBDayKey(e.dateISO) === selectedDate) : events),
+    [events, selectedDate]
+  );
 
   const counts = useMemo(
     () => ({
-      ALL: events.length,
-      HIGH: events.filter((e) => e.impact === "HIGH").length,
-      MEDIUM: events.filter((e) => e.impact === "MEDIUM").length,
-      LOW: events.filter((e) => e.impact === "LOW").length,
+      ALL: byDate.length,
+      HIGH: byDate.filter((e) => e.impact === "HIGH").length,
+      MEDIUM: byDate.filter((e) => e.impact === "MEDIUM").length,
+      LOW: byDate.filter((e) => e.impact === "LOW").length,
     }),
-    [events]
+    [byDate]
   );
 
   const groups = useMemo(() => {
-    const filtered = filter === "ALL" ? events : events.filter((e) => e.impact === filter);
+    const filtered = filter === "ALL" ? byDate : byDate.filter((e) => e.impact === filter);
     const map = new Map<string, { label: string; items: CalendarEvent[] }>();
     for (const event of filtered) {
       const date = new Date(event.dateISO);
@@ -90,12 +114,42 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
       map.get(key)!.items.push(event);
     }
     return Array.from(map.values());
-  }, [events, filter]);
+  }, [byDate, filter]);
 
   return (
     <div className="card !p-0">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
+        <label htmlFor="calendar-date" className="text-body-sm font-medium text-text-secondary">
+          Tanggal
+        </label>
+        <input
+          id="calendar-date"
+          type="date"
+          value={selectedDate}
+          min={minDate}
+          max={maxDate}
+          disabled={!minDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="input-field w-auto py-1.5 disabled:opacity-50"
+        />
+        {selectedDate && (
+          <button
+            type="button"
+            onClick={() => setSelectedDate("")}
+            className="text-body-sm text-primary underline-offset-2 hover:underline"
+          >
+            Tampilkan semua tanggal
+          </button>
+        )}
+        {minDate && maxDate && (
+          <span className="text-caption text-text-muted">
+            Data tersedia {shortDayFormatter.format(new Date(minDate))} – {shortDayFormatter.format(new Date(maxDate))}
+          </span>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-4">
-        <span className="mr-1 text-body-sm font-medium text-text-secondary">Tampilkan</span>
+        <span className="mr-1 text-body-sm font-medium text-text-secondary">Dampak</span>
         {FILTERS.map((f) => (
           <button
             key={f.key}
@@ -124,6 +178,12 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
       {events.length === 0 && (
         <p className="p-6 text-center text-body-sm text-text-muted">
           Data kalender sedang tidak bisa dimuat dari sumbernya. Coba refresh beberapa saat lagi.
+        </p>
+      )}
+
+      {events.length > 0 && groups.length === 0 && (
+        <p className="p-6 text-center text-body-sm text-text-muted">
+          Tidak ada event pada tanggal/filter yang dipilih.
         </p>
       )}
 
@@ -190,4 +250,3 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
     </div>
   );
 }
-
