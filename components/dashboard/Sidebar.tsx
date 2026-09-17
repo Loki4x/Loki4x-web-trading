@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
-import { AccountSwitcher } from "@/components/accounts/AccountSwitcher";
+import { AccountControl } from "@/components/accounts/AccountControl";
 import type { TradingAccount } from "@/lib/types";
 
  const topLinks = [
@@ -61,7 +61,15 @@ const groups = [
   },
 ];
 
-export function Sidebar({ isAdmin, accounts = [] }: { isAdmin?: boolean; accounts?: TradingAccount[] }) {
+export function Sidebar({
+  isAdmin,
+  accounts = [],
+  tradesSummary = [],
+}: {
+  isAdmin?: boolean;
+  accounts?: TradingAccount[];
+  tradesSummary?: { account_id: string | null; pnl: number | null; status: string }[];
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
