@@ -166,7 +166,7 @@ export function Sidebar({
           </button>
         </div>
 
-        <AccountSwitcher accounts={accounts} />
+        <AccountControl accounts={accounts} tradesSummary={tradesSummary} />
 
         <nav className="flex flex-1 flex-col gap-1">
           {topLinks.map(({ href, label, icon: Icon }) => (
