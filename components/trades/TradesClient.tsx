@@ -1,41 +1,44 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Plus, Wallet } from "lucide-react";
+import { Search, Plus, Wallet, TrendingUp, Percent, Hash, Target, Trophy } from "lucide-react";
 import { TradesTable } from "@/components/trades/TradesTable";
 import { AddTradeModal } from "@/components/trades/AddTradeModal";
-import { ManageAccountsModal } from "@/components/accounts/ManageAccountsModal";
 import { KpiCard } from "@/components/dashboard/KpiCard";
-import { formatCurrency } from "@/lib/utils";
-import type { Trade, TradeSide, TradeStatus, TradingAccount } from "@/lib/types";
+import { EquityChart } from "@/components/dashboard/EquityChart";
+import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
+import type { Trade, TradeSide, TradeStatus } from "@/lib/types";
 
 type SideFilter = "ALL" | TradeSide;
 type StatusFilter = "ALL" | TradeStatus;
 
-interface TradeSummary {
-  account_id: string | null;
-  pnl: number | null;
-  status: string;
+interface Stats {
+  todayPnl: number;
+  totalBalance: number;
+  totalPnl: number;
+  winRate: number;
+  totalTrades: number;
+  profitFactor: number;
+  bestDay: number;
 }
 
 export function TradesClient({
   trades,
   openModal,
   accountId,
-  accounts,
-  allTradesSummary,
+  stats,
+  equityData,
 }: {
   trades: Trade[];
   openModal?: boolean;
   accountId: string;
-  accounts: TradingAccount[];
-  allTradesSummary: TradeSummary[];
+  stats: Stats;
+  equityData: { date: string; balance: number }[];
 }) {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<SideFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [modalOpen, setModalOpen] = useState(!!openModal);
-  const [accountsModalOpen, setAccountsModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return trades.filter((t) => {
@@ -45,11 +48,6 @@ export function TradesClient({
       return true;
     });
   }, [trades, search, side, status]);
-
-  const closed = trades.filter((t) => t.status === "CLOSED" && t.pnl !== null);
-  const totalPnl = closed.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
-  const openCount = trades.filter((t) => t.status === "OPEN").length;
-  const winRate = closed.length > 0 ? (closed.filter((t) => (t.pnl ?? 0) > 0).length / closed.length) * 100 : 0;
 
   return (
     <div>
@@ -64,18 +62,29 @@ export function TradesClient({
         </button>
       </div>
 
-      <div className="mb-6 flex justify-end">
-        <button onClick={() => setAccountsModalOpen(true)} className="btn-secondary text-body-sm">
-          <Wallet className="h-4 w-4" />
-          Kelola Akun
-        </button>
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard
+          label="Today's P&L"
+          value={formatCurrency(stats.todayPnl)}
+          icon={Wallet}
+          valueClassName={stats.todayPnl >= 0 ? "text-success" : "text-error"}
+          featured
+        />
+        <KpiCard label="Total Balance" value={formatPlainCurrency(stats.totalBalance)} icon={TrendingUp} />
+        <KpiCard
+          label="Total P&L"
+          value={formatCurrency(stats.totalPnl)}
+          icon={Target}
+          valueClassName={stats.totalPnl >= 0 ? "text-success" : "text-error"}
+        />
+        <KpiCard label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} icon={Percent} />
+        <KpiCard label="Total Trades" value={String(stats.totalTrades)} icon={Hash} />
+        <KpiCard label="Profit Factor" value={stats.profitFactor.toFixed(2)} icon={TrendingUp} />
+        <KpiCard label="Best Day" value={formatCurrency(stats.bestDay)} icon={Trophy} valueClassName="text-success" />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="Total P&L" value={formatCurrency(totalPnl)} valueClassName={totalPnl >= 0 ? "text-success" : "text-error"} />
-        <KpiCard label="Open Trades" value={String(openCount)} />
-        <KpiCard label="Win Rate" value={`${winRate.toFixed(1)}%`} />
-        <KpiCard label="Total Trades" value={String(trades.length)} />
+      <div className="mb-6">
+        <EquityChart data={equityData} />
       </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -105,13 +114,6 @@ export function TradesClient({
       <TradesTable trades={filtered} />
 
       {modalOpen && <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} />}
-      {accountsModalOpen && (
-        <ManageAccountsModal
-          accounts={accounts}
-          trades={allTradesSummary}
-          onClose={() => setAccountsModalOpen(false)}
-        />
-      )}
     </div>
   );
 }
