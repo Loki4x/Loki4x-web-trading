@@ -3,6 +3,11 @@ import { sendEmail } from "@/lib/email";
 
 type NotificationType = "ANNOUNCEMENT" | "TIER_UPGRADE" | "EXPIRY_WARNING" | "EXPIRY_ENDED";
 
+type NotificationChannels = {
+  website?: boolean;
+  email?: boolean;
+};
+
 function emailHtml(title: string, message: string) {
   return `
     <div style="background-color:#0d0f14; padding:40px 20px; font-family:Arial, sans-serif;">
@@ -21,34 +26,48 @@ export async function notifyUser({
   type,
   title,
   message,
+  channels = { website: true, email: true },
 }: {
   userId: string;
   email: string | null;
   type: NotificationType;
   title: string;
   message: string;
+  channels?: NotificationChannels;
 }) {
   const supabase = await createClient();
-  await supabase.from("notifications").insert({ user_id: userId, type, title, message });
-  if (email) await sendEmail({ to: email, subject: title, html: emailHtml(title, message) });
+
+  if (channels.website) {
+    await supabase.from("notifications").insert({ user_id: userId, type, title, message });
+  }
+
+  if (channels.email && email) {
+    await sendEmail({ to: email, subject: title, html: emailHtml(title, message) });
+  }
 }
 
 export async function notifyAllUsers({
   type,
   title,
   message,
+  channels = { website: true, email: true },
 }: {
   type: NotificationType;
   title: string;
   message: string;
+  channels?: NotificationChannels;
 }) {
   const supabase = await createClient();
   const { data: profiles } = await supabase.from("profiles").select("id, email");
   if (!profiles) return;
 
-  await supabase.from("notifications").insert(profiles.map((p) => ({ user_id: p.id, type, title, message })));
+  if (channels.website) {
+    await supabase.from("notifications").insert(profiles.map((p) => ({ user_id: p.id, type, title, message })));
+  }
 
-  for (const p of profiles) {
-    if (p.email) await sendEmail({ to: p.email, subject: title, html: emailHtml(title, message) });
+  if (channels.email) {
+    for (const p of profiles) {
+      if (p.email) await sendEmail({ to: p.email, subject: title, html: emailHtml(title, message) });
+    }
   }
 }
