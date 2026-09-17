@@ -149,6 +149,7 @@ export function Sidebar({ isAdmin, notifications = [] }: { isAdmin?: boolean; no
             )}
           </div>
         </div>
+      </div>
 
       {/* Mobile overlay */}
       {mobileOpen && (
