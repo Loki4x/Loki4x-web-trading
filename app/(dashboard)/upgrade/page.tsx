@@ -4,7 +4,7 @@ import type { VipIbRequest } from "@/lib/types";
 
 const IB_LINK = "https://one.exnessonelink.com/a/vkmgfauvyh";
 
-export default async function UpgradePage() {
+export default async function UpgradePage({ searchParams }: { searchParams: { paid?: string } }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,6 +32,12 @@ export default async function UpgradePage() {
           Tier kamu sekarang: <strong>{profile?.tier ?? "FREE"}</strong>
         </p>
       </div>
+
+      {searchParams?.paid === "1" && (
+        <div className="mb-6 rounded-lg border border-success/30 bg-success-subtle px-4 py-3 text-body-sm text-success">
+          Pembayaran kamu sedang diverifikasi. Kalau status membership belum berubah dalam 1 menit, refresh halaman ini.
+        </div>
+      )}
 
       {profile?.tier && profile.tier !== "FREE" ? (
         <div className="card">
