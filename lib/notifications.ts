@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type NotificationType = "ANNOUNCEMENT" | "TIER_UPGRADE" | "EXPIRY_WARNING" | "EXPIRY_ENDED";
 
@@ -27,6 +28,7 @@ export async function notifyUser({
   title,
   message,
   channels = { website: true, email: true },
+  client,
 }: {
   userId: string;
   email: string | null;
@@ -34,8 +36,11 @@ export async function notifyUser({
   title: string;
   message: string;
   channels?: NotificationChannels;
+  // Pass a service-role client (lib/supabase/service.ts) when calling this
+  // outside a logged-in user's request, e.g. from a webhook route.
+  client?: SupabaseClient;
 }) {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   if (channels.website) {
     await supabase.from("notifications").insert({ user_id: userId, type, title, message });
