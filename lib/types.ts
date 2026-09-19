@@ -86,3 +86,15 @@ export interface VipIbRequest {
   created_at: string;
   reviewed_at: string | null;
 }
+
+export interface Payment {
+  id: string;
+  user_id: string;
+  order_id: string;
+  plan: "VIP" | "MEMBERSHIP";
+  amount: number;
+  payment_method: string | null;
+  status: "PENDING" | "COMPLETED" | "FAILED";
+  created_at: string;
+  completed_at: string | null;
+}
