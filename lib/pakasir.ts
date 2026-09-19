@@ -9,11 +9,10 @@
 // Lalu di dashboard Pakasir, isi "Webhook URL" proyekmu dengan:
 //   https://<domain-kamu>/api/pakasir/webhook
 
-// PENTING: harga di bawah ini cuma ESTIMASI dari $20 / $35 (kurs ~Rp16.000/USD).
-// Ganti ke nominal Rupiah yang benar-benar mau kamu pakai.
+// Konversi dari $20 / $35 pakai kurs ~Rp17.900/USD (per September 2026).
 export const PLAN_PRICE_IDR: Record<"VIP" | "MEMBERSHIP", number> = {
-  VIP: 320_000,
-  MEMBERSHIP: 560_000,
+  VIP: 358_000,
+  MEMBERSHIP: 627_000,
 };
 
 const PAKASIR_BASE_URL = "https://app.pakasir.com";
@@ -78,3 +77,18 @@ export async function getPakasirTransactionDetail({
   return data.transaction ?? null;
 }
 
+/**
+ * Cuma jalan kalau proyek Pakasir masih mode Sandbox — memicu Pakasir
+ * langsung menganggap sebuah order "lunas" dan mengirim webhook asli ke
+ * kita, tanpa perlu transfer uang beneran. Dipakai admin buat testing.
+ */
+export async function simulatePakasirPayment({ orderId, amount }: { orderId: string; amount: number }) {
+  const { slug, apiKey } = getCredentials();
+  const res = await fetch(`${PAKASIR_BASE_URL}/api/paymentsimulation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project: slug, order_id: orderId, amount, api_key: apiKey }),
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, data };
+}
