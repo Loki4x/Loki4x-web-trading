@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Check, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { submitVipRequest } from "@/app/(dashboard)/upgrade/actions";
+import { submitVipRequest, createPakasirPayment } from "@/app/(dashboard)/upgrade/actions";
+import { PLAN_PRICE_IDR } from "@/lib/pakasir";
 import type { VipIbRequest } from "@/lib/types";
 
 const statusLabel: Record<VipIbRequest["status"], string> = {
@@ -23,7 +24,7 @@ const statusClass: Record<VipIbRequest["status"], string> = {
 // versi ringkas + copy Indonesia buat halaman upgrade.
 const paidPlans = [
   {
-    key: "VIP",
+    key: "VIP" as const,
     name: "VIP",
     price: "$20",
     period: "/ bulan",
@@ -31,7 +32,7 @@ const paidPlans = [
     featured: false,
   },
   {
-    key: "MEMBERSHIP",
+    key: "MEMBERSHIP" as const,
     name: "Membership",
     price: "$35",
     period: "/ bulan",
@@ -41,6 +42,10 @@ const paidPlans = [
 ];
 
 const ADMIN_CONTACT_LINK = "https://t.me/LokiForex";
+
+function formatIDR(amount: number) {
+  return `Rp${amount.toLocaleString("id-ID")}`;
+}
 
 export function VipRequestForm({
   ibLink,
@@ -116,6 +121,21 @@ export function VipRequestForm({
                   </li>
                 ))}
               </ul>
+
+              <form action={createPakasirPayment}>
+                <input type="hidden" name="plan" value={plan.key} />
+                <button
+                  type="submit"
+                  className={`mt-5 flex w-full items-center justify-center rounded-full px-4 py-2.5 text-body-sm font-semibold transition-colors ${
+                    plan.featured
+                      ? "bg-primary text-text-on-primary hover:bg-primary-hover"
+                      : "border border-border bg-surface-2 text-text-primary hover:bg-surface-hover"
+                  }`}
+                >
+                  Bayar Sekarang — {formatIDR(PLAN_PRICE_IDR[plan.key])}
+                </button>
+              </form>
+              <p className="mt-2 text-center text-caption text-text-muted">via QRIS / Virtual Account</p>
             </div>
           ))}
         </div>
@@ -124,10 +144,10 @@ export function VipRequestForm({
           href={ADMIN_CONTACT_LINK}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-primary mt-5 inline-flex w-fit items-center gap-2"
+          className="mt-5 inline-flex w-fit items-center gap-1.5 text-body-sm text-text-secondary underline-offset-2 hover:text-text-primary hover:underline"
         >
-          Hubungi Admin di Telegram
-          <ExternalLink className="h-4 w-4" />
+          Atau hubungi admin manual di Telegram
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </div>
 
