@@ -32,7 +32,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" data-theme="dark">
+      <head>
+        {/* Set tema sebelum halaman ke-render, biar nggak ada "kedipan" tema salah pas awal buka. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('loki4x-theme');document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark');}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body
         className={`${plusJakarta.variable} ${inter.variable} ${jetbrainsMono.variable} font-body`}
       >
