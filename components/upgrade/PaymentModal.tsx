@@ -9,11 +9,10 @@ import {
   checkInstantPaymentStatus,
   submitUsdtPayment,
 } from "@/app/(dashboard)/upgrade/actions";
-import { BANK_VA_METHODS, PLAN_PRICE_IDR, type PakasirMethod } from "@/lib/pakasir-constants";
+import { BANK_VA_METHODS, PLAN_PRICE_IDR, type PakasirMethod, type Plan } from "@/lib/pakasir-constants";
 import { USDT_WALLETS, USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 
 type Tab = "QRIS" | "BANK" | "USDT";
-type Plan = "VIP" | "MEMBERSHIP";
 
 interface InstantResult {
   orderId: string;
@@ -28,6 +27,12 @@ interface InstantResult {
 function formatIDR(n: number) {
   return `Rp${n.toLocaleString("id-ID")}`;
 }
+
+const PLAN_LABEL: Record<Plan, string> = {
+  VIP: "VIP",
+  MEMBERSHIP: "Membership",
+  MEMBERSHIP_LIFETIME: "Membership Lifetime",
+};
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -161,7 +166,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
           <div>
             <h2 className="text-h3 text-text-primary">Payment</h2>
             <p className="text-body-sm text-text-secondary">
-              {plan} · {formatIDR(PLAN_PRICE_IDR[plan])}
+              {PLAN_LABEL[plan]} · {formatIDR(PLAN_PRICE_IDR[plan])}
             </p>
           </div>
           <button
@@ -180,7 +185,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
             </div>
             <p className="text-h3 text-text-primary">Pembayaran berhasil!</p>
             <p className="text-body-sm text-text-secondary">
-              Akun kamu sekarang aktif sebagai {plan}. Terima kasih!
+              Akun kamu sekarang aktif sebagai {PLAN_LABEL[plan]}. Terima kasih!
             </p>
             <button type="button" onClick={onClose} className="btn-primary mt-2">
               Tutup
