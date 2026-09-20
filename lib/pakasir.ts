@@ -9,11 +9,8 @@
 // Lalu di dashboard Pakasir, isi "Webhook URL" proyekmu dengan:
 //   https://<domain-kamu>/api/pakasir/webhook
 
-// Konversi dari $20 / $35 pakai kurs ~Rp17.900/USD (per September 2026).
-export const PLAN_PRICE_IDR: Record<"VIP" | "MEMBERSHIP", number> = {
-  VIP: 358_000,
-  MEMBERSHIP: 627_000,
-};
+export { PLAN_PRICE_IDR, BANK_VA_METHODS, type PakasirMethod } from "./pakasir-constants";
+import type { PakasirMethod } from "./pakasir-constants";
 
 const PAKASIR_BASE_URL = "https://app.pakasir.com";
 
@@ -41,6 +38,38 @@ export function buildPakasirCheckoutUrl({
   url.searchParams.set("order_id", orderId);
   url.searchParams.set("redirect", redirectUrl);
   return url.toString();
+}
+
+export interface PakasirCreatedPayment {
+  payment_number: string; // QRIS string, atau nomor VA
+  fee: number;
+  total_payment: number;
+  expired_at: string;
+}
+
+/**
+ * Bikin transaksi via API — dapat balik QR string / nomor VA langsung,
+ * buat ditampilkan sendiri di halaman kita (bukan redirect ke Pakasir).
+ */
+export async function createPakasirTransaction({
+  method,
+  orderId,
+  amount,
+}: {
+  method: PakasirMethod;
+  orderId: string;
+  amount: number;
+}): Promise<PakasirCreatedPayment | null> {
+  const { slug, apiKey } = getCredentials();
+  const res = await fetch(`${PAKASIR_BASE_URL}/api/transactioncreate/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project: slug, order_id: orderId, amount, api_key: apiKey }),
+  });
+
+  if (!res.ok) return null;
+  const data = (await res.json()) as { payment?: PakasirCreatedPayment };
+  return data.payment ?? null;
 }
 
 export interface PakasirTransaction {
