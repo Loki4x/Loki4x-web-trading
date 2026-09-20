@@ -1,3 +1,5 @@
+import type { Plan } from "@/lib/pakasir-constants";
+
 export type UsdtNetwork = "BEP20" | "TRC20";
 
 export const USDT_WALLETS: Record<UsdtNetwork, { address: string; label: string }> = {
@@ -6,7 +8,8 @@ export const USDT_WALLETS: Record<UsdtNetwork, { address: string; label: string 
 };
 
 // 1 USDT ≈ 1 USD (stablecoin), jadi disamain langsung sama harga $ paket.
-export const USDT_PRICE: Record<"VIP" | "MEMBERSHIP", number> = {
+export const USDT_PRICE: Record<Plan, number> = {
   VIP: 20,
   MEMBERSHIP: 35,
+  MEMBERSHIP_LIFETIME: 70,
 };
