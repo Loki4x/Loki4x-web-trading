@@ -93,7 +93,12 @@ export interface Payment {
   order_id: string;
   plan: "VIP" | "MEMBERSHIP";
   amount: number;
+  currency: "IDR" | "USDT";
   payment_method: string | null;
+  payment_number: string | null;
+  expired_at: string | null;
+  slip_url: string | null;
+  note: string | null;
   status: "PENDING" | "COMPLETED" | "FAILED";
   created_at: string;
   completed_at: string | null;
