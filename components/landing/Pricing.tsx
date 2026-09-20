@@ -97,6 +97,12 @@ export function Pricing() {
             >
               {plan.cta}
             </Link>
+
+            {plan.name === "Membership" && (
+              <p className="mt-3 text-center text-caption text-text-muted">
+                Or pay once — $70 for lifetime access, no monthly renewal.
+              </p>
+            )}
           </div>
         ))}
       </div>
