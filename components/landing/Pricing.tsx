@@ -7,7 +7,7 @@ const plans = [
     description: "For traders getting their journal habit started.",
     price: "$0",
     period: "forever",
-    features: ["Dashboard overview", "P&L summary", "Equity growth chart"],
+    features: ["Dashboard overview"],
     cta: "Get Started Free",
     href: "/signup",
     featured: false,
