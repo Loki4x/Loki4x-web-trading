@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const legal = [
   { href: "/privacy", label: "Privacy Policy" },
@@ -16,9 +17,12 @@ export function Footer() {
       <div className="mx-auto max-w-content px-6">
         <div className="flex flex-col gap-10 md:flex-row md:justify-between">
           <div className="max-w-sm">
-            <span className="text-h3 font-display font-extrabold text-text-primary">
-              Loki<span className="text-primary">4x</span>
-            </span>
+            <div className="flex items-center gap-2.5">
+              <Image src="/logo.png" alt="Loki4x Academy" width={32} height={32} className="rounded-full" />
+              <span className="text-body font-display font-extrabold tracking-wide text-text-primary">
+                LOKI4X ACADEMY
+              </span>
+            </div>
             <p className="mt-3 text-body-sm text-text-secondary">
               A focused trading journal and market news workspace, built for
               traders who take their process seriously.
