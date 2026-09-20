@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { buildPakasirCheckoutUrl, PLAN_PRICE_IDR } from "@/lib/pakasir";
+import { createPakasirTransaction, type PakasirMethod, PLAN_PRICE_IDR } from "@/lib/pakasir";
+import { finalizePakasirPayment } from "@/lib/pakasir-fulfillment";
+import { generateQrDataUrl } from "@/lib/qrcode";
+import { uploadToR2 } from "@/lib/r2";
+import { USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 
 export async function submitVipRequest(formData: FormData) {
   const supabase = await createClient();
@@ -37,24 +40,19 @@ export async function submitVipRequest(formData: FormData) {
   revalidatePath("/upgrade");
 }
 
-export async function createPakasirPayment(formData: FormData) {
+export async function createInstantPayment({ plan, method }: { plan: "VIP" | "MEMBERSHIP"; method: PakasirMethod }) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) throw new Error("Not authenticated");
-
-  const plan = String(formData.get("plan"));
-  if (plan !== "VIP" && plan !== "MEMBERSHIP") {
-    throw new Error("Paket tidak valid");
-  }
 
   const amount = PLAN_PRICE_IDR[plan];
   const orderId = `LOKI4X-${user.id.slice(0, 8)}-${Date.now()}`;
 
-  // Pakai service client: insert order sebelum user diarahkan keluar,
-  // nggak perlu nunggu RLS session yang mungkin ke-drop pas redirect.
+  const created = await createPakasirTransaction({ method, orderId, amount });
+  if (!created) throw new Error("Gagal membuat transaksi pembayaran, coba lagi.");
+
   const service = createServiceClient();
   const { error } = await service.from("payments").insert({
     user_id: user.id,
@@ -62,16 +60,68 @@ export async function createPakasirPayment(formData: FormData) {
     plan,
     amount,
     status: "PENDING",
+    payment_method: method,
+    payment_number: created.payment_number,
+    expired_at: created.expired_at,
+    currency: "IDR",
   });
+  if (error) throw new Error("Gagal menyimpan order pembayaran");
 
-  if (error) throw new Error("Gagal membuat order pembayaran");
+  const qrImage = method === "qris" ? await generateQrDataUrl(created.payment_number) : null;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://4xcomunity.my.id";
-  const checkoutUrl = buildPakasirCheckoutUrl({
-    amount,
+  return {
     orderId,
-    redirectUrl: `${siteUrl}/upgrade?paid=1`,
-  });
+    amount,
+    totalPayment: created.total_payment,
+    paymentNumber: created.payment_number,
+    qrImage,
+    expiredAt: created.expired_at,
+    method,
+  };
+}
 
-  redirect(checkoutUrl);
+export async function checkInstantPaymentStatus(orderId: string) {
+  const result = await finalizePakasirPayment(orderId);
+  return result.status;
+}
+
+export async function submitUsdtPayment(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const plan = String(formData.get("plan"));
+  if (plan !== "VIP" && plan !== "MEMBERSHIP") throw new Error("Paket tidak valid");
+
+  const network = String(formData.get("network")) as UsdtNetwork;
+  if (network !== "BEP20" && network !== "TRC20") throw new Error("Network tidak valid");
+
+  const slip = formData.get("slip") as File | null;
+  if (!slip || slip.size === 0) throw new Error("Bukti transfer wajib diupload");
+
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  const slipUrl = await uploadToR2(slip, `usdt-slips/${user.id}`);
+  if (!slipUrl) throw new Error("Gagal upload bukti transfer");
+
+  const amount = USDT_PRICE[plan];
+  const orderId = `USDT-${user.id.slice(0, 8)}-${Date.now()}`;
+
+  const service = createServiceClient();
+  const { error } = await service.from("payments").insert({
+    user_id: user.id,
+    order_id: orderId,
+    plan,
+    amount,
+    currency: "USDT",
+    status: "PENDING",
+    payment_method: `usdt_${network.toLowerCase()}`,
+    slip_url: slipUrl,
+    note,
+  });
+  if (error) throw new Error("Gagal menyimpan pengajuan pembayaran");
+
+  revalidatePath("/upgrade");
 }
