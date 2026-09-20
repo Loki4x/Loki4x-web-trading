@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Check, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { submitVipRequest, createPakasirPayment } from "@/app/(dashboard)/upgrade/actions";
-import { PLAN_PRICE_IDR } from "@/lib/pakasir";
+import { submitVipRequest } from "@/app/(dashboard)/upgrade/actions";
+import { PLAN_PRICE_IDR } from "@/lib/pakasir-constants";
+import { PaymentModal } from "@/components/upgrade/PaymentModal";
 import type { VipIbRequest } from "@/lib/types";
 
 const statusLabel: Record<VipIbRequest["status"], string> = {
@@ -56,6 +57,7 @@ export function VipRequestForm({
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openPlan, setOpenPlan] = useState<"VIP" | "MEMBERSHIP" | null>(null);
 
   if (existingRequest && existingRequest.status !== "REJECTED") {
     return (
@@ -122,20 +124,18 @@ export function VipRequestForm({
                 ))}
               </ul>
 
-              <form action={createPakasirPayment}>
-                <input type="hidden" name="plan" value={plan.key} />
-                <button
-                  type="submit"
-                  className={`mt-5 flex w-full items-center justify-center rounded-full px-4 py-2.5 text-body-sm font-semibold transition-colors ${
-                    plan.featured
-                      ? "bg-primary text-text-on-primary hover:bg-primary-hover"
-                      : "border border-border bg-surface-2 text-text-primary hover:bg-surface-hover"
-                  }`}
-                >
-                  Bayar Sekarang — {formatIDR(PLAN_PRICE_IDR[plan.key])}
-                </button>
-              </form>
-              <p className="mt-2 text-center text-caption text-text-muted">via QRIS / Virtual Account</p>
+              <button
+                type="button"
+                onClick={() => setOpenPlan(plan.key)}
+                className={`mt-5 flex w-full items-center justify-center rounded-full px-4 py-2.5 text-body-sm font-semibold transition-colors ${
+                  plan.featured
+                    ? "bg-primary text-text-on-primary hover:bg-primary-hover"
+                    : "border border-border bg-surface-2 text-text-primary hover:bg-surface-hover"
+                }`}
+              >
+                Bayar Sekarang — {formatIDR(PLAN_PRICE_IDR[plan.key])}
+              </button>
+              <p className="mt-2 text-center text-caption text-text-muted">QRIS · Transfer Bank · USDT</p>
             </div>
           ))}
         </div>
@@ -187,6 +187,8 @@ export function VipRequestForm({
           </Button>
         </form>
       </div>
+
+      {openPlan && <PaymentModal plan={openPlan} onClose={() => setOpenPlan(null)} />}
     </div>
   );
 }
