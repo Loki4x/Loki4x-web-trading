@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound, Newspaper, GraduationCap, LogOut, BadgeCheck, Bell } from "lucide-react";
+import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound, Newspaper, GraduationCap, LogOut, BadgeCheck, Bell, Coins } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 
@@ -12,6 +12,7 @@ const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/vip-requests", label: "VIP Requests", icon: BadgeCheck },
+  { href: "/admin/usdt-payments", label: "Pembayaran USDT", icon: Coins },
   { href: "/admin/signals", label: "Signals", icon: LineChart },
   { href: "/admin/positioning", label: "Positioning", icon: Compass },
   { href: "/admin/news", label: "Economic News", icon: Newspaper },
