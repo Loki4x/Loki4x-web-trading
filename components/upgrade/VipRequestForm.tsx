@@ -5,7 +5,7 @@ import { Check, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { submitVipRequest } from "@/app/(dashboard)/upgrade/actions";
-import { PLAN_PRICE_IDR } from "@/lib/pakasir-constants";
+import { PLAN_PRICE_IDR, type Plan } from "@/lib/pakasir-constants";
 import { PaymentModal } from "@/components/upgrade/PaymentModal";
 import type { VipIbRequest } from "@/lib/types";
 
@@ -40,6 +40,14 @@ const paidPlans = [
     features: ["Semua fitur VIP", "Journal, Reports, Calculator", "Economic Calendar & Academy"],
     featured: true,
   },
+  {
+    key: "MEMBERSHIP_LIFETIME" as const,
+    name: "Membership Lifetime",
+    price: "$70",
+    period: "sekali bayar",
+    features: ["Semua fitur Membership", "Bayar sekali, akses selamanya", "Nggak perlu perpanjang tiap bulan"],
+    featured: false,
+  },
 ];
 
 const ADMIN_CONTACT_LINK = "https://t.me/LokiForex";
@@ -57,7 +65,7 @@ export function VipRequestForm({
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [openPlan, setOpenPlan] = useState<"VIP" | "MEMBERSHIP" | null>(null);
+  const [openPlan, setOpenPlan] = useState<Plan | null>(null);
 
   if (existingRequest && existingRequest.status !== "REJECTED") {
     return (
@@ -95,7 +103,7 @@ export function VipRequestForm({
           Pilih paket di bawah, lalu hubungi admin buat instruksi pembayaran.
         </p>
 
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {paidPlans.map((plan) => (
             <div
               key={plan.key}
