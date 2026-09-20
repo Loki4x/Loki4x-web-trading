@@ -52,12 +52,15 @@ export function AddVideoModal({ onClose }: { onClose: () => void }) {
             Bisa upload gambar ke Google Drive/ImgBB, lalu copy link gambarnya di sini.
           </p>
 
-          <Input
-            name="video_url"
-            label="URL Video (Google Drive / YouTube / lainnya)"
-            placeholder="https://..."
-            required
-          />
+          <div className="flex flex-col gap-2">
+            <label className="text-body-sm font-medium text-text-secondary">URL Video (Google Drive / YouTube / lainnya)</label>
+            <input name="video_url" placeholder="https://..." required className="input-field" />
+            <p className="text-caption text-text-muted">
+              Khusus Google Drive: klik kanan file → <strong>Share</strong> → ganti akses jadi{" "}
+              <strong>&quot;Anyone with the link&quot;</strong> (bukan restricted), baru copy link-nya ke sini.
+              Kalau tidak, videonya nggak akan bisa diputar di web.
+            </p>
+          </div>
 
           <Button type="submit" withArrow className="mt-2 w-full justify-center">
             Add Video
