@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X, FileImage } from "lucide-react";
 import { approveUsdtPayment, rejectUsdtPayment } from "@/app/admin/actions";
+import type { Plan } from "@/lib/pakasir-constants";
 
 interface PaymentRow {
   id: string;
   user_id: string;
   order_id: string;
-  plan: "VIP" | "MEMBERSHIP";
+  plan: Plan;
   amount: number;
   status: "PENDING" | "COMPLETED" | "FAILED";
   slip_url: string | null;
@@ -18,6 +19,12 @@ interface PaymentRow {
   created_at: string;
   profiles: { full_name: string | null; email: string | null } | null;
 }
+
+const planLabel: Record<Plan, string> = {
+  VIP: "VIP",
+  MEMBERSHIP: "Membership",
+  MEMBERSHIP_LIFETIME: "Membership Lifetime",
+};
 
 const statusClass: Record<PaymentRow["status"], string> = {
   PENDING: "text-warning",
@@ -66,7 +73,7 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
           {payments.map((p) => (
             <tr key={p.id} className="border-b border-border last:border-0">
               <td className="px-4 py-3 text-text-primary">{p.profiles?.full_name || p.profiles?.email || p.user_id}</td>
-              <td className="px-4 py-3">{p.plan}</td>
+              <td className="px-4 py-3">{planLabel[p.plan]}</td>
               <td className="px-4 py-3">{p.amount} USDT</td>
               <td className="px-4 py-3 uppercase">{p.payment_method?.replace("usdt_", "")}</td>
               <td className="px-4 py-3">
