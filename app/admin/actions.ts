@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUser, notifyAllUsers } from "@/lib/notifications";
 import { simulatePakasirPayment } from "@/lib/pakasir";
+import { planToTier, isLifetimePlan, type Plan } from "@/lib/pakasir-constants";
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -274,7 +275,7 @@ export async function simulateSandboxPayment(orderId: string, amount: number) {
   };
 }
 
-export async function approveUsdtPayment(paymentId: string, userId: string, plan: "VIP" | "MEMBERSHIP") {
+export async function approveUsdtPayment(paymentId: string, userId: string, plan: Plan) {
   const supabase = await assertIsAdmin();
 
   await supabase
@@ -288,23 +289,32 @@ export async function approveUsdtPayment(paymentId: string, userId: string, plan
     .eq("id", userId)
     .single();
 
-  // Perpanjang 30 hari dari sekarang, atau dari tanggal expired saat ini
+  const tier = planToTier(plan);
+  const lifetime = isLifetimePlan(plan);
+
+  // Lifetime: nggak pernah kedaluwarsa (vip_expires_at = null). Bulanan:
+  // perpanjang 30 hari dari sekarang, atau dari tanggal expired saat ini
   // kalau membership-nya masih aktif — sama seperti alur Pakasir otomatis.
   const now = new Date();
   const currentExpiry = targetProfile?.vip_expires_at ? new Date(targetProfile.vip_expires_at) : null;
   const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
-  const newExpiry = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const newExpiry = lifetime ? null : new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  await supabase.from("profiles").update({ tier: plan, vip_expires_at: newExpiry.toISOString() }).eq("id", userId);
+  await supabase
+    .from("profiles")
+    .update({ tier, vip_expires_at: newExpiry ? newExpiry.toISOString() : null })
+    .eq("id", userId);
 
-  const expiryLabel = newExpiry.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const expiryLabel = newExpiry
+    ? `sampai ${newExpiry.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`
+    : "selamanya (lifetime)";
 
   await notifyUser({
     userId,
     email: targetProfile?.email ?? null,
     type: "TIER_UPGRADE",
     title: `Pembayaran ${plan} berhasil dikonfirmasi`,
-    message: `Pembayaran USDT kamu sudah diverifikasi admin. Akun kamu sekarang aktif sebagai ${plan} sampai ${expiryLabel}.`,
+    message: `Pembayaran USDT kamu sudah diverifikasi admin. Akun kamu sekarang aktif sebagai ${tier} ${expiryLabel}.`,
   });
 
   revalidatePath("/admin/usdt-payments");
