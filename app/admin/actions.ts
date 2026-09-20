@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUser, notifyAllUsers } from "@/lib/notifications";
+import { simulatePakasirPayment } from "@/lib/pakasir";
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -254,4 +255,64 @@ export async function sendAdminNotification(formData: FormData) {
   });
 
   return { message: `Notifikasi terkirim ke ${email}.` };
+}
+
+// Testing khusus mode Sandbox Pakasir — jangan pakai di mode Live/Production.
+export async function simulateSandboxPayment(orderId: string, amount: number) {
+  await assertIsAdmin();
+
+  const result = await simulatePakasirPayment({ orderId, amount });
+
+  if (!result.ok) {
+    return { success: false, message: `Gagal simulasi: ${JSON.stringify(result.data)}` };
+  }
+
+  revalidatePath("/admin/pakasir-sandbox");
+  return {
+    success: true,
+    message: "Simulasi terkirim ke Pakasir. Webhook biasanya masuk dalam beberapa detik — refresh halaman ini.",
+  };
+}
+
+export async function approveUsdtPayment(paymentId: string, userId: string, plan: "VIP" | "MEMBERSHIP") {
+  const supabase = await assertIsAdmin();
+
+  await supabase
+    .from("payments")
+    .update({ status: "COMPLETED", completed_at: new Date().toISOString() })
+    .eq("id", paymentId);
+
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("email, vip_expires_at")
+    .eq("id", userId)
+    .single();
+
+  // Perpanjang 30 hari dari sekarang, atau dari tanggal expired saat ini
+  // kalau membership-nya masih aktif — sama seperti alur Pakasir otomatis.
+  const now = new Date();
+  const currentExpiry = targetProfile?.vip_expires_at ? new Date(targetProfile.vip_expires_at) : null;
+  const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
+  const newExpiry = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  await supabase.from("profiles").update({ tier: plan, vip_expires_at: newExpiry.toISOString() }).eq("id", userId);
+
+  const expiryLabel = newExpiry.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  await notifyUser({
+    userId,
+    email: targetProfile?.email ?? null,
+    type: "TIER_UPGRADE",
+    title: `Pembayaran ${plan} berhasil dikonfirmasi`,
+    message: `Pembayaran USDT kamu sudah diverifikasi admin. Akun kamu sekarang aktif sebagai ${plan} sampai ${expiryLabel}.`,
+  });
+
+  revalidatePath("/admin/usdt-payments");
+  revalidatePath("/upgrade");
+}
+
+export async function rejectUsdtPayment(paymentId: string) {
+  const supabase = await assertIsAdmin();
+  await supabase.from("payments").update({ status: "FAILED" }).eq("id", paymentId);
+  revalidatePath("/admin/usdt-payments");
 }
