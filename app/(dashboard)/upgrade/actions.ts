@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { createPakasirTransaction, type PakasirMethod, PLAN_PRICE_IDR } from "@/lib/pakasir";
+import { createPakasirTransaction, type PakasirMethod } from "@/lib/pakasir";
 import { finalizePakasirPayment } from "@/lib/pakasir-fulfillment";
 import { generateQrDataUrl } from "@/lib/qrcode";
 import { uploadToR2 } from "@/lib/r2";
+import { PLAN_PRICE_IDR, type Plan } from "@/lib/pakasir-constants";
 import { USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 
 export async function submitVipRequest(formData: FormData) {
@@ -40,7 +41,7 @@ export async function submitVipRequest(formData: FormData) {
   revalidatePath("/upgrade");
 }
 
-export async function createInstantPayment({ plan, method }: { plan: "VIP" | "MEMBERSHIP"; method: PakasirMethod }) {
+export async function createInstantPayment({ plan, method }: { plan: Plan; method: PakasirMethod }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -93,7 +94,7 @@ export async function submitUsdtPayment(formData: FormData) {
   if (!user) throw new Error("Not authenticated");
 
   const plan = String(formData.get("plan"));
-  if (plan !== "VIP" && plan !== "MEMBERSHIP") throw new Error("Paket tidak valid");
+  if (plan !== "VIP" && plan !== "MEMBERSHIP" && plan !== "MEMBERSHIP_LIFETIME") throw new Error("Paket tidak valid");
 
   const network = String(formData.get("network")) as UsdtNetwork;
   if (network !== "BEP20" && network !== "TRC20") throw new Error("Network tidak valid");
