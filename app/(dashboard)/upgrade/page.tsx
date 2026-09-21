@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { VipRequestForm } from "@/components/upgrade/VipRequestForm";
 import type { VipIbRequest } from "@/lib/types";
@@ -10,16 +11,14 @@ export default async function UpgradePage({ searchParams }: { searchParams: { pa
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("tier")
-    .eq("id", user?.id ?? "")
-    .single();
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase.from("profiles").select("tier").eq("id", user.id).single();
 
   const { data: existingRequest } = await supabase
     .from("vip_ib_requests")
     .select("*")
-    .eq("user_id", user?.id ?? "")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
