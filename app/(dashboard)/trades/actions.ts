@@ -20,6 +20,8 @@ export async function addTrade(formData: FormData) {
   const pnlManual = pnlManualRaw && String(pnlManualRaw).length > 0 ? Number(pnlManualRaw) : null;
   const side = String(formData.get("side"));
   const status = exitPrice !== null || pnlManual !== null ? "CLOSED" : "OPEN";
+  const sessionRaw = String(formData.get("session") ?? "");
+  const session = sessionRaw.length > 0 ? sessionRaw : null;
 
   let pnl: number | null = null;
   if (pnlManual !== null) {
@@ -47,6 +49,7 @@ export async function addTrade(formData: FormData) {
     pnl,
     trade_date: String(formData.get("trade_date")),
     status,
+    session,
     notes: String(formData.get("notes") ?? ""),
     confluence: String(formData.get("confluence") ?? ""),
     before_photo_url: beforePhotoUrl,
