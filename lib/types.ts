@@ -22,6 +22,8 @@ export interface Profile {
   created_at: string;
 }
 
+export type TradeSession = "LONDON" | "NEW_YORK" | "ASIA" | "OVERLAP";
+
 export interface Trade {
   id: string;
   user_id: string;
@@ -34,6 +36,7 @@ export interface Trade {
   pnl: number | null;
   trade_date: string;
   status: TradeStatus;
+  session: TradeSession | null;
   notes: string | null;
   confluence: string | null;
   before_photo_url: string | null;
