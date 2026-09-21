@@ -62,7 +62,12 @@ export async function addTrade(formData: FormData) {
 
 export async function deleteTrade(tradeId: string) {
   const supabase = await createClient();
-  await supabase.from("trades").delete().eq("id", tradeId);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("trades").delete().eq("id", tradeId).eq("user_id", user.id);
   revalidatePath("/trades");
   revalidatePath("/dashboard");
 }
