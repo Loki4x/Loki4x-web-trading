@@ -51,6 +51,17 @@ export function AddTradeModal({ onClose, accountId }: { onClose: () => void; acc
             <textarea name="confluence" rows={3} className="input-field resize-none" placeholder="Why did you take this trade? e.g. support/resistance, trend, news, indicator confirmation..." />
           </div>
 
+          <div className="flex flex-col gap-2">
+            <label className="text-body-sm font-medium text-text-secondary">Session</label>
+            <select name="session" className="input-field" defaultValue="">
+              <option value="">Nggak diisi</option>
+              <option value="LONDON">London</option>
+              <option value="NEW_YORK">New York</option>
+              <option value="ASIA">Asia</option>
+              <option value="OVERLAP">Overlap</option>
+            </select>
+          </div>
+
           <Input name="trade_date" type="date" label="Trade Date" required defaultValue={new Date().toISOString().slice(0, 10)} />
 
           <div className="grid grid-cols-2 gap-4">
