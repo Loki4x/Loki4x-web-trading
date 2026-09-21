@@ -82,6 +82,17 @@ export async function createInstantPayment({ plan, method }: { plan: Plan; metho
 }
 
 export async function checkInstantPaymentStatus(orderId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // RLS di tabel payments cuma izinin user lihat order miliknya sendiri —
+  // kalau order_id ini bukan punya dia, query ini balikin null.
+  const { data: owned } = await supabase.from("payments").select("id").eq("order_id", orderId).single();
+  if (!owned) throw new Error("Order tidak ditemukan");
+
   const result = await finalizePakasirPayment(orderId);
   return result.status;
 }
