@@ -188,7 +188,7 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
       )}
 
       <div className="overflow-x-auto">
-        <div className="min-w-[720px]">
+        <div className="min-w-[800px]">
           {groups.length > 0 && (
             <div className="flex items-center gap-4 border-b border-border bg-surface-2 px-4 py-2 text-caption font-semibold uppercase tracking-wide text-text-muted">
               <span className="w-12 shrink-0">Jam</span>
@@ -196,10 +196,10 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
               <span className="w-12 shrink-0">Mata Uang</span>
               <span className="w-20 shrink-0">Dampak</span>
               <span className="flex-1">Event</span>
-              <div className="flex w-48 shrink-0 justify-end gap-3">
-                <span className="w-14 text-right">Forecast</span>
-                <span className="w-14 text-right">Previous</span>
-                <span className="w-14 text-right">Actual</span>
+              <div className="flex w-72 shrink-0 justify-end gap-5">
+                <span className="w-20 text-right">Forecast</span>
+                <span className="w-20 text-right">Previous</span>
+                <span className="w-20 text-right">Actual</span>
               </div>
             </div>
           )}
@@ -228,12 +228,12 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
                       {IMPACT_LABEL[event.impact]}
                     </span>
                     <span className="flex-1 truncate text-body-sm text-text-primary">{event.title}</span>
-                    <div className="flex w-48 shrink-0 items-center justify-end gap-3 font-mono text-body-sm">
-                      <span className="w-14 text-right text-text-secondary">{event.forecast || "-"}</span>
-                      <span className="w-14 text-right text-text-muted">{event.previous || "-"}</span>
+                    <div className="flex w-72 shrink-0 items-center justify-end gap-5 font-mono text-body-sm">
+                      <span className="w-20 text-right text-text-secondary">{event.forecast || "-"}</span>
+                      <span className="w-20 text-right text-text-muted">{event.previous || "-"}</span>
                       <span
                         className={cx(
-                          "w-14 text-right font-semibold",
+                          "w-20 text-right font-semibold",
                           event.actual ? "text-text-primary" : "text-text-muted"
                         )}
                       >
