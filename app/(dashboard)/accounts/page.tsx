@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AccountsClient } from "@/components/accounts/AccountsClient";
 import type { TradingAccount } from "@/lib/types";
@@ -8,16 +9,18 @@ export default async function AccountsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const { data: accounts } = await supabase
     .from("trading_accounts")
     .select("*")
-    .eq("user_id", user?.id ?? "")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
   const { data: trades } = await supabase
     .from("trades")
     .select("account_id, pnl, status")
-    .eq("user_id", user?.id ?? "");
+    .eq("user_id", user.id);
 
   return (
     <main className="mx-auto max-w-content px-6 py-8">
