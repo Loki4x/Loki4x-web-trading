@@ -26,6 +26,7 @@ export function ManageAccountsModal({
 }) {
   const router = useRouter();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [newCurrency, setNewCurrency] = useState<"USD" | "IDR">("USD");
 
   async function handleAdd(formData: FormData) {
     const result = await createAccount(formData);
@@ -73,6 +74,9 @@ export function ManageAccountsModal({
                   <div className="flex items-center gap-2">
                     <Wallet className="h-4 w-4 text-primary" />
                     <p className="text-body-sm font-semibold text-text-primary">{acc.name}</p>
+                    <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                      {acc.currency}
+                    </span>
                   </div>
                   {accounts.length > 1 && (
                     <button onClick={() => handleDelete(acc.id, acc.name)} className="text-text-muted hover:text-error">
@@ -80,10 +84,10 @@ export function ManageAccountsModal({
                     </button>
                   )}
                 </div>
-                <p className="text-body font-semibold text-text-primary">{formatPlainCurrency(balance)}</p>
+                <p className="text-body font-semibold text-text-primary">{formatPlainCurrency(balance, acc.currency)}</p>
                 <div className="mt-1 flex items-center justify-between text-caption text-text-secondary">
-                  <span>Awal: {formatPlainCurrency(acc.initial_balance)}</span>
-                  <span className={pnlColorClass(totalPnl)}>{formatCurrency(totalPnl)}</span>
+                  <span>Awal: {formatPlainCurrency(acc.initial_balance, acc.currency)}</span>
+                  <span className={pnlColorClass(totalPnl)}>{formatCurrency(totalPnl, acc.currency)}</span>
                   <span className="text-text-muted">{tradeCount} trade</span>
                 </div>
               </div>
@@ -94,12 +98,26 @@ export function ManageAccountsModal({
         {showAddForm ? (
           <form action={handleAdd} className="flex flex-col gap-3 rounded-xl border border-border p-4">
             <Input name="name" label="Nama Akun" placeholder="Contoh: Akun Demo" required />
+
+            <div className="flex flex-col gap-2">
+              <label className="text-body-sm font-medium text-text-secondary">Mata Uang</label>
+              <select
+                name="currency"
+                value={newCurrency}
+                onChange={(e) => setNewCurrency(e.target.value as "USD" | "IDR")}
+                className="input-field"
+              >
+                <option value="USD">USD ($)</option>
+                <option value="IDR">IDR (Rp)</option>
+              </select>
+            </div>
+
             <Input
               name="initial_balance"
               type="number"
-              step="0.01"
-              label="Balance Awal ($)"
-              defaultValue="10000"
+              step={newCurrency === "IDR" ? "1000" : "0.01"}
+              label={`Balance Awal (${newCurrency === "IDR" ? "Rp" : "$"})`}
+              defaultValue={newCurrency === "IDR" ? "150000000" : "10000"}
               required
             />
             <div className="flex gap-2">
