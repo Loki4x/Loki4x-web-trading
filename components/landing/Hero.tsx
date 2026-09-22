@@ -66,7 +66,7 @@ export function Hero() {
                     <polyline
                       points="0,70 40,62 80,66 120,45 160,50 200,28 240,34 300,10"
                       fill="none"
-                      stroke="#8b5cf6"
+                      stroke="#118EEA"
                       strokeWidth="2.5"
                     />
                   </svg>
