@@ -2,11 +2,14 @@ export type TradeSide = "BUY" | "SELL";
 export type TradeStatus = "OPEN" | "CLOSED";
 export type NewsImpact = "HIGH" | "MEDIUM" | "LOW";
 
+export type AccountCurrency = "USD" | "IDR";
+
 export interface TradingAccount {
   id: string;
   user_id: string;
   name: string;
   initial_balance: number;
+  currency: AccountCurrency;
   created_at: string;
 }
 
