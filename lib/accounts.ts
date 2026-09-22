@@ -23,7 +23,7 @@ export async function resolveActiveAccount(
   if (!accounts || accounts.length === 0) {
     const { data: created } = await supabase
       .from("trading_accounts")
-      .insert({ user_id: userId, name: "Akun Utama", initial_balance: 10000 })
+      .insert({ user_id: userId, name: "Akun Utama", initial_balance: 10000, currency: "USD" })
       .select("*")
       .single();
     accounts = created ? [created] : [];
