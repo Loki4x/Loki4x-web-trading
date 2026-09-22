@@ -1,70 +1,67 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { ChevronDown, Wallet, Settings2 } from "lucide-react";
-import { ManageAccountsModal } from "@/components/accounts/ManageAccountsModal";
-import type { TradingAccount } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { createAccount } from "@/app/(dashboard)/accounts/actions";
 
-interface TradeSummary {
-  account_id: string | null;
-  pnl: number | null;
-  status: string;
-}
-
-export function AccountControl({
-  accounts,
-  tradesSummary,
-}: {
-  accounts: TradingAccount[];
-  tradesSummary: TradeSummary[];
-}) {
+export function AddAccountModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [manageOpen, setManageOpen] = useState(false);
+  const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
 
-  const activeId = searchParams.get("account") ?? accounts[0]?.id;
-
-  function handleChange(id: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("account", id);
-    router.push(`${pathname}?${params.toString()}`);
+  async function handleSubmit(formData: FormData) {
+    const result = await createAccount(formData);
+    if (result.success) {
+      router.refresh();
+      onClose();
+    } else {
+      alert(result.message);
+    }
   }
 
   return (
-    <div className="mb-4 px-1">
-      <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
-        <Wallet className="h-3 w-3" />
-        Akun Aktif
-      </label>
-      <div className="flex items-center gap-1.5">
-        <div className="relative flex-1">
-          <select
-            value={activeId}
-            onChange={(e) => handleChange(e.target.value)}
-            className="input-field w-full appearance-none !py-2 pr-8 text-[11px]"
-          >
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-h3 text-text-primary">Tambah Akun Journaling</h2>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary">
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <button
-          onClick={() => setManageOpen(true)}
-          aria-label="Kelola Akun"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
-        >
-          <Settings2 className="h-4 w-4" />
-        </button>
-      </div>
 
-      {manageOpen && (
-        <ManageAccountsModal accounts={accounts} trades={tradesSummary} onClose={() => setManageOpen(false)} />
-      )}
+        <form action={handleSubmit} className="flex flex-col gap-4">
+          <Input name="name" label="Nama Akun" placeholder="Contoh: Akun Live, Akun Demo, FTMO 100K" required />
+
+          <div className="flex flex-col gap-2">
+            <label className="text-body-sm font-medium text-text-secondary">Mata Uang</label>
+            <select
+              name="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as "USD" | "IDR")}
+              className="input-field"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="IDR">IDR (Rp)</option>
+            </select>
+          </div>
+
+          <Input
+            name="initial_balance"
+            type="number"
+            step={currency === "IDR" ? "1000" : "0.01"}
+            label={`Balance Awal (${currency === "IDR" ? "Rp" : "$"})`}
+            placeholder={currency === "IDR" ? "150000000" : "10000"}
+            defaultValue={currency === "IDR" ? "150000000" : "10000"}
+            required
+          />
+
+          <Button type="submit" withArrow className="mt-2 w-full justify-center">
+            Buat Akun
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
