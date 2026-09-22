@@ -94,9 +94,9 @@ export default async function ReportsPage({
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="Avg Win" value={formatCurrency(avgWin)} valueClassName="text-success" />
-        <KpiCard label="Avg Loss" value={formatCurrency(-avgLoss)} valueClassName="text-error" />
-        <KpiCard label="Expectancy / Trade" value={formatCurrency(expectancy)} />
+        <KpiCard label="Avg Win" value={formatCurrency(avgWin, activeAccount.currency)} valueClassName="text-success" />
+        <KpiCard label="Avg Loss" value={formatCurrency(-avgLoss, activeAccount.currency)} valueClassName="text-error" />
+        <KpiCard label="Expectancy / Trade" value={formatCurrency(expectancy, activeAccount.currency)} />
         <KpiCard label="Closed Trades" value={String(closed.length)} />
       </div>
 
@@ -105,7 +105,7 @@ export default async function ReportsPage({
           <DailyPnlHeatmap year={currentYear} month={currentMonth} days={dailyPnl} />
         </div>
         <div className="flex flex-col gap-6">
-          <TopPairsList pairs={pairs} />
+          <TopPairsList pairs={pairs} currency={activeAccount.currency} />
           <SessionBreakdown stats={sessionStats} />
         </div>
       </div>
