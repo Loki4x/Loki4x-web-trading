@@ -7,9 +7,9 @@ import { StatusBadge } from "@/components/trades/StatusBadge";
 import { WinLossBadge } from "@/components/trades/WinLossBadge";
 import { formatCurrency, formatDate, pnlColorClass } from "@/lib/utils";
 import { deleteTrade } from "@/app/(dashboard)/trades/actions";
-import type { Trade } from "@/lib/types";
+import type { Trade, AccountCurrency } from "@/lib/types";
 
-export function TradesTable({ trades }: { trades: Trade[] }) {
+export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; currency?: AccountCurrency }) {
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -57,7 +57,7 @@ export function TradesTable({ trades }: { trades: Trade[] }) {
                 {trade.pips !== null ? trade.pips : "—"}
               </td>
               <td className={`tabular-nums px-4 py-3 text-right text-body-sm font-semibold ${pnlColorClass(trade.pnl ?? 0)}`}>
-                {trade.pnl !== null ? formatCurrency(trade.pnl) : "—"}
+                {trade.pnl !== null ? formatCurrency(trade.pnl, currency) : "—"}
               </td>
               <td className="px-4 py-3">
                 <WinLossBadge pnl={trade.pnl} />
