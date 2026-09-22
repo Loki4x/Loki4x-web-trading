@@ -27,11 +27,11 @@ export function EquityChart({ data }: { data: EquityPoint[] }) {
         <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#118EEA" stopOpacity={0.35} />
+              <stop offset="0%" stopColor="#5F85DB" stopOpacity={0.35} />
               <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#221b38" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#55585F" vertical={false} />
           <XAxis
             dataKey="date"
             stroke="#64748b"
@@ -49,8 +49,8 @@ export function EquityChart({ data }: { data: EquityPoint[] }) {
           />
           <Tooltip
             contentStyle={{
-              background: "#1a142d",
-              border: "1px solid #221b38",
+              background: "#353941",
+              border: "1px solid #55585F",
               borderRadius: "0.75rem",
               color: "#f8fafc",
             }}
@@ -60,7 +60,7 @@ export function EquityChart({ data }: { data: EquityPoint[] }) {
           <Area
             type="monotone"
             dataKey="balance"
-            stroke="#118EEA"
+            stroke="#5F85DB"
             strokeWidth={2}
             fill="url(#equityFill)"
           />
