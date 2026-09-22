@@ -13,18 +13,18 @@ export function JournalTrendChart({ data }: { data: TrendPoint[] }) {
       <h3 className="mb-4 text-body font-semibold text-text-primary">Daily Journal Entries (Last 14 Days)</h3>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#221b38" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#55585F" />
           <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#64748b" }} />
           <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#120e22",
-              border: "1px solid #221b38",
+              backgroundColor: "#353941",
+              border: "1px solid #55585F",
               borderRadius: 8,
               fontSize: 12,
             }}
           />
-          <Bar dataKey="entries" name="Entries" fill="#118EEA" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="entries" name="Entries" fill="#5F85DB" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
