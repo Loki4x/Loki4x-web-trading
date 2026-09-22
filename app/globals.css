@@ -5,15 +5,15 @@
 @layer base {
   :root {
     /* Tema Dark (default) — nilai RGB dipisah spasi, dipakai Tailwind lewat rgb(var(--x) / <alpha-value>) */
-    --color-background: 8 5 17;
-    --color-surface: 18 14 34;
-    --color-surface-2: 26 20 45;
-    --color-surface-hover: 34 27 56;
+    --color-background: 5 8 16;
+    --color-surface: 13 19 33;
+    --color-surface-2: 21 28 46;
+    --color-surface-hover: 27 35 55;
     --color-text-primary: 248 250 252;
     --color-text-secondary: 148 163 184;
     --color-text-muted: 100 116 139;
-    --color-border: 34 27 56;
-    --color-border-strong: 59 46 99;
+    --color-border: 27 35 55;
+    --color-border-strong: 45 61 98;
   }
 
   html[data-theme="light"] {
