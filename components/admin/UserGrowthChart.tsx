@@ -27,7 +27,7 @@ export function UserGrowthChart({ data }: { data: GrowthPoint[] }) {
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line type="monotone" dataKey="free" name="Free" stroke="#64748b" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="vip" name="VIP" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="vip" name="VIP" stroke="#118EEA" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
