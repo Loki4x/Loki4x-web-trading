@@ -27,7 +27,7 @@ export function EquityChart({ data }: { data: EquityPoint[] }) {
         <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.35} />
+              <stop offset="0%" stopColor="#118EEA" stopOpacity={0.35} />
               <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
             </linearGradient>
           </defs>
@@ -60,7 +60,7 @@ export function EquityChart({ data }: { data: EquityPoint[] }) {
           <Area
             type="monotone"
             dataKey="balance"
-            stroke="#8b5cf6"
+            stroke="#118EEA"
             strokeWidth={2}
             fill="url(#equityFill)"
           />
