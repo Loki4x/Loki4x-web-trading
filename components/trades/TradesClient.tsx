@@ -8,7 +8,7 @@ import { AccountControl } from "@/components/accounts/AccountControl";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { EquityChart } from "@/components/dashboard/EquityChart";
 import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
-import type { Trade, TradeSide, TradeStatus, TradingAccount } from "@/lib/types";
+import type { Trade, TradeSide, TradeStatus, TradingAccount, AccountCurrency } from "@/lib/types";
 
 type SideFilter = "ALL" | TradeSide;
 type StatusFilter = "ALL" | TradeStatus;
@@ -33,6 +33,7 @@ export function TradesClient({
   trades,
   openModal,
   accountId,
+  accountCurrency = "USD",
   accounts,
   allTradesSummary,
   stats,
@@ -41,6 +42,7 @@ export function TradesClient({
   trades: Trade[];
   openModal?: boolean;
   accountId: string;
+  accountCurrency?: AccountCurrency;
   accounts: TradingAccount[];
   allTradesSummary: TradeSummary[];
   stats: Stats;
@@ -80,26 +82,26 @@ export function TradesClient({
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
           label="Today's P&L"
-          value={formatCurrency(stats.todayPnl)}
+          value={formatCurrency(stats.todayPnl, accountCurrency)}
           icon={Wallet}
           valueClassName={stats.todayPnl >= 0 ? "text-success" : "text-error"}
           featured
         />
-        <KpiCard label="Total Balance" value={formatPlainCurrency(stats.totalBalance)} icon={TrendingUp} />
+        <KpiCard label="Total Balance" value={formatPlainCurrency(stats.totalBalance, accountCurrency)} icon={TrendingUp} />
         <KpiCard
           label="Total P&L"
-          value={formatCurrency(stats.totalPnl)}
+          value={formatCurrency(stats.totalPnl, accountCurrency)}
           icon={Target}
           valueClassName={stats.totalPnl >= 0 ? "text-success" : "text-error"}
         />
         <KpiCard label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} icon={Percent} />
         <KpiCard label="Total Trades" value={String(stats.totalTrades)} icon={Hash} />
         <KpiCard label="Profit Factor" value={stats.profitFactor.toFixed(2)} icon={TrendingUp} />
-        <KpiCard label="Best Day" value={formatCurrency(stats.bestDay)} icon={Trophy} valueClassName="text-success" />
+        <KpiCard label="Best Day" value={formatCurrency(stats.bestDay, accountCurrency)} icon={Trophy} valueClassName="text-success" />
       </div>
 
       <div className="mb-6">
-        <EquityChart data={equityData} />
+        <EquityChart data={equityData} currency={accountCurrency} />
       </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -126,9 +128,11 @@ export function TradesClient({
         </div>
       </div>
 
-      <TradesTable trades={filtered} />
+      <TradesTable trades={filtered} currency={accountCurrency} />
 
-      {modalOpen && <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} />}
+      {modalOpen && (
+        <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} accountCurrency={accountCurrency} />
+      )}
     </div>
   );
 }
