@@ -14,20 +14,20 @@ export function UserGrowthChart({ data }: { data: GrowthPoint[] }) {
       <h3 className="mb-4 text-body font-semibold text-text-primary">User Growth (Free vs VIP)</h3>
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#221b38" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#55585F" />
           <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
           <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#120e22",
-              border: "1px solid #221b38",
+              backgroundColor: "#353941",
+              border: "1px solid #55585F",
               borderRadius: 8,
               fontSize: 12,
             }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line type="monotone" dataKey="free" name="Free" stroke="#64748b" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="vip" name="VIP" stroke="#118EEA" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="vip" name="VIP" stroke="#5F85DB" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
