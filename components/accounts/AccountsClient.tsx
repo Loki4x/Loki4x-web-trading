@@ -63,6 +63,9 @@ export function AccountsClient({
                 <div className="flex items-center gap-2">
                   <Wallet className="h-4 w-4 text-primary" />
                   <p className="text-body-sm font-semibold text-text-primary">{acc.name}</p>
+                  <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                    {acc.currency}
+                  </span>
                 </div>
                 {accounts.length > 1 && (
                   <button onClick={() => handleDelete(acc.id, acc.name)} className="text-text-muted hover:text-error">
@@ -70,10 +73,10 @@ export function AccountsClient({
                   </button>
                 )}
               </div>
-              <p className="text-h3 text-text-primary">{formatPlainCurrency(balance)}</p>
+              <p className="text-h3 text-text-primary">{formatPlainCurrency(balance, acc.currency)}</p>
               <div className="mt-3 flex items-center justify-between text-caption text-text-secondary">
-                <span>Balance awal: {formatPlainCurrency(acc.initial_balance)}</span>
-                <span className={pnlColorClass(totalPnl)}>{formatCurrency(totalPnl)}</span>
+                <span>Balance awal: {formatPlainCurrency(acc.initial_balance, acc.currency)}</span>
+                <span className={pnlColorClass(totalPnl)}>{formatCurrency(totalPnl, acc.currency)}</span>
               </div>
               <p className="mt-1 text-caption text-text-muted">{tradeCount} trade ditutup</p>
             </div>
