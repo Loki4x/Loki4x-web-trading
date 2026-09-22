@@ -10,9 +10,9 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#118EEA",
-          hover: "#0e78c6",
-          subtle: "rgba(17, 142, 234, 0.15)",
+          DEFAULT: "#5F85DB",
+          hover: "#90B8F8",
+          subtle: "rgba(95, 133, 219, 0.15)",
         },
         secondary: "#06b6d4",
         background: "rgb(var(--color-background) / <alpha-value>)",
@@ -62,8 +62,8 @@ const config: Config = {
       boxShadow: {
         sm: "0 2px 8px rgba(0, 0, 0, 0.5)",
         md: "0 4px 16px rgba(0, 0, 0, 0.6)",
-        glow: "0 0 25px rgba(17, 142, 234, 0.25)",
-        focus: "0 0 0 3px rgba(17, 142, 234, 0.4)",
+        glow: "0 0 25px rgba(95, 133, 219, 0.25)",
+        focus: "0 0 0 3px rgba(95, 133, 219, 0.4)",
       },
       maxWidth: {
         content: "1280px",
