@@ -24,7 +24,7 @@ export function JournalTrendChart({ data }: { data: TrendPoint[] }) {
               fontSize: 12,
             }}
           />
-          <Bar dataKey="entries" name="Entries" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="entries" name="Entries" fill="#118EEA" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
