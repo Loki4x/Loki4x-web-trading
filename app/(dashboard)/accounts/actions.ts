@@ -21,6 +21,8 @@ export async function createAccount(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const initialBalance = Number(formData.get("initial_balance") ?? 0);
+  const currencyInput = String(formData.get("currency") ?? "USD").toUpperCase();
+  const currency = currencyInput === "IDR" ? "IDR" : "USD";
 
   if (!name) {
     return { success: false as const, message: "Nama akun tidak boleh kosong." };
@@ -30,6 +32,7 @@ export async function createAccount(formData: FormData) {
     user_id: user.id,
     name,
     initial_balance: initialBalance,
+    currency,
   });
 
   if (error) {
