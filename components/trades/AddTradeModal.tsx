@@ -5,8 +5,17 @@ import { X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { addTrade } from "@/app/(dashboard)/trades/actions";
+import type { AccountCurrency } from "@/lib/types";
 
-export function AddTradeModal({ onClose, accountId }: { onClose: () => void; accountId: string }) {
+export function AddTradeModal({
+  onClose,
+  accountId,
+  accountCurrency = "USD",
+}: {
+  onClose: () => void;
+  accountId: string;
+  accountCurrency?: AccountCurrency;
+}) {
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
@@ -44,7 +53,13 @@ export function AddTradeModal({ onClose, accountId }: { onClose: () => void; acc
 
           <Input name="pips" type="number" step="0.1" label="Total Pips (optional)" placeholder="e.g. 25 or -10" />
 
-          <Input name="pnl_manual" type="number" step="0.01" label="Profit/Loss ($) (optional)" placeholder="e.g. 50 or -25.50" />
+          <Input
+            name="pnl_manual"
+            type="number"
+            step="0.01"
+            label={`Profit/Loss (${accountCurrency === "IDR" ? "Rp" : "$"}) (optional)`}
+            placeholder="e.g. 50 or -25.50"
+          />
 
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Confluence (Trade Reasoning)</label>
