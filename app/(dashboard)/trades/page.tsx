@@ -66,6 +66,7 @@ export default async function TradesPage({
         trades={[...allTrades].reverse()}
         openModal={searchParams.add === "1"}
         accountId={activeAccount.id}
+        accountCurrency={activeAccount.currency}
         accounts={accounts}
         allTradesSummary={allTradesSummary ?? []}
         stats={{ todayPnl, totalBalance, totalPnl, winRate, totalTrades: allTrades.length, profitFactor, bestDay }}
