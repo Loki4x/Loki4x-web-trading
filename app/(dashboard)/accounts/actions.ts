@@ -1,7 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { ACTIVE_ACCOUNT_COOKIE } from "@/lib/accounts";
+
+/**
+ * Diipanggil setiap kali user ganti akun aktif dari AccountControl,
+ * supaya pilihan itu diingat di halaman lain (Journal, Reports, dst)
+ * meskipun ?account= di URL nggak ikut ke-bawa.
+ */
+export async function setActiveAccount(accountId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(ACTIVE_ACCOUNT_COOKIE, accountId, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365, // 1 tahun
+    sameSite: "lax",
+  });
+}
 
 export async function createAccount(formData: FormData) {
   const supabase = await createClient();
