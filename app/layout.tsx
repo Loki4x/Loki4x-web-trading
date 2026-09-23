@@ -37,7 +37,7 @@ export default function RootLayout({
         {/* Set tema sebelum halaman ke-render, biar nggak ada "kedipan" tema salah pas awal buka. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('loki4x-theme');document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark');}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('loki4x-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme', t);}catch(e){}})();`,
           }}
         />
       </head>
