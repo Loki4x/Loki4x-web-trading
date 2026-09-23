@@ -1,16 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { StatusBadge } from "@/components/trades/StatusBadge";
 import { WinLossBadge } from "@/components/trades/WinLossBadge";
+import { EditTradeModal } from "@/components/trades/EditTradeModal";
 import { formatCurrency, formatDate, pnlColorClass } from "@/lib/utils";
 import { deleteTrade } from "@/app/(dashboard)/trades/actions";
 import type { Trade, AccountCurrency } from "@/lib/types";
 
 export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; currency?: AccountCurrency }) {
   const router = useRouter();
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this trade? This cannot be undone.")) return;
@@ -85,7 +88,7 @@ export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; cur
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
-                  <button className="text-text-muted hover:text-primary">
+                  <button onClick={() => setEditingTrade(trade)} className="text-text-muted hover:text-primary">
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button onClick={() => handleDelete(trade.id)} className="text-text-muted hover:text-error">
@@ -97,6 +100,14 @@ export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; cur
           ))}
         </tbody>
       </table>
+
+      {editingTrade && (
+        <EditTradeModal
+          trade={editingTrade}
+          accountCurrency={currency}
+          onClose={() => setEditingTrade(null)}
+        />
+      )}
     </div>
   );
 }
