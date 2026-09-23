@@ -1,3 +1,5 @@
+import type { AccountCurrency } from "@/lib/types";
+
 const DAY_LABELS = ["S", "S", "R", "K", "J", "S", "M"]; // Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu
 
 interface DayPnl {
@@ -5,7 +7,32 @@ interface DayPnl {
   pnl: number;
 }
 
-export function DailyPnlHeatmap({ year, month, days }: { year: number; month: number; days: DayPnl[] }) {
+// Format angka jadi ringkas: 445000 -> "445k", 1445000 -> "1.445k" (IDR)
+// atau "1,445k" (USD). Di bawah 1000 ditampilkan apa adanya, nggak pakai "k".
+function formatCompactAmount(value: number, currency: AccountCurrency) {
+  const prefix = currency === "IDR" ? "Rp" : "$";
+  const abs = Math.abs(Math.round(value));
+  const locale = currency === "IDR" ? "id-ID" : "en-US";
+
+  if (abs < 1000) {
+    return `${prefix}${abs}`;
+  }
+
+  const scaled = Math.round(abs / 1000);
+  return `${prefix}${scaled.toLocaleString(locale)}k`;
+}
+
+export function DailyPnlHeatmap({
+  year,
+  month,
+  days,
+  currency = "USD",
+}: {
+  year: number;
+  month: number;
+  days: DayPnl[];
+  currency?: AccountCurrency;
+}) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 = Minggu .. 6 = Sabtu
   const leadingBlanks = (firstDayOfWeek + 6) % 7; // geser biar mingguan mulai dari Senin
@@ -54,7 +81,8 @@ export function DailyPnlHeatmap({ year, month, days }: { year: number; month: nu
               <span className="text-caption text-text-muted">{day}</span>
               {hasTrade && (
                 <span className={`text-caption font-semibold ${pnl! >= 0 ? "text-success" : "text-error"}`}>
-                  {pnl! >= 0 ? "+" : "-"}${Math.abs(Math.round(pnl!))}
+                  {pnl! >= 0 ? "+" : "-"}
+                  {formatCompactAmount(pnl!, currency)}
                 </span>
               )}
             </div>
