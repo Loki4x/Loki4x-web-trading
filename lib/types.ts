@@ -18,10 +18,24 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   email: string | null;
+  username: string | null;
+  bio: string | null;
+  timezone: string;
+  language: string;
+  notify_receipts: boolean;
+  notify_expiry: boolean;
   is_admin?: boolean;
   tier: "FREE" | "VIP" | "MEMBERSHIP";
   vip_expires_at: string | null;
   is_suspended: boolean;
+  created_at: string;
+}
+
+export interface LoginActivity {
+  id: string;
+  user_id: string;
+  ip: string | null;
+  user_agent: string | null;
   created_at: string;
 }
 
