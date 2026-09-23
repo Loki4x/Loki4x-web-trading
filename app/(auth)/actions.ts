@@ -1,7 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { logLoginActivity } from "@/lib/login-activity";
+
+async function currentRequestInfo() {
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip");
+  const userAgent = h.get("user-agent");
+  return { ip, userAgent };
+}
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -9,10 +18,14 @@ export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (data.user) {
+    await logLoginActivity(supabase, data.user.id, await currentRequestInfo());
   }
 
   redirect("/dashboard");
@@ -46,7 +59,7 @@ export async function verifyOtp(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const token = String(formData.get("token") ?? "");
 
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "signup",
@@ -54,6 +67,10 @@ export async function verifyOtp(formData: FormData) {
 
   if (error) {
     redirect(`/verify-otp?email=${encodeURIComponent(email)}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (data.user) {
+    await logLoginActivity(supabase, data.user.id, await currentRequestInfo());
   }
 
   redirect("/dashboard");
