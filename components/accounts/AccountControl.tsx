@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { ChevronDown, Wallet, Settings2 } from "lucide-react";
 import { ManageAccountsModal } from "@/components/accounts/ManageAccountsModal";
+import { setActiveAccount } from "@/app/(dashboard)/accounts/actions";
 import type { TradingAccount } from "@/lib/types";
 
 interface TradeSummary {
@@ -15,18 +16,24 @@ interface TradeSummary {
 export function AccountControl({
   accounts,
   tradesSummary,
+  activeAccountId,
 }: {
   accounts: TradingAccount[];
   tradesSummary: TradeSummary[];
+  activeAccountId?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [manageOpen, setManageOpen] = useState(false);
 
-  const activeId = searchParams.get("account") ?? accounts[0]?.id;
+  const activeId = searchParams.get("account") ?? activeAccountId ?? accounts[0]?.id;
 
   function handleChange(id: string) {
+    // Simpan pilihan ke cookie supaya halaman lain (Reports, dst) ikut
+    // pakai akun yang sama, meski ?account= di URL nggak ke-bawa ke sana.
+    setActiveAccount(id);
+
     const params = new URLSearchParams(searchParams.toString());
     params.set("account", id);
     router.push(`${pathname}?${params.toString()}`);
