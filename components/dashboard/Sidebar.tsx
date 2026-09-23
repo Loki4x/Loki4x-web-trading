@@ -97,7 +97,9 @@ export function Sidebar({ isAdmin, notifications = [] }: { isAdmin?: boolean; no
 
   const brand = (
     <div className="flex items-center gap-2.5">
-      <Image src="/logo.png" alt="Loki4x Academy" width={40} height={40} className="rounded-full" />
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary p-1.5">
+        <Image src="/logo-white.png" alt="Loki4x Academy" width={32} height={32} className="h-full w-full object-contain" />
+      </div>
       <span className="text-body font-display font-extrabold tracking-wide text-text-primary">
         LOKI4X ACADEMY
       </span>
