@@ -35,11 +35,11 @@ export function AdminSidebar() {
   }
 
   const brand = (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-2">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary p-1">
         <Image src="/logo-white.png" alt="Loki4x Academy" width={24} height={24} className="h-full w-full object-contain" />
       </div>
-      <span className="text-body font-display font-extrabold tracking-wide text-text-primary">
+      <span className="text-body-sm font-display font-extrabold tracking-wide text-text-primary">
         LOKI4X ACADEMY
       </span>
       <span className="rounded-md bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
