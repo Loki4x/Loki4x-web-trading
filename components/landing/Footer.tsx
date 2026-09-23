@@ -18,7 +18,9 @@ export function Footer() {
         <div className="flex flex-col gap-10 md:flex-row md:justify-between">
           <div className="max-w-sm">
             <div className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt="Loki4x Academy" width={32} height={32} className="rounded-full" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary p-1">
+                <Image src="/logo-white.png" alt="Loki4x Academy" width={24} height={24} className="h-full w-full object-contain" />
+              </div>
               <span className="text-body font-display font-extrabold tracking-wide text-text-primary">
                 LOKI4X ACADEMY
               </span>
