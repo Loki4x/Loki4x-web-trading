@@ -22,7 +22,6 @@ import {
   CircleUserRound,
 } from "lucide-react";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 import type { TradingAccount } from "@/lib/types";
@@ -115,7 +114,6 @@ export function Sidebar({ isAdmin, notifications = [] }: { isAdmin?: boolean; no
         </button>
 
         <div className="ml-auto flex items-center gap-4">
-          <ThemeToggle />
           <NotificationBell notifications={notifications} />
 
           <div className="relative">
