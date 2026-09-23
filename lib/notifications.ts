@@ -46,7 +46,23 @@ export async function notifyUser({
     await supabase.from("notifications").insert({ user_id: userId, type, title, message });
   }
 
-  if (channels.email && email) {
+  let sendEmailAllowed = channels.email;
+  if (sendEmailAllowed && (type === "TIER_UPGRADE" || type === "EXPIRY_WARNING" || type === "EXPIRY_ENDED")) {
+    const { data: prefs } = await supabase
+      .from("profiles")
+      .select("notify_receipts, notify_expiry")
+      .eq("id", userId)
+      .single();
+
+    if (type === "TIER_UPGRADE" && prefs && prefs.notify_receipts === false) {
+      sendEmailAllowed = false;
+    }
+    if ((type === "EXPIRY_WARNING" || type === "EXPIRY_ENDED") && prefs && prefs.notify_expiry === false) {
+      sendEmailAllowed = false;
+    }
+  }
+
+  if (sendEmailAllowed && email) {
     await sendEmail({ to: email, subject: title, html: emailHtml(title, message) });
   }
 }
