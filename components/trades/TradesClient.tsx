@@ -76,7 +76,7 @@ export function TradesClient({
       </div>
 
       <div className="mb-6 max-w-xs">
-        <AccountControl accounts={accounts} tradesSummary={allTradesSummary} />
+        <AccountControl accounts={accounts} tradesSummary={allTradesSummary} activeAccountId={accountId} />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
