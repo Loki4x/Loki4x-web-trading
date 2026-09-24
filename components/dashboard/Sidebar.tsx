@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   NotebookText,
   Newspaper,
+  Globe,
   BarChart3,
   LogOut,
   ShieldCheck,
@@ -48,6 +49,7 @@ const groups = [
       { href: "/reports", label: "Report & Performance", icon: BarChart3 },
       { href: "/calculator", label: "Lot Calculator", icon: Calculator },
       { href: "/news", label: "Economic News", icon: Newspaper },
+      { href: "/market-news", label: "Fundamental Pasar", icon: Globe },
     ],
   },
   {
