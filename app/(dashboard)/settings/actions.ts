@@ -65,7 +65,10 @@ export async function changePassword(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user || !user.email) return { success: false as const, message: "Not authenticated" };
 
-  const currentPassword = String(formData.get("current_password") ?? "");
+  // User yang cuma pernah login via Google belum pernah punya kata sandi,
+  // jadi nggak ada "kata sandi saat ini" buat diverifikasi.
+  const hasPassword = (user.identities ?? []).some((i) => i.provider === "email");
+
   const newPassword = String(formData.get("new_password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
   const signOutOthers = formData.get("sign_out_others") === "on";
@@ -77,13 +80,15 @@ export async function changePassword(formData: FormData) {
     return { success: false as const, message: "Konfirmasi kata sandi tidak cocok." };
   }
 
-  // Verifikasi kata sandi saat ini dulu sebelum diganti
-  const { error: verifyError } = await supabase.auth.signInWithPassword({
-    email: user.email,
-    password: currentPassword,
-  });
-  if (verifyError) {
-    return { success: false as const, message: "Kata sandi saat ini salah." };
+  if (hasPassword) {
+    const currentPassword = String(formData.get("current_password") ?? "");
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (verifyError) {
+      return { success: false as const, message: "Kata sandi saat ini salah." };
+    }
   }
 
   const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
