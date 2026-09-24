@@ -57,3 +57,19 @@ export function formatTime(dateString: string): string {
 export function pnlColorClass(value: number): string {
   return value >= 0 ? "text-success" : "text-error";
 }
+
+export function formatRelativeTime(dateString: string): string {
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const diffMin = Math.round(diffMs / 60000);
+
+  if (diffMin < 1) return "Baru saja";
+  if (diffMin < 60) return `${diffMin} menit lalu`;
+
+  const diffHour = Math.round(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} jam lalu`;
+
+  const diffDay = Math.round(diffHour / 24);
+  if (diffDay < 7) return `${diffDay} hari lalu`;
+
+  return new Date(dateString).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
