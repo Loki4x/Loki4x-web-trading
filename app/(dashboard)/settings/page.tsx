@@ -28,7 +28,9 @@ export default async function SettingsPage() {
   const currentUserAgent = h.get("user-agent") ?? "";
   const currentDevice = parseUserAgent(currentUserAgent);
 
-  const isGoogleUser = (user?.app_metadata?.providers as string[] | undefined)?.includes("google") ?? false;
+  const identities = user?.identities ?? [];
+  const isGoogleUser = identities.some((i) => i.provider === "google");
+  const hasPassword = identities.some((i) => i.provider === "email");
 
   return (
     <main className="mx-auto max-w-content px-6 py-8">
@@ -43,6 +45,7 @@ export default async function SettingsPage() {
         profile={(profile as Profile) ?? null}
         email={user?.email ?? ""}
         isGoogleUser={isGoogleUser}
+        hasPassword={hasPassword}
         memberSince={profile?.created_at ?? user?.created_at ?? ""}
         loginActivity={(loginActivity ?? []) as LoginActivity[]}
         currentDevice={currentDevice}
