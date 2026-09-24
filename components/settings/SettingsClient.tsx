@@ -24,6 +24,7 @@ export function SettingsClient({
   profile,
   email,
   isGoogleUser,
+  hasPassword,
   memberSince,
   loginActivity,
   currentDevice,
@@ -32,6 +33,7 @@ export function SettingsClient({
   profile: Profile | null;
   email: string;
   isGoogleUser: boolean;
+  hasPassword: boolean;
   memberSince: string;
   loginActivity: LoginActivity[];
   currentDevice: { browser: string; os: string };
@@ -63,7 +65,12 @@ export function SettingsClient({
         {activeTab === "profile" && <ProfilePanel profile={profile} isGoogleUser={isGoogleUser} />}
         {activeTab === "account" && <AccountPanel profile={profile} email={email} memberSince={memberSince} />}
         {activeTab === "security" && (
-          <SecurityPanel loginActivity={loginActivity} currentDevice={currentDevice} currentIp={currentIp} />
+          <SecurityPanel
+            loginActivity={loginActivity}
+            currentDevice={currentDevice}
+            currentIp={currentIp}
+            hasPassword={hasPassword}
+          />
         )}
         {activeTab === "notifications" && <NotificationsPanel profile={profile} />}
         {activeTab === "appearance" && <AppearancePanel />}
