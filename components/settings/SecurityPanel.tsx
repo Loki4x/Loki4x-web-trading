@@ -14,10 +14,12 @@ export function SecurityPanel({
   loginActivity,
   currentDevice,
   currentIp,
+  hasPassword,
 }: {
   loginActivity: LoginActivity[];
   currentDevice: { browser: string; os: string };
   currentIp: string;
+  hasPassword: boolean;
 }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -40,13 +42,15 @@ export function SecurityPanel({
   return (
     <div className="flex flex-col gap-6">
       <div className="card !p-6">
-        <h2 className="text-h3 text-text-primary">Ubah kata sandi</h2>
+        <h2 className="text-h3 text-text-primary">{hasPassword ? "Ubah kata sandi" : "Buat kata sandi"}</h2>
         <p className="mb-5 text-body-sm text-text-secondary">
-          Pastikan kata sandi baru berbeda dari yang lama dan cukup kuat.
+          {hasPassword
+            ? "Pastikan kata sandi baru berbeda dari yang lama dan cukup kuat."
+            : "Akun Anda login pakai Google dan belum punya kata sandi. Buat satu supaya bisa juga login pakai email + kata sandi."}
         </p>
 
         <form key={formKey} action={handleSubmit} className="flex flex-col gap-4">
-          <Input name="current_password" type="password" label="Kata sandi saat ini" required />
+          {hasPassword && <Input name="current_password" type="password" label="Kata sandi saat ini" required />}
           <Input name="new_password" type="password" label="Kata sandi baru" required />
           <Input name="confirm_password" type="password" label="Konfirmasi kata sandi baru" required />
 
@@ -63,7 +67,7 @@ export function SecurityPanel({
           )}
 
           <Button type="submit" disabled={saving} className="w-fit">
-            {saving ? "Menyimpan..." : "Ubah kata sandi"}
+            {saving ? "Menyimpan..." : hasPassword ? "Ubah kata sandi" : "Buat kata sandi"}
           </Button>
         </form>
       </div>
