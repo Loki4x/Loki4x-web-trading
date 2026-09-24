@@ -7,7 +7,6 @@ import { UpgradeBanner } from "@/components/dashboard/UpgradeBanner";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { UpgradeOffers } from "@/components/dashboard/UpgradeOffers";
 import { UpgradeHistory } from "@/components/dashboard/UpgradeHistory";
-import { QuickActions } from "@/components/dashboard/QuickActions";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { EquityChart } from "@/components/dashboard/EquityChart";
 import { TopPairsList } from "@/components/reports/TopPairsList";
@@ -140,10 +139,6 @@ export default async function DashboardOverviewPage() {
         <MembershipStatusBar tier={tier} expiresAt={vipExpiresAt} />
 
         <UpgradeBanner tier={tier} />
-
-        <div className="mb-6">
-          <QuickActions tier={tier} />
-        </div>
 
         {!onboardingDone && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
