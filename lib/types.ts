@@ -18,12 +18,12 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   email: string | null;
-  username: string | null;
-  bio: string | null;
-  timezone: string;
-  language: string;
-  notify_receipts: boolean;
-  notify_expiry: boolean;
+  username?: string | null;
+  bio?: string | null;
+  timezone?: string;
+  language?: string;
+  notify_receipts?: boolean;
+  notify_expiry?: boolean;
   is_admin?: boolean;
   tier: "FREE" | "VIP" | "MEMBERSHIP";
   vip_expires_at: string | null;
