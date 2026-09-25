@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { resolveActiveAccount } from "@/lib/accounts";
 import { getEconomicCalendarRange } from "@/lib/economic-calendar";
+import { getCotHighlights } from "@/lib/cot-highlights";
+import { MarketHighlights } from "@/components/dashboard/MarketHighlights";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { MembershipStatusBar } from "@/components/dashboard/MembershipStatusBar";
 import { UpgradeBanner } from "@/components/dashboard/UpgradeBanner";
@@ -14,6 +16,7 @@ import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
 import type { VipIbRequest, Trade, NewsEvent } from "@/lib/types";
 import type { Tier } from "@/lib/tier";
+import { hasAccess } from "@/lib/tier";
 import Link from "next/link";
 import { ArrowRight, Wallet, TrendingUp, Percent, Hash } from "lucide-react";
 
@@ -131,6 +134,31 @@ export default async function DashboardOverviewPage() {
       }));
   }
 
+  // COT & Retail Bias — sama seperti Positioning, minimal tier VIP
+  let marketHighlights: {
+    cot: Awaited<ReturnType<typeof getCotHighlights>>;
+    retailBias: { longTop: { symbol: string; percent: number }[]; shortTop: { symbol: string; percent: number }[] };
+  } | null = null;
+
+  if (hasAccess(tier, "VIP")) {
+    const [cot, { data: positioningRows }] = await Promise.all([
+      getCotHighlights(),
+      supabase.from("positioning").select("symbol, long_percent, short_percent"),
+    ]);
+
+    const rows = positioningRows ?? [];
+    const longTop = [...rows]
+      .sort((a, b) => b.long_percent - a.long_percent)
+      .slice(0, 3)
+      .map((r) => ({ symbol: r.symbol, percent: r.long_percent }));
+    const shortTop = [...rows]
+      .sort((a, b) => b.short_percent - a.short_percent)
+      .slice(0, 3)
+      .map((r) => ({ symbol: r.symbol, percent: r.short_percent }));
+
+    marketHighlights = { cot, retailBias: { longTop, shortTop } };
+  }
+
   return (
     <div>
       <Topbar userName={userName} />
@@ -148,6 +176,12 @@ export default async function DashboardOverviewPage() {
             <div>
               <UpgradeOffers tier={tier} />
             </div>
+          </div>
+        )}
+
+        {marketHighlights && (
+          <div className="mb-6">
+            <MarketHighlights cot={marketHighlights.cot} retailBias={marketHighlights.retailBias} />
           </div>
         )}
 
