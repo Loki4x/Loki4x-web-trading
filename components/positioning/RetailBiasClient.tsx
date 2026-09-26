@@ -3,7 +3,14 @@
 import { useMemo, useState } from "react";
 import { cx } from "@/lib/utils";
 import { categorizeSymbol, getContrarianSignal, CATEGORY_LABEL, SIGNAL_LABEL, type AssetCategory, type ContrarianSignal } from "@/lib/asset-category";
-import type { Positioning } from "@/lib/types";
+
+export interface RetailBiasItem {
+  symbol: string;
+  long_percent: number;
+  short_percent: number;
+  source: "auto" | "manual";
+  updated_at?: string;
+}
 
 type CategoryFilter = "ALL" | AssetCategory;
 type SortMode = "LONG" | "SHORT" | "AZ";
@@ -22,7 +29,7 @@ const SIGNAL_STYLE: Record<ContrarianSignal, string> = {
   BULLISH: "bg-success-subtle text-success",
 };
 
-export function RetailBiasClient({ items }: { items: Positioning[] }) {
+export function RetailBiasClient({ items }: { items: RetailBiasItem[] }) {
   const [category, setCategory] = useState<CategoryFilter>("ALL");
   const [sortMode, setSortMode] = useState<SortMode>("LONG");
 
@@ -103,13 +110,19 @@ export function RetailBiasClient({ items }: { items: Positioning[] }) {
 
       <div className="flex flex-col gap-3">
         {sorted.map((p) => (
-          <div key={p.id} className="card">
+          <div key={p.symbol} className="card">
             <div className="mb-2 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <p className="text-body-sm font-semibold text-text-primary">{p.symbol}</p>
                 <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
                   {CATEGORY_LABEL[p.category]}
                 </span>
+                {p.source === "auto" && (
+                  <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
+                    <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                    Live
+                  </span>
+                )}
               </div>
               <span className={cx("rounded-full px-2.5 py-0.5 text-caption font-semibold", SIGNAL_STYLE[p.signal])}>
                 {SIGNAL_LABEL[p.signal]}
@@ -122,7 +135,11 @@ export function RetailBiasClient({ items }: { items: Positioning[] }) {
             <div className="mt-2 flex items-center justify-between text-caption">
               <span className="text-success">Long {p.long_percent}%</span>
               <span className="text-text-muted">
-                {new Date(p.updated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
+                {p.source === "auto"
+                  ? "Myfxbook"
+                  : p.updated_at
+                    ? new Date(p.updated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+                    : "Manual"}
               </span>
               <span className="text-error">Short {p.short_percent}%</span>
             </div>
