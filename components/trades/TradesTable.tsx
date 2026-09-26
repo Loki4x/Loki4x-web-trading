@@ -7,7 +7,7 @@ import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { StatusBadge } from "@/components/trades/StatusBadge";
 import { WinLossBadge } from "@/components/trades/WinLossBadge";
 import { EditTradeModal } from "@/components/trades/EditTradeModal";
-import { formatCurrency, formatDate, pnlColorClass } from "@/lib/utils";
+import { formatCurrency, formatDate, formatPrice, pnlColorClass } from "@/lib/utils";
 import { deleteTrade } from "@/app/(dashboard)/trades/actions";
 import type { Trade, AccountCurrency } from "@/lib/types";
 
@@ -51,10 +51,10 @@ export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; cur
                 <TradeSideBadge side={trade.side} />
               </td>
               <td className="tabular-nums px-4 py-3 text-right text-body-sm text-text-secondary">
-                {trade.entry_price.toFixed(5)}
+                {formatPrice(trade.entry_price, trade.symbol)}
               </td>
               <td className="tabular-nums px-4 py-3 text-right text-body-sm text-text-secondary">
-                {trade.exit_price ? trade.exit_price.toFixed(5) : "—"}
+                {trade.exit_price ? formatPrice(trade.exit_price, trade.symbol) : "—"}
               </td>
               <td className="tabular-nums px-4 py-3 text-right text-body-sm text-text-secondary">
                 {trade.pips !== null ? trade.pips : "—"}
