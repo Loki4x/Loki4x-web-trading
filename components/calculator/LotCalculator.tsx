@@ -24,7 +24,7 @@ const INSTRUMENTS: Instrument[] = [
   { symbol: "USDJPY", type: "Forex", pipSize: 0.01, contractSize: 100_000, quoteIsUSD: false, marginBasis: "base" },
   { symbol: "USDCHF", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: false, marginBasis: "base" },
   { symbol: "USDCAD", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: false, marginBasis: "base" },
-  { symbol: "XAUUSD", type: "Commodity", pipSize: 0.01, contractSize: 100, quoteIsUSD: true, marginBasis: "quote" },
+  { symbol: "XAUUSD", type: "Commodity", pipSize: 0.1, contractSize: 100, quoteIsUSD: true, marginBasis: "quote" },
   { symbol: "XAGUSD", type: "Commodity", pipSize: 0.001, contractSize: 5_000, quoteIsUSD: true, marginBasis: "quote" },
   { symbol: "US30", type: "Index", pipSize: 1, contractSize: 1, quoteIsUSD: true, marginBasis: "quote" },
   { symbol: "NAS100", type: "Index", pipSize: 1, contractSize: 1, quoteIsUSD: true, marginBasis: "quote" },
