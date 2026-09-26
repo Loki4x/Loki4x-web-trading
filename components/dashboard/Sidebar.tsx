@@ -17,6 +17,7 @@ import {
   X,
   ChevronDown,
   LineChart,
+  Landmark,
   Compass,
   Calculator,
   GraduationCap,
@@ -38,7 +39,8 @@ const groups = [
     icon: LineChart,
     links: [
       { href: "/signals", label: "Signals & Track Record", icon: LineChart },
-      { href: "/positioning", label: "Positioning", icon: Compass },
+      { href: "/cot", label: "Institutional (COT)", icon: Landmark },
+      { href: "/positioning", label: "Retail Bias", icon: Compass },
     ],
   },
   {
