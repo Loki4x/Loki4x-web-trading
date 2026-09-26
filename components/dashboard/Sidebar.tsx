@@ -22,6 +22,8 @@ import {
   Calculator,
   GraduationCap,
   CircleUserRound,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { cx } from "@/lib/utils";
@@ -74,7 +76,17 @@ interface NotificationItem {
   created_at: string;
 }
 
-export function Sidebar({ isAdmin, notifications = [] }: { isAdmin?: boolean; notifications?: NotificationItem[] }) {
+export function Sidebar({
+  isAdmin,
+  notifications = [],
+  desktopOpen,
+  onToggleDesktop,
+}: {
+  isAdmin?: boolean;
+  notifications?: NotificationItem[];
+  desktopOpen: boolean;
+  onToggleDesktop: () => void;
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -112,10 +124,24 @@ export function Sidebar({ isAdmin, notifications = [] }: { isAdmin?: boolean; no
   return (
     <>
       {/* Top bar - persistent across mobile and desktop */}
-      <div className="fixed inset-x-0 top-0 z-30 flex h-topbar items-center justify-between border-b border-border bg-surface px-4 lg:pl-sidebar">
-        <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label="Open menu">
-          <Menu className="h-6 w-6" />
-        </button>
+      <div
+        className={cx(
+          "fixed inset-x-0 top-0 z-30 flex h-topbar items-center justify-between border-b border-border bg-surface px-4 transition-[padding] duration-200",
+          desktopOpen ? "lg:pl-sidebar" : "lg:pl-0"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label="Open menu">
+            <Menu className="h-6 w-6" />
+          </button>
+          <button
+            onClick={onToggleDesktop}
+            className="hidden text-text-muted transition-colors hover:text-text-primary lg:flex"
+            aria-label={desktopOpen ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
+          >
+            {desktopOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
+          </button>
+        </div>
 
         <div className="ml-auto flex items-center gap-4">
           <NotificationBell notifications={notifications} />
@@ -164,8 +190,9 @@ export function Sidebar({ isAdmin, notifications = [] }: { isAdmin?: boolean; no
 
       <aside
         className={cx(
-          "fixed inset-y-0 left-0 z-50 flex w-sidebar flex-col overflow-y-auto border-r border-border bg-surface px-4 py-6 transition-transform duration-200 lg:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 flex w-sidebar flex-col overflow-y-auto border-r border-border bg-surface px-4 py-6 transition-transform duration-200",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          desktopOpen ? "lg:translate-x-0" : "lg:-translate-x-full"
         )}
       >
         <div className="mb-8 flex items-center justify-between px-1">
