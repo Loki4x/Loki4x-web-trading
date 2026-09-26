@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { PositioningBars } from "@/components/positioning/PositioningBars";
+import { RetailBiasClient } from "@/components/positioning/RetailBiasClient";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
 
@@ -18,11 +18,11 @@ export default async function PositioningPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-h2 text-text-primary">Positioning</h1>
-        <p className="text-body-sm text-text-secondary">Data positioning pasar (long vs short).</p>
+        <h1 className="text-h2 text-text-primary">Retail Bias</h1>
+        <p className="text-body-sm text-text-secondary">Sentimen retail (long vs short) — dibaca kontrarian.</p>
       </div>
 
-      <PositioningBars items={positioning ?? []} />
+      <RetailBiasClient items={positioning ?? []} />
     </main>
   );
 }
