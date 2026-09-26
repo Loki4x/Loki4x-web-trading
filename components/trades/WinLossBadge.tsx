@@ -10,7 +10,7 @@ export function WinLossBadge({ pnl }: { pnl: number | null }) {
   return (
     <span
       className={cx(
-        "inline-flex rounded-md px-2.5 py-1 text-caption font-bold",
+        "inline-flex items-center rounded-md px-2 py-0.5 text-caption font-semibold leading-none",
         pnl > 0
           ? "bg-success-subtle text-success"
           : pnl < 0
