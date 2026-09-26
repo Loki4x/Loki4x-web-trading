@@ -134,13 +134,15 @@ export function Sidebar({
           <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label="Open menu">
             <Menu className="h-6 w-6" />
           </button>
-          <button
-            onClick={onToggleDesktop}
-            className="hidden text-text-muted transition-colors hover:text-text-primary lg:flex"
-            aria-label={desktopOpen ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
-          >
-            {desktopOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
-          </button>
+          {!desktopOpen && (
+            <button
+              onClick={onToggleDesktop}
+              className="hidden text-text-muted transition-colors hover:text-text-primary lg:block"
+              aria-label="Tampilkan sidebar"
+            >
+              <PanelLeft className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         <div className="ml-auto flex items-center gap-4">
@@ -199,9 +201,18 @@ export function Sidebar({
           <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
             {brand}
           </Link>
-          <button onClick={() => setMobileOpen(false)} className="text-text-muted lg:hidden" aria-label="Close menu">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onToggleDesktop}
+              className="hidden text-text-muted transition-colors hover:text-text-primary lg:block"
+              aria-label="Sembunyikan sidebar"
+            >
+              <PanelLeftClose className="h-5 w-5" />
+            </button>
+            <button onClick={() => setMobileOpen(false)} className="text-text-muted lg:hidden" aria-label="Close menu">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
