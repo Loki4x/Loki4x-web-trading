@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveActiveAccount } from "@/lib/accounts";
 import { getEconomicCalendarRange } from "@/lib/economic-calendar";
 import { getCotHighlights } from "@/lib/cot-highlights";
+import { getRetailSentiment, mergeRetailSentiment } from "@/lib/myfxbook";
 import { MarketHighlights } from "@/components/dashboard/MarketHighlights";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { MembershipStatusBar } from "@/components/dashboard/MembershipStatusBar";
@@ -141,12 +142,14 @@ export default async function DashboardOverviewPage() {
   } | null = null;
 
   if (hasAccess(tier, "VIP")) {
-    const [cot, { data: positioningRows }] = await Promise.all([
+    const [cot, { data: positioningRows }, automaticSentiment] = await Promise.all([
       getCotHighlights(),
       supabase.from("positioning").select("symbol, long_percent, short_percent"),
+      getRetailSentiment(),
     ]);
 
-    const rows = positioningRows ?? [];
+    const merged = mergeRetailSentiment(automaticSentiment, positioningRows ?? []);
+    const rows = merged.map((m) => ({ symbol: m.symbol, long_percent: m.longPercent, short_percent: m.shortPercent }));
     const longTop = [...rows]
       .sort((a, b) => b.long_percent - a.long_percent)
       .slice(0, 3)
