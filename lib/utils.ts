@@ -1,9 +1,31 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { AccountCurrency } from "@/lib/types";
+import { categorizeSymbol } from "@/lib/asset-category";
 
 export function cx(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Format harga entry/exit sesuai jenis simbolnya, supaya tidak selalu
+ * menampilkan 5 angka desimal (yang cocok untuk forex, tapi berlebihan
+ * untuk gold/index/crypto seperti XAUUSD -> 4370.00000).
+ */
+export function formatPrice(price: number, symbol: string): string {
+  const category = categorizeSymbol(symbol);
+
+  if (category === "COMMODITY" || category === "INDEX" || category === "CRYPTO") {
+    return price.toFixed(2);
+  }
+
+  // CURRENCY (forex): pair yang mengandung JPY biasanya dikutip dengan
+  // lebih sedikit desimal (mis. 150.123) dibanding pair lain (1.23456).
+  if (symbol.toUpperCase().includes("JPY")) {
+    return price.toFixed(3);
+  }
+
+  return price.toFixed(5);
 }
 
 export function formatCurrency(value: number, currency: AccountCurrency = "USD"): string {
