@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/dashboard/Sidebar";
+import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -31,9 +31,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar isAdmin={isAdmin} notifications={notifications} />
-      <div className="pt-topbar lg:pl-sidebar">{children}</div>
-    </div>
+    <DashboardShell isAdmin={isAdmin} notifications={notifications}>
+      {children}
+    </DashboardShell>
   );
 }
