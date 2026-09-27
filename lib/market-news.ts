@@ -5,7 +5,7 @@ export interface MarketNewsItem {
   title: string;
   summary: string;
   link: string;
-  source: "Investing.com" | "FXStreet";
+  source: "Investing.com";
   categories: MarketNewsCategory[];
   publishedAt: string; // ISO string
 }
@@ -51,15 +51,12 @@ function stripHtml(str: string): string {
   return str.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-async function fetchRssFeed(url: string, referer?: string): Promise<RawFeedItem[]> {
+async function fetchRssFeed(url: string): Promise<RawFeedItem[]> {
   try {
     const res = await fetch(url, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-        Accept: "application/rss+xml, application/xml, text/xml, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        Referer: referer ?? new URL(url).origin,
+        "User-Agent": "Mozilla/5.0 (compatible; Loki4xBot/1.0; +https://4xcomunity.my.id)",
+        Accept: "application/rss+xml, application/xml, text/xml",
       },
       next: { revalidate: 300 }, // cache 5 menit, cukup buat "auto-update tiap ada berita baru"
     });
@@ -69,10 +66,6 @@ async function fetchRssFeed(url: string, referer?: string): Promise<RawFeedItem[
     }
     const xml = await res.text();
     const itemBlocks = xml.match(/<item[^>]*>[\s\S]*?<\/item>/gi) ?? [];
-
-    if (itemBlocks.length === 0) {
-      console.error(`[market-news] ${url} sukses di-fetch tapi 0 <item> ditemukan (${xml.length} char). Cek apakah responsnya HTML (blocked) bukan XML.`);
-    }
 
     return itemBlocks.map((block) => ({
       title: decodeEntities(stripHtml(extractTag(block, "title"))),
@@ -127,7 +120,12 @@ const INVESTING_FEEDS: { url: string; hint: MarketNewsCategory }[] = [
   { url: "https://www.investing.com/rss/news_301.rss", hint: "CRYPTO" }, // Cryptocurrency News
 ];
 
-const FXSTREET_FEED = "https://www.fxstreet.com/rss/news";
+// FXStreet sempat dicoba (lihat riwayat git), tapi RSS feed mereka
+// (https://www.fxstreet.com/rss/news) memblokir request dari server Vercel
+// dengan HTTP 403 (proteksi Cloudflare terhadap IP data center) — nggak bisa
+// ditembus cuma dengan ganti header. Kalau suatu saat mau dicoba lagi, opsinya:
+// proxy pihak ketiga (kurang stabil) atau FXStreet News API resmi (berbayar,
+// lihat docs.fxstreet.com/api/news).
 
 function parseDate(pubDate: string): string {
   const parsed = new Date(pubDate);
@@ -135,23 +133,20 @@ function parseDate(pubDate: string): string {
 }
 
 /**
- * Ambil & gabungkan berita fundamental dari Investing.com (4 kategori) dan
- * FXStreet, lalu kategorikan tiap berita ke satu atau lebih label:
+ * Ambil berita fundamental dari Investing.com (4 kategori), lalu
+ * kategorikan tiap berita ke satu atau lebih label:
  * Forex, Crypto, Stocks, Commodities, Gold.
  *
  * Di-cache 5 menit lewat Next.js fetch cache, jadi otomatis refresh sendiri
  * tanpa perlu cron terpisah — cukup reload/kunjungi halamannya.
  */
 export async function getMarketNews(): Promise<MarketNewsItem[]> {
-  const [investingResults, fxstreetItems] = await Promise.all([
-    Promise.all(
-      INVESTING_FEEDS.map(async (feed) => ({
-        hint: feed.hint,
-        items: await fetchRssFeed(feed.url),
-      }))
-    ),
-    fetchRssFeed(FXSTREET_FEED, "https://www.fxstreet.com/news"),
-  ]);
+  const investingResults = await Promise.all(
+    INVESTING_FEEDS.map(async (feed) => ({
+      hint: feed.hint,
+      items: await fetchRssFeed(feed.url),
+    }))
+  );
 
   const all: MarketNewsItem[] = [];
   let idx = 0;
@@ -169,19 +164,6 @@ export async function getMarketNews(): Promise<MarketNewsItem[]> {
         publishedAt: parseDate(item.pubDate),
       });
     }
-  }
-
-  for (const item of fxstreetItems) {
-    if (!item.title || !item.link) continue;
-    all.push({
-      id: `fxstreet-${idx++}`,
-      title: item.title,
-      summary: item.description,
-      link: item.link,
-      source: "FXStreet",
-      categories: detectCategories(item.title, item.description),
-      publishedAt: parseDate(item.pubDate),
-    });
   }
 
   const seenLinks = new Set<string>();
