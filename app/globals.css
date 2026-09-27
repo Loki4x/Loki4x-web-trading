@@ -102,6 +102,26 @@
       text-body text-text-primary placeholder:text-text-muted transition-colors
       focus:border-primary focus:outline-none;
   }
+
+  /* Loading indicator dipakai lewat loading.tsx saat transisi antar halaman */
+  .dots-loader {
+    width: 60px;
+    aspect-ratio: 2;
+    --_g: no-repeat radial-gradient(circle closest-side, #5F85DB 90%, #0000);
+    background:
+      var(--_g) 0%   50%,
+      var(--_g) 50%  50%,
+      var(--_g) 100% 50%;
+    background-size: calc(100% / 3) 50%;
+    animation: dots-loader-anim 1s infinite linear;
+  }
+}
+
+@keyframes dots-loader-anim {
+  20% { background-position: 0%   0%, 50%  50%, 100%  50%; }
+  40% { background-position: 0% 100%, 50%   0%, 100%  50%; }
+  60% { background-position: 0%  50%, 50% 100%, 100%   0%; }
+  80% { background-position: 0%  50%, 50%  50%, 100% 100%; }
 }
 
 @layer utilities {
@@ -126,25 +146,4 @@
       linear-gradient(90deg, rgba(95, 133, 219, 0.06) 1px, transparent 1px);
     background-size: 48px 48px;
   }
-}
-
-/* Loading indicator dipakai lewat loading.tsx saat transisi antar halaman */
-  .dots-loader {
-    width: 60px;
-    aspect-ratio: 2;
-    --_g: no-repeat radial-gradient(circle closest-side, #5F85DB 90%, #0000);
-    background:
-      var(--_g) 0%   50%,
-      var(--_g) 50%  50%,
-      var(--_g) 100% 50%;
-    background-size: calc(100% / 3) 50%;
-    animation: dots-loader-anim 1s infinite linear;
-  }
-}
-
-@keyframes dots-loader-anim {
-  20% { background-position: 0%   0%, 50%  50%, 100%  50%; }
-  40% { background-position: 0% 100%, 50%   0%, 100%  50%; }
-  60% { background-position: 0%  50%, 50% 100%, 100%   0%; }
-  80% { background-position: 0%  50%, 50%  50%, 100% 100%; }
 }
