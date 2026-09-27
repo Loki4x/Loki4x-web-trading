@@ -51,13 +51,15 @@ function stripHtml(str: string): string {
   return str.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-async function fetchRssFeed(url: string): Promise<RawFeedItem[]> {
+async function fetchRssFeed(url: string, referer?: string): Promise<RawFeedItem[]> {
   try {
     const res = await fetch(url, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
         Accept: "application/rss+xml, application/xml, text/xml, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        Referer: referer ?? new URL(url).origin,
       },
       next: { revalidate: 300 }, // cache 5 menit, cukup buat "auto-update tiap ada berita baru"
     });
@@ -148,7 +150,7 @@ export async function getMarketNews(): Promise<MarketNewsItem[]> {
         items: await fetchRssFeed(feed.url),
       }))
     ),
-    fetchRssFeed(FXSTREET_FEED),
+    fetchRssFeed(FXSTREET_FEED, "https://www.fxstreet.com/news"),
   ]);
 
   const all: MarketNewsItem[] = [];
