@@ -53,7 +53,20 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
           />
 
           <div className="flex flex-col gap-2">
-            <label className="text-body-sm font-medium text-text-secondary">Notes (optional)</label>
+            <label className="text-body-sm font-medium text-text-secondary">Chart Screenshot / Analisa (optional)</label>
+            <input
+              name="chart_image"
+              type="file"
+              accept="image/*"
+              className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
+            />
+            <p className="text-caption text-text-muted">
+              Screenshot chart/analisa ini akan ditampilkan ke user lain sebagai alasan sinyal.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-body-sm font-medium text-text-secondary">Notes / Alasan Sinyal (optional)</label>
             <textarea name="notes" rows={3} className="input-field resize-none" placeholder="Alasan/setup sinyal..." />
           </div>
 
