@@ -116,7 +116,7 @@ const INVESTING_FEEDS: { url: string; hint: MarketNewsCategory }[] = [
   { url: "https://www.investing.com/rss/news_301.rss", hint: "CRYPTO" }, // Cryptocurrency News
 ];
 
-const FXSTREET_FEED = "https://www.fxstreet.com/news/feed";
+const FXSTREET_FEED = "https://www.fxstreet.com/rss/news";
 
 function parseDate(pubDate: string): string {
   const parsed = new Date(pubDate);
