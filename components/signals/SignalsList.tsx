@@ -102,12 +102,9 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
           <p className="text-caption text-text-muted">penurunan portofolio terburuk</p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total P/L Aktif</p>
-          <p className={cx("text-h3", stats.activePnlPercent >= 0 ? "text-success" : "text-error")}>
-            {stats.activePnlPercent >= 0 ? "+" : ""}
-            {stats.activePnlPercent.toFixed(1)}%
-          </p>
-          <p className="text-caption text-text-muted">pada {stats.activeCount} sinyal aktif</p>
+          <p className="text-caption text-text-secondary">Sinyal Aktif</p>
+          <p className="text-h3 text-text-primary">{stats.activeCount}</p>
+          <p className="text-caption text-text-muted">menunggu entry / berjalan</p>
         </div>
       </div>
 
@@ -153,10 +150,10 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
         </div>
       ) : (
         <div className="card overflow-x-auto !p-0">
-          <table className="w-full min-w-[960px] border-collapse">
+          <table className="w-full min-w-[840px] border-collapse">
             <thead>
               <tr className="border-b border-border bg-surface text-left">
-                {["Aset", "Arah", "Entry", "Harga Saat Ini", "P/L%", "Stop Loss", "Take Profit", "Status", "Dibuka"].map(
+                {["Aset", "Arah", "Entry", "Hasil", "Stop Loss", "Take Profit", "Status", "Dibuka"].map(
                   (h) => (
                     <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
                       {h}
@@ -168,7 +165,6 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
             <tbody>
               {sortedVisible.map((s) => {
                 const pnl = livePercent(s);
-                const isLive = s.status === "HIT_ENTRY";
                 return (
                   <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
                     <td className="px-4 py-3">
@@ -180,29 +176,6 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                     </td>
                     <td className="tabular-nums px-4 py-3 text-body-sm text-text-secondary">
                       {formatPrice(s.entry_price, s.symbol)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.current_price !== null ? (
-                        <>
-                          <p className="tabular-nums text-body-sm text-text-primary">
-                            {formatPrice(s.current_price, s.symbol)}
-                          </p>
-                          {isLive ? (
-                            <span className="flex items-center gap-1 text-caption font-semibold text-success">
-                              <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                              LIVE
-                            </span>
-                          ) : (
-                            s.closed_at && (
-                              <p className="text-caption text-text-muted">per {formatDate(s.closed_at)}</p>
-                            )
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-body-sm text-text-muted">
-                          {s.status === "OPEN" ? "Menunggu entry" : "—"}
-                        </span>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       {pnl !== null ? (
