@@ -2,27 +2,56 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, RefreshCw } from "lucide-react";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { AddSignalModal } from "@/components/admin/AddSignalModal";
-import { cx, formatDate } from "@/lib/utils";
-import { updateSignalStatus, deleteSignal } from "@/app/admin/actions";
-import type { Signal } from "@/lib/types";
+import { cx, formatDate, formatPrice } from "@/lib/utils";
+import { updateSignalStatus, updateSignalPrice, deleteSignal } from "@/app/admin/actions";
+import { SIGNAL_STATUS_LABEL, signalStatusClass } from "@/lib/signal-metrics";
+import type { Signal, SignalStatus } from "@/lib/types";
+
+const STATUS_OPTIONS: SignalStatus[] = ["OPEN", "HIT_ENTRY", "TP", "SL", "PARTIAL", "CANCEL", "MISS"];
+const TERMINAL: SignalStatus[] = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"];
 
 export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
-  async function handleMarkResult(signal: Signal, status: Signal["status"]) {
+  async function handleStatusChange(signal: Signal, status: SignalStatus) {
+    let currentPrice: number | null = signal.current_price;
     let resultPips: number | null = signal.result_pips;
-    if (status === "TP_HIT" || status === "SL_HIT" || status === "CLOSED") {
-      const input = prompt("Berapa pips hasilnya? (boleh minus untuk loss)", resultPips?.toString() ?? "0");
-      if (input === null) return;
-      resultPips = Number(input);
-    } else {
+
+    if (status === "CANCEL" || status === "MISS") {
+      currentPrice = null;
       resultPips = null;
+    } else if (status === "OPEN") {
+      currentPrice = null;
+      resultPips = null;
+    } else {
+      const priceInput = prompt(
+        "Harga saat ini / harga penutupan?",
+        (currentPrice ?? signal.entry_price).toString()
+      );
+      if (priceInput === null) return;
+      currentPrice = Number(priceInput);
+
+      if (status === "TP" || status === "SL" || status === "PARTIAL") {
+        const pipsInput = prompt("Berapa pips hasilnya? (boleh minus untuk loss)", resultPips?.toString() ?? "0");
+        if (pipsInput === null) return;
+        resultPips = Number(pipsInput);
+      } else {
+        resultPips = null;
+      }
     }
-    await updateSignalStatus(signal.id, status, resultPips);
+
+    await updateSignalStatus(signal.id, status, currentPrice, resultPips);
+    router.refresh();
+  }
+
+  async function handleUpdatePrice(signal: Signal) {
+    const priceInput = prompt("Update harga saat ini:", (signal.current_price ?? signal.entry_price).toString());
+    if (priceInput === null) return;
+    await updateSignalPrice(signal.id, Number(priceInput));
     router.refresh();
   }
 
@@ -42,10 +71,10 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
       </div>
 
       <div className="card overflow-x-auto !p-0">
-      <table className="w-full min-w-[720px] border-collapse">
+      <table className="w-full min-w-[880px] border-collapse">
         <thead>
           <tr className="border-b border-border bg-surface text-left">
-            {["Symbol", "Side", "Entry", "TP/SL", "Status", "Date", ""].map((h) => (
+            {["Symbol", "Side", "Entry", "Harga Saat Ini", "TP/SL", "Status", "Date", ""].map((h) => (
               <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
                 {h}
               </th>
@@ -55,7 +84,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
         <tbody>
           {signals.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-10 text-center text-body-sm text-text-muted">
+              <td colSpan={8} className="px-4 py-10 text-center text-body-sm text-text-muted">
                 Belum ada sinyal.
               </td>
             </tr>
@@ -66,24 +95,43 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
               <td className="px-4 py-3">
                 <TradeSideBadge side={s.side} />
               </td>
-              <td className="px-4 py-3 text-body-sm text-text-secondary">{s.entry_price}</td>
-              <td className="px-4 py-3 text-body-sm text-text-secondary">
-                {s.take_profit ?? "—"} / {s.stop_loss ?? "—"}
+              <td className="tabular-nums px-4 py-3 text-body-sm text-text-secondary">
+                {formatPrice(s.entry_price, s.symbol)}
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="tabular-nums text-body-sm text-text-secondary">
+                    {s.current_price !== null ? formatPrice(s.current_price, s.symbol) : "—"}
+                  </span>
+                  {!TERMINAL.includes(s.status) && (
+                    <button
+                      onClick={() => handleUpdatePrice(s)}
+                      className="text-text-muted hover:text-primary"
+                      title="Update harga saat ini"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </td>
+              <td className="tabular-nums px-4 py-3 text-body-sm text-text-secondary">
+                {s.take_profit !== null ? formatPrice(s.take_profit, s.symbol) : "—"} /{" "}
+                {s.stop_loss !== null ? formatPrice(s.stop_loss, s.symbol) : "—"}
               </td>
               <td className="px-4 py-3">
                 <select
                   value={s.status}
-                  onChange={(e) => handleMarkResult(s, e.target.value as Signal["status"])}
+                  onChange={(e) => handleStatusChange(s, e.target.value as SignalStatus)}
                   className={cx(
                     "input-field !w-auto !py-1 text-caption font-bold",
-                    s.status === "TP_HIT" && "text-success",
-                    s.status === "SL_HIT" && "text-error"
+                    signalStatusClass(s.status)
                   )}
                 >
-                  <option value="OPEN">OPEN</option>
-                  <option value="TP_HIT">TP HIT</option>
-                  <option value="SL_HIT">SL HIT</option>
-                  <option value="CLOSED">CLOSED</option>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {SIGNAL_STATUS_LABEL[opt]}
+                    </option>
+                  ))}
                 </select>
               </td>
               <td className="px-4 py-3 text-body-sm text-text-secondary">{formatDate(s.posted_at)}</td>
