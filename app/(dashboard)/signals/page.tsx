@@ -12,7 +12,9 @@ export default async function SignalsPage() {
   const supabase = await createClient();
   const { data: signals } = await supabase
     .from("signals")
-    .select("id, symbol, side, entry_price, take_profit, stop_loss, status, result_pips, notes, posted_at")
+    .select(
+      "id, symbol, side, entry_price, current_price, current_price_at, take_profit, stop_loss, status, result_pips, risk_percent, notes, posted_at, closed_at"
+    )
     .order("posted_at", { ascending: false });
 
   return (
