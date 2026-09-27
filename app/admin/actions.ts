@@ -80,6 +80,7 @@ export async function addSignal(formData: FormData) {
 
   const takeProfitRaw = formData.get("take_profit");
   const stopLossRaw = formData.get("stop_loss");
+  const riskPercentRaw = formData.get("risk_percent");
 
   await supabase.from("signals").insert({
     symbol: String(formData.get("symbol")).toUpperCase(),
@@ -87,6 +88,7 @@ export async function addSignal(formData: FormData) {
     entry_price: Number(formData.get("entry_price")),
     take_profit: takeProfitRaw ? Number(takeProfitRaw) : null,
     stop_loss: stopLossRaw ? Number(stopLossRaw) : null,
+    risk_percent: riskPercentRaw ? Number(riskPercentRaw) : 2,
     notes: String(formData.get("notes") ?? "") || null,
   });
 
@@ -94,10 +96,38 @@ export async function addSignal(formData: FormData) {
   revalidatePath("/signals");
 }
 
-export async function updateSignalStatus(signalId: string, status: string, resultPips: number | null) {
+export async function updateSignalStatus(
+  signalId: string,
+  status: string,
+  currentPrice: number | null,
+  resultPips: number | null
+) {
   const supabase = await assertIsAdmin();
 
-  await supabase.from("signals").update({ status, result_pips: resultPips }).eq("id", signalId);
+  const isTerminal = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"].includes(status);
+
+  await supabase
+    .from("signals")
+    .update({
+      status,
+      current_price: currentPrice,
+      current_price_at: currentPrice !== null ? new Date().toISOString() : null,
+      result_pips: resultPips,
+      closed_at: isTerminal ? new Date().toISOString() : null,
+    })
+    .eq("id", signalId);
+
+  revalidatePath("/admin/signals");
+  revalidatePath("/signals");
+}
+
+export async function updateSignalPrice(signalId: string, currentPrice: number) {
+  const supabase = await assertIsAdmin();
+
+  await supabase
+    .from("signals")
+    .update({ current_price: currentPrice, current_price_at: new Date().toISOString() })
+    .eq("id", signalId);
 
   revalidatePath("/admin/signals");
   revalidatePath("/signals");
