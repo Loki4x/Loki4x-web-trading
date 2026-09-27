@@ -73,19 +73,34 @@ export interface NewsEvent {
 }
 
 export type SignalSide = "BUY" | "SELL";
-export type SignalStatus = "OPEN" | "TP_HIT" | "SL_HIT" | "CLOSED";
+
+/**
+ * Siklus hidup sebuah sinyal:
+ * OPEN       -> baru diposting, menunggu harga menyentuh entry (pending order)
+ * HIT_ENTRY  -> harga sudah menyentuh entry, posisi berjalan live di market
+ * TP         -> take profit tercapai
+ * SL         -> stop loss tercapai
+ * PARTIAL    -> ditutup sebagian (partial close/partial TP)
+ * CANCEL     -> sinyal dibatalkan sebelum entry tersentuh
+ * MISS       -> harga tidak pernah menyentuh level entry
+ */
+export type SignalStatus = "OPEN" | "HIT_ENTRY" | "TP" | "SL" | "PARTIAL" | "CANCEL" | "MISS";
 
 export interface Signal {
   id: string;
   symbol: string;
   side: SignalSide;
   entry_price: number;
+  current_price: number | null;
+  current_price_at: string | null;
   take_profit: number | null;
   stop_loss: number | null;
   status: SignalStatus;
   result_pips: number | null;
+  risk_percent: number;
   notes: string | null;
   posted_at: string;
+  closed_at: string | null;
 }
 
 export interface Positioning {
