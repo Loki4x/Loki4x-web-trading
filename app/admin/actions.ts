@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notifyUser, notifyAllUsers } from "@/lib/notifications";
 import { simulatePakasirPayment } from "@/lib/pakasir";
 import { planToTier, isLifetimePlan, type Plan } from "@/lib/pakasir-constants";
+import { uploadToR2 } from "@/lib/r2";
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -81,15 +82,20 @@ export async function addSignal(formData: FormData) {
   const takeProfitRaw = formData.get("take_profit");
   const stopLossRaw = formData.get("stop_loss");
   const riskPercentRaw = formData.get("risk_percent");
+  const symbol = String(formData.get("symbol")).toUpperCase();
+
+  const chartImageFile = formData.get("chart_image") as File | null;
+  const chartImageUrl = await uploadToR2(chartImageFile, `signals/${symbol}-${Date.now()}`);
 
   await supabase.from("signals").insert({
-    symbol: String(formData.get("symbol")).toUpperCase(),
+    symbol,
     side: String(formData.get("side")),
     entry_price: Number(formData.get("entry_price")),
     take_profit: takeProfitRaw ? Number(takeProfitRaw) : null,
     stop_loss: stopLossRaw ? Number(stopLossRaw) : null,
     risk_percent: riskPercentRaw ? Number(riskPercentRaw) : 2,
     notes: String(formData.get("notes") ?? "") || null,
+    chart_image_url: chartImageUrl,
   });
 
   revalidatePath("/admin/signals");
@@ -114,10 +120,6 @@ export async function updateSignalStatus(
     closed_at: isTerminal ? new Date().toISOString() : null,
   };
 
-  // Kalau admin nggak isi Take Profit waktu posting sinyal (dibiarkan kosong),
-  // begitu status di-set TP, harga penutupan yang diinput langsung dipakai
-  // sebagai nilai Take Profit — supaya tetap tampil di tabel, bukan cuma
-  // tersimpan di current_price.
   if (status === "TP" && currentPrice !== null) {
     updatePayload.take_profit = currentPrice;
   }
@@ -317,9 +319,6 @@ export async function approveUsdtPayment(paymentId: string, userId: string, plan
   const tier = planToTier(plan);
   const lifetime = isLifetimePlan(plan);
 
-  // Lifetime: nggak pernah kedaluwarsa (vip_expires_at = null). Bulanan:
-  // perpanjang 30 hari dari sekarang, atau dari tanggal expired saat ini
-  // kalau membership-nya masih aktif — sama seperti alur Pakasir otomatis.
   const now = new Date();
   const currentExpiry = targetProfile?.vip_expires_at ? new Date(targetProfile.vip_expires_at) : null;
   const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
