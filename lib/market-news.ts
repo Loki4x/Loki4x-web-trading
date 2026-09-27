@@ -55,14 +55,22 @@ async function fetchRssFeed(url: string): Promise<RawFeedItem[]> {
   try {
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; Loki4xBot/1.0; +https://4xcomunity.my.id)",
-        Accept: "application/rss+xml, application/xml, text/xml",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        Accept: "application/rss+xml, application/xml, text/xml, */*",
       },
       next: { revalidate: 300 }, // cache 5 menit, cukup buat "auto-update tiap ada berita baru"
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(`[market-news] Gagal fetch ${url}: HTTP ${res.status} ${res.statusText}`);
+      return [];
+    }
     const xml = await res.text();
     const itemBlocks = xml.match(/<item[^>]*>[\s\S]*?<\/item>/gi) ?? [];
+
+    if (itemBlocks.length === 0) {
+      console.error(`[market-news] ${url} sukses di-fetch tapi 0 <item> ditemukan (${xml.length} char). Cek apakah responsnya HTML (blocked) bukan XML.`);
+    }
 
     return itemBlocks.map((block) => ({
       title: decodeEntities(stripHtml(extractTag(block, "title"))),
@@ -70,7 +78,8 @@ async function fetchRssFeed(url: string): Promise<RawFeedItem[]> {
       description: decodeEntities(stripHtml(extractTag(block, "description"))).slice(0, 240),
       pubDate: extractTag(block, "pubDate").trim(),
     }));
-  } catch {
+  } catch (err) {
+    console.error(`[market-news] Exception saat fetch ${url}:`, err);
     return [];
   }
 }
