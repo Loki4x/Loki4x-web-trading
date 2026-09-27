@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, ImageIcon } from "lucide-react";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { AddSignalModal } from "@/components/admin/AddSignalModal";
 import { UpdateSignalStatusModal } from "@/components/admin/UpdateSignalStatusModal";
+import { SignalAnalysisModal } from "@/components/signals/SignalAnalysisModal";
 import { cx, formatDate, formatPrice } from "@/lib/utils";
 import { deleteSignal } from "@/app/admin/actions";
 import { SIGNAL_STATUS_LABEL, signalStatusClass } from "@/lib/signal-metrics";
@@ -15,6 +16,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSignal, setEditingSignal] = useState<Signal | null>(null);
+  const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
 
   async function handleDelete(id: string) {
     if (!confirm("Hapus sinyal ini?")) return;
@@ -32,10 +34,10 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
       </div>
 
       <div className="card overflow-x-auto !p-0">
-      <table className="w-full min-w-[760px] border-collapse">
+      <table className="w-full min-w-[840px] border-collapse">
         <thead>
           <tr className="border-b border-border bg-surface text-left">
-            {["Symbol", "Side", "Entry", "TP/SL", "Status", "Date", ""].map((h) => (
+            {["Symbol", "Side", "Entry", "TP/SL", "Status", "Date", "Analisa", ""].map((h) => (
               <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
                 {h}
               </th>
@@ -45,7 +47,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
         <tbody>
           {signals.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-10 text-center text-body-sm text-text-muted">
+              <td colSpan={8} className="px-4 py-10 text-center text-body-sm text-text-muted">
                 Belum ada sinyal.
               </td>
             </tr>
@@ -76,6 +78,19 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
               </td>
               <td className="px-4 py-3 text-body-sm text-text-secondary">{formatDate(s.posted_at)}</td>
               <td className="px-4 py-3">
+                {s.chart_image_url || s.notes ? (
+                  <button
+                    onClick={() => setAnalysisSignal(s)}
+                    className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Lihat
+                  </button>
+                ) : (
+                  <span className="text-body-sm text-text-muted">—</span>
+                )}
+              </td>
+              <td className="px-4 py-3">
                 <button onClick={() => handleDelete(s.id)} className="text-text-muted hover:text-error">
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -89,6 +104,9 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
       {modalOpen && <AddSignalModal onClose={() => setModalOpen(false)} />}
       {editingSignal && (
         <UpdateSignalStatusModal signal={editingSignal} onClose={() => setEditingSignal(null)} />
+      )}
+      {analysisSignal && (
+        <SignalAnalysisModal signal={analysisSignal} onClose={() => setAnalysisSignal(null)} />
       )}
     </div>
   );
