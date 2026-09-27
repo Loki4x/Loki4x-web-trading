@@ -99,6 +99,7 @@ export interface Signal {
   result_pips: number | null;
   risk_percent: number;
   notes: string | null;
+  chart_image_url: string | null;
   posted_at: string;
   closed_at: string | null;
 }
