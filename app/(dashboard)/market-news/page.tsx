@@ -16,7 +16,7 @@ export default async function MarketNewsPage() {
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Fundamental Pasar</h1>
         <p className="text-body-sm text-text-secondary">
-          Berita dari Investing.com &amp; FXStreet, diperbarui otomatis setiap ada berita baru.
+          Berita dari Investing.com, diperbarui otomatis setiap ada berita baru.
         </p>
       </div>
 
