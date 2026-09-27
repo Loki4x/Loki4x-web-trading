@@ -43,6 +43,15 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
             <Input name="stop_loss" type="number" step="0.00001" label="Stop Loss (optional)" />
           </div>
 
+          <Input
+            name="risk_percent"
+            type="number"
+            step="0.1"
+            label="Risk % per trade"
+            placeholder="2"
+            defaultValue={2}
+          />
+
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Notes (optional)</label>
             <textarea name="notes" rows={3} className="input-field resize-none" placeholder="Alasan/setup sinyal..." />
