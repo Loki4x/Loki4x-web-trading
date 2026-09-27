@@ -1,78 +1,264 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
-import { cx, formatDate } from "@/lib/utils";
+import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
+import { cx, formatDate, formatPrice } from "@/lib/utils";
+import { categorizeSymbol, CATEGORY_LABEL, type AssetCategory } from "@/lib/asset-category";
+import {
+  buildGrowthSeries,
+  computeSignalStats,
+  livePercent,
+  signalStatusClass,
+  SIGNAL_STATUS_LABEL,
+  isTerminalStatus,
+} from "@/lib/signal-metrics";
 import type { Signal } from "@/lib/types";
 
-const statusLabel: Record<Signal["status"], string> = {
-  OPEN: "OPEN",
-  TP_HIT: "TP HIT",
-  SL_HIT: "SL HIT",
-  CLOSED: "CLOSED",
-};
+type CategoryFilter = "ALL" | AssetCategory;
+type PositionTab = "ACTIVE" | "DONE";
 
-function statusClass(status: Signal["status"]) {
-  if (status === "TP_HIT") return "bg-success-subtle text-success";
-  if (status === "SL_HIT") return "bg-error-subtle text-error";
-  if (status === "OPEN") return "bg-info-subtle text-info";
-  return "bg-surface-2 text-text-secondary";
+const CATEGORY_FILTERS: { key: CategoryFilter; label: string }[] = [
+  { key: "ALL", label: "Semua" },
+  { key: "CURRENCY", label: "Currency" },
+  { key: "COMMODITY", label: "Commodity" },
+  { key: "INDEX", label: "Index" },
+  { key: "CRYPTO", label: "Crypto" },
+];
+
+function daysAgoLabel(dateString: string): string {
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  if (days <= 0) return "Hari ini";
+  return `${days}d lalu`;
+}
+
+function priceDistancePercent(reference: number, target: number): string {
+  const pct = (Math.abs(target - reference) / reference) * 100;
+  return `${pct.toFixed(2)}% dari harga`;
 }
 
 export function SignalsList({ signals }: { signals: Signal[] }) {
-  const closed = signals.filter((s) => s.status !== "OPEN");
-  const wins = closed.filter((s) => s.status === "TP_HIT" || (s.result_pips ?? 0) > 0).length;
-  const winRate = closed.length > 0 ? (wins / closed.length) * 100 : 0;
-  const totalPips = closed.reduce((sum, s) => sum + (s.result_pips ?? 0), 0);
+  const [category, setCategory] = useState<CategoryFilter>("ALL");
+  const [positionTab, setPositionTab] = useState<PositionTab>("ACTIVE");
+
+  const filtered = useMemo(() => {
+    if (category === "ALL") return signals;
+    return signals.filter((s) => categorizeSymbol(s.symbol) === category);
+  }, [signals, category]);
+
+  const stats = useMemo(() => computeSignalStats(filtered), [filtered]);
+  const growthSeries = useMemo(() => buildGrowthSeries(filtered), [filtered]);
+
+  const activeSignals = filtered.filter((s) => !isTerminalStatus(s.status));
+  const doneSignals = filtered.filter((s) => isTerminalStatus(s.status));
+  const visibleSignals = positionTab === "ACTIVE" ? activeSignals : doneSignals;
+
+  const sortedVisible = [...visibleSignals].sort(
+    (a, b) => new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime()
+  );
 
   return (
     <div>
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      {/* Filter jenis pasar */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {CATEGORY_FILTERS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setCategory(key)}
+            className={cx(
+              "rounded-full px-3.5 py-1.5 text-body-sm font-medium transition-colors",
+              category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats cards */}
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Signals</p>
-          <p className="text-h3 text-text-primary">{signals.length}</p>
+          <p className="text-caption text-text-secondary">Total Growth</p>
+          <p className={cx("text-h3", stats.totalGrowthPercent >= 0 ? "text-success" : "text-error")}>
+            {stats.totalGrowthPercent >= 0 ? "+" : ""}
+            {stats.totalGrowthPercent.toFixed(1)}%
+          </p>
+          <p className="text-caption text-text-muted">
+            {stats.monthGrowthPercent >= 0 ? "+" : ""}
+            {stats.monthGrowthPercent.toFixed(1)}% bulan ini
+          </p>
         </div>
         <div className="card !p-4">
           <p className="text-caption text-text-secondary">Win Rate</p>
-          <p className="text-h3 text-text-primary">{winRate.toFixed(1)}%</p>
+          <p className="text-h3 text-text-primary">{stats.winRate.toFixed(0)}%</p>
+          <p className="text-caption text-text-muted">
+            {stats.wins} profit · {stats.losses} loss
+          </p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Pips</p>
-          <p className={cx("text-h3", totalPips >= 0 ? "text-success" : "text-error")}>
-            {totalPips >= 0 ? "+" : ""}
-            {totalPips.toFixed(1)}
+          <p className="text-caption text-text-secondary">Drawdown Maksimum</p>
+          <p className="text-h3 text-error">{stats.maxDrawdownPercent.toFixed(1)}%</p>
+          <p className="text-caption text-text-muted">penurunan portofolio terburuk</p>
+        </div>
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">Total P/L Aktif</p>
+          <p className={cx("text-h3", stats.activePnlPercent >= 0 ? "text-success" : "text-error")}>
+            {stats.activePnlPercent >= 0 ? "+" : ""}
+            {stats.activePnlPercent.toFixed(1)}%
           </p>
+          <p className="text-caption text-text-muted">pada {stats.activeCount} sinyal aktif</p>
         </div>
       </div>
 
-      {signals.length === 0 ? (
-        <div className="card py-12 text-center text-body-sm text-text-muted">Belum ada sinyal yang diposting.</div>
+      {/* Total pips, ditampilkan terpisah karena satuannya beda (pips, bukan %) */}
+      <div className="mb-6 card !p-4">
+        <p className="text-caption text-text-secondary">Total Pips Diperoleh</p>
+        <p className={cx("text-h3", stats.totalPips >= 0 ? "text-success" : "text-error")}>
+          {stats.totalPips >= 0 ? "+" : ""}
+          {stats.totalPips.toFixed(1)} pips
+        </p>
+      </div>
+
+      {/* Chart pertumbuhan portofolio */}
+      <div className="mb-6">
+        <PortfolioGrowthChart points={growthSeries} />
+      </div>
+
+      {/* Tabel posisi */}
+      <div className="mb-4 flex items-center gap-2">
+        <button
+          onClick={() => setPositionTab("ACTIVE")}
+          className={cx(
+            "rounded-full px-3.5 py-1.5 text-body-sm font-medium transition-colors",
+            positionTab === "ACTIVE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
+          )}
+        >
+          Aktif ({activeSignals.length})
+        </button>
+        <button
+          onClick={() => setPositionTab("DONE")}
+          className={cx(
+            "rounded-full px-3.5 py-1.5 text-body-sm font-medium transition-colors",
+            positionTab === "DONE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
+          )}
+        >
+          Selesai ({doneSignals.length})
+        </button>
+      </div>
+
+      {sortedVisible.length === 0 ? (
+        <div className="card py-12 text-center text-body-sm text-text-muted">
+          {positionTab === "ACTIVE" ? "Belum ada sinyal aktif." : "Belum ada sinyal yang selesai."}
+        </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {signals.map((s) => (
-            <div key={s.id} className="card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <TradeSideBadge side={s.side} />
-                <div>
-                  <p className="text-body-sm font-semibold text-text-primary">{s.symbol}</p>
-                  <p className="text-caption text-text-muted">{formatDate(s.posted_at)}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 text-body-sm text-text-secondary">
-                <span>Entry: <span className="text-text-primary">{s.entry_price}</span></span>
-                {s.take_profit && <span>TP: <span className="text-success">{s.take_profit}</span></span>}
-                {s.stop_loss && <span>SL: <span className="text-error">{s.stop_loss}</span></span>}
-                {s.result_pips !== null && (
-                  <span className={cx("font-semibold", s.result_pips >= 0 ? "text-success" : "text-error")}>
-                    {s.result_pips >= 0 ? "+" : ""}
-                    {s.result_pips} pips
-                  </span>
+        <div className="card overflow-x-auto !p-0">
+          <table className="w-full min-w-[960px] border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-surface text-left">
+                {["Aset", "Arah", "Entry", "Harga Saat Ini", "P/L%", "Stop Loss", "Take Profit", "Status", "Dibuka"].map(
+                  (h) => (
+                    <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
+                      {h}
+                    </th>
+                  )
                 )}
-              </div>
-              <span className={cx("inline-flex w-fit rounded-md px-2.5 py-1 text-caption font-bold", statusClass(s.status))}>
-                {statusLabel[s.status]}
-              </span>
-            </div>
-          ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedVisible.map((s) => {
+                const pnl = livePercent(s);
+                const isLive = s.status === "HIT_ENTRY";
+                return (
+                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
+                    <td className="px-4 py-3">
+                      <p className="text-body-sm font-semibold text-text-primary">{s.symbol}</p>
+                      <p className="text-caption text-text-muted">{CATEGORY_LABEL[categorizeSymbol(s.symbol)]}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <TradeSideBadge side={s.side} />
+                    </td>
+                    <td className="tabular-nums px-4 py-3 text-body-sm text-text-secondary">
+                      {formatPrice(s.entry_price, s.symbol)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.current_price !== null ? (
+                        <>
+                          <p className="tabular-nums text-body-sm text-text-primary">
+                            {formatPrice(s.current_price, s.symbol)}
+                          </p>
+                          {isLive ? (
+                            <span className="flex items-center gap-1 text-caption font-semibold text-success">
+                              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                              LIVE
+                            </span>
+                          ) : (
+                            s.closed_at && (
+                              <p className="text-caption text-text-muted">per {formatDate(s.closed_at)}</p>
+                            )
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">
+                          {s.status === "OPEN" ? "Menunggu entry" : "—"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {pnl !== null ? (
+                        <span className={cx("text-body-sm font-semibold", pnl >= 0 ? "text-success" : "text-error")}>
+                          {pnl >= 0 ? "+" : ""}
+                          {pnl.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.stop_loss !== null ? (
+                        <>
+                          <p className="tabular-nums text-body-sm text-error">{formatPrice(s.stop_loss, s.symbol)}</p>
+                          <p className="text-caption text-text-muted">
+                            {priceDistancePercent(s.entry_price, s.stop_loss)}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.take_profit !== null ? (
+                        <>
+                          <p className="tabular-nums text-body-sm text-success">{formatPrice(s.take_profit, s.symbol)}</p>
+                          <p className="text-caption text-text-muted">
+                            {priceDistancePercent(s.entry_price, s.take_profit)}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={cx("inline-flex rounded-md px-2 py-0.5 text-caption font-bold leading-none", signalStatusClass(s.status))}>
+                        {SIGNAL_STATUS_LABEL[s.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-body-sm text-text-secondary">{formatDate(s.posted_at)}</p>
+                      <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at)}</p>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <p className="mt-4 text-caption text-text-muted">
+        Performa disimulasikan dengan risiko tetap per sinyal (default 2%, bisa diatur per sinyal). Kinerja masa lalu
+        tidak menjamin hasil di masa depan.
+      </p>
     </div>
   );
 }
