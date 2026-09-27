@@ -34,6 +34,16 @@ export function signalStatusClass(status: SignalStatus): string {
   }
 }
 
+/**
+ * R-multiple: seberapa jauh harga sudah bergerak dibanding jarak stop loss.
+ * 1R = harga bergerak sejauh jarak entry->SL ke arah profit.
+ * Dipakai untuk mensimulasikan kontribusi tiap sinyal ke pertumbuhan
+ * portofolio, dengan asumsi risiko tetap sebesar `risk_percent` per sinyal
+ * (default 2%, bisa diatur per sinyal).
+ *
+ * Return null kalau belum ada harga acuan (current_price) atau belum ada
+ * stop loss (jarak risiko tidak diketahui).
+ */
 export function rMultiple(signal: Signal): number | null {
   if (signal.current_price === null || signal.stop_loss === null) return null;
   const riskDistance = Math.abs(signal.entry_price - signal.stop_loss);
@@ -47,6 +57,7 @@ export function rMultiple(signal: Signal): number | null {
   return priceMove / riskDistance;
 }
 
+/** P/L% murni dari pergerakan harga (dipakai untuk kolom Hasil di tabel posisi). */
 export function livePercent(signal: Signal): number | null {
   if (signal.current_price === null) return null;
   const raw = ((signal.current_price - signal.entry_price) / signal.entry_price) * 100;
@@ -54,10 +65,15 @@ export function livePercent(signal: Signal): number | null {
 }
 
 export interface GrowthPoint {
-  date: string;
-  growthPercent: number;
+  date: string; // ISO datetime (closed_at)
+  growthPercent: number; // % kumulatif sejak sinyal pertama ditutup
 }
 
+/**
+ * Kurva pertumbuhan portofolio kumulatif dari sinyal yang sudah selesai
+ * (TP/SL/PARTIAL), diurutkan berdasarkan tanggal ditutup. CANCEL & MISS
+ * tidak dianggap sebagai posisi nyata sehingga tidak memengaruhi kurva.
+ */
 export function buildGrowthSeries(signals: Signal[]): GrowthPoint[] {
   const closedTrades = signals
     .filter((s): s is Signal & { closed_at: string } =>
@@ -86,7 +102,6 @@ export interface SignalStats {
   wins: number;
   losses: number;
   maxDrawdownPercent: number;
-  activePnlPercent: number;
   activeCount: number;
   totalPips: number;
 }
@@ -125,13 +140,6 @@ export function computeSignalStats(signals: Signal[]): SignalStats {
 
   const winRate = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
 
-  const activeSignals = signals.filter((s) => s.status === "HIT_ENTRY");
-  const activePnlPercent = activeSignals.reduce((sum, s) => {
-    const r = rMultiple(s);
-    if (r === null) return sum;
-    return sum + r * (s.risk_percent ?? 2);
-  }, 0);
-
   const totalPips = signals.reduce((sum, s) => sum + (s.result_pips ?? 0), 0);
   const activeCount = signals.filter((s) => s.status === "OPEN" || s.status === "HIT_ENTRY").length;
 
@@ -142,7 +150,6 @@ export function computeSignalStats(signals: Signal[]): SignalStats {
     wins,
     losses,
     maxDrawdownPercent,
-    activePnlPercent,
     activeCount,
     totalPips,
   };
