@@ -106,28 +106,23 @@ export async function updateSignalStatus(
 
   const isTerminal = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"].includes(status);
 
-  await supabase
-    .from("signals")
-    .update({
-      status,
-      current_price: currentPrice,
-      current_price_at: currentPrice !== null ? new Date().toISOString() : null,
-      result_pips: resultPips,
-      closed_at: isTerminal ? new Date().toISOString() : null,
-    })
-    .eq("id", signalId);
+  const updatePayload: Record<string, unknown> = {
+    status,
+    current_price: currentPrice,
+    current_price_at: currentPrice !== null ? new Date().toISOString() : null,
+    result_pips: resultPips,
+    closed_at: isTerminal ? new Date().toISOString() : null,
+  };
 
-  revalidatePath("/admin/signals");
-  revalidatePath("/signals");
-}
+  // Kalau admin nggak isi Take Profit waktu posting sinyal (dibiarkan kosong),
+  // begitu status di-set TP, harga penutupan yang diinput langsung dipakai
+  // sebagai nilai Take Profit — supaya tetap tampil di tabel, bukan cuma
+  // tersimpan di current_price.
+  if (status === "TP" && currentPrice !== null) {
+    updatePayload.take_profit = currentPrice;
+  }
 
-export async function updateSignalPrice(signalId: string, currentPrice: number) {
-  const supabase = await assertIsAdmin();
-
-  await supabase
-    .from("signals")
-    .update({ current_price: currentPrice, current_price_at: new Date().toISOString() })
-    .eq("id", signalId);
+  await supabase.from("signals").update(updatePayload).eq("id", signalId);
 
   revalidatePath("/admin/signals");
   revalidatePath("/signals");
