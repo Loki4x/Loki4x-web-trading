@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ImageIcon } from "lucide-react";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
+import { SignalAnalysisModal } from "@/components/signals/SignalAnalysisModal";
 import { cx, formatDate, formatPrice } from "@/lib/utils";
 import { categorizeSymbol, CATEGORY_LABEL, type AssetCategory } from "@/lib/asset-category";
 import {
@@ -41,6 +43,7 @@ function priceDistancePercent(reference: number, target: number): string {
 export function SignalsList({ signals }: { signals: Signal[] }) {
   const [category, setCategory] = useState<CategoryFilter>("ALL");
   const [positionTab, setPositionTab] = useState<PositionTab>("ACTIVE");
+  const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
 
   const filtered = useMemo(() => {
     if (category === "ALL") return signals;
@@ -150,10 +153,10 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
         </div>
       ) : (
         <div className="card overflow-x-auto !p-0">
-          <table className="w-full min-w-[840px] border-collapse">
+          <table className="w-full min-w-[920px] border-collapse">
             <thead>
               <tr className="border-b border-border bg-surface text-left">
-                {["Aset", "Arah", "Entry", "Hasil", "Stop Loss", "Take Profit", "Status", "Dibuka"].map(
+                {["Aset", "Arah", "Entry", "Hasil", "Stop Loss", "Take Profit", "Status", "Dibuka", "Analisa"].map(
                   (h) => (
                     <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
                       {h}
@@ -220,6 +223,19 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                       <p className="text-body-sm text-text-secondary">{formatDate(s.posted_at)}</p>
                       <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at)}</p>
                     </td>
+                    <td className="px-4 py-3">
+                      {s.chart_image_url || s.notes ? (
+                        <button
+                          onClick={() => setAnalysisSignal(s)}
+                          className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                          Lihat
+                        </button>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -232,6 +248,10 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
         Performa disimulasikan dengan risiko tetap per sinyal (default 2%, bisa diatur per sinyal). Kinerja masa lalu
         tidak menjamin hasil di masa depan.
       </p>
+
+      {analysisSignal && (
+        <SignalAnalysisModal signal={analysisSignal} onClose={() => setAnalysisSignal(null)} />
+      )}
     </div>
   );
 }
