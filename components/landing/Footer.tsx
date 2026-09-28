@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Reveal } from "@/components/ui/Reveal";
 
 const legal = [
   { href: "/privacy", label: "Privacy Policy" },
@@ -14,7 +15,7 @@ const socials = [
 export function Footer() {
   return (
     <footer className="border-t border-border py-14">
-      <div className="mx-auto max-w-content px-6">
+      <Reveal className="mx-auto max-w-content px-6">
         <div className="flex flex-col gap-10 md:flex-row md:justify-between">
           <div className="max-w-sm">
             <div className="flex items-center gap-2.5">
@@ -64,7 +65,7 @@ export function Footer() {
         <div className="mt-10 border-t border-border pt-6">
           <p className="text-body-sm text-text-muted">© 2026 Loki4x Academy. All rights reserved.</p>
         </div>
-      </div>
+      </Reveal>
     </footer>
   );
 }
