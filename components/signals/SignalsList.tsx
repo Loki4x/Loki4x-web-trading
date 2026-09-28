@@ -70,7 +70,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
             key={key}
             onClick={() => setCategory(key)}
             className={cx(
-              "rounded-full px-3.5 py-1.5 text-body-sm font-medium transition-colors",
+              "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
               category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
             )}
           >
@@ -130,7 +130,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
         <button
           onClick={() => setPositionTab("ACTIVE")}
           className={cx(
-            "rounded-full px-3.5 py-1.5 text-body-sm font-medium transition-colors",
+            "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
             positionTab === "ACTIVE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
           )}
         >
@@ -139,7 +139,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
         <button
           onClick={() => setPositionTab("DONE")}
           className={cx(
-            "rounded-full px-3.5 py-1.5 text-body-sm font-medium transition-colors",
+            "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
             positionTab === "DONE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
           )}
         >
