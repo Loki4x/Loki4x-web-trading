@@ -110,7 +110,7 @@ export function SecurityPanel({
                       {os ? ` · ${os}` : ""}
                     </p>
                   </div>
-                  <span className="rounded-full bg-success-subtle px-2.5 py-1 text-caption font-semibold text-success">
+                  <span className="rounded-full bg-success-subtle px-2 py-0.5 text-caption font-semibold leading-none text-success">
                     Berhasil
                   </span>
                 </div>
