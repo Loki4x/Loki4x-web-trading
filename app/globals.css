@@ -35,6 +35,8 @@
 
   html {
     color-scheme: dark;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
   }
 
   html[data-theme="light"] {
@@ -64,6 +66,7 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
@@ -124,7 +127,30 @@
   80% { background-position: 0%  50%, 50%  50%, 100% 100%; }
 }
 
+@keyframes enter-up {
+  from { opacity: 0; transform: translateY(1.5rem); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes draw-line {
+  from { stroke-dashoffset: 400; }
+  to { stroke-dashoffset: 0; }
+}
+
 @layer utilities {
+  /* Animasi masuk hero: murni CSS, jalan sejak paint pertama tanpa nunggu JS.
+     Atur jeda lewat style={{ "--enter-delay": "200ms" }}. */
+  .animate-enter {
+    animation: enter-up 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+
+  /* Garis grafik equity di mockup hero "tergambar" dari kiri ke kanan. */
+  .draw-line {
+    stroke-dasharray: 400;
+    animation: draw-line 1.4s ease-out 900ms both;
+  }
+
   .tabular-nums {
     font-feature-settings: "tnum" 1, "lnum" 1;
     font-variant-numeric: tabular-nums;
