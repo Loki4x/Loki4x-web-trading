@@ -46,7 +46,7 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
               key={key}
               onClick={() => setRange(key)}
               className={cx(
-                "rounded-full px-3 py-1 text-caption font-semibold transition-colors",
+                "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
                 range === key ? "bg-primary text-text-on-primary" : "text-text-secondary hover:text-text-primary"
               )}
             >
