@@ -83,7 +83,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
             key={key}
             onClick={() => setCategory(key)}
             className={cx(
-              "rounded-full px-3.5 py-1.5 text-body-sm font-medium transition-colors",
+              "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
               category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
             )}
           >
@@ -133,7 +133,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
             <button
               onClick={() => setSortMode("LONG_PCT")}
               className={cx(
-                "rounded-full px-3 py-1 text-caption font-semibold",
+                "rounded-full px-2.5 py-1 text-caption font-semibold",
                 sortMode === "LONG_PCT" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary"
               )}
             >
@@ -142,7 +142,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
             <button
               onClick={() => setSortMode("NET_CHG")}
               className={cx(
-                "rounded-full px-3 py-1 text-caption font-semibold",
+                "rounded-full px-2.5 py-1 text-caption font-semibold",
                 sortMode === "NET_CHG" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary"
               )}
             >
