@@ -230,7 +230,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                       type="button"
                       onClick={() => selectBank(b.method)}
                       className={cx(
-                        "rounded-full border px-3 py-1.5 text-body-sm font-medium transition-colors",
+                        "rounded-full border px-2.5 py-1 text-caption font-medium transition-colors",
                         bank === b.method
                           ? "border-primary bg-primary-subtle text-primary"
                           : "border-border text-text-secondary hover:bg-surface-hover"
