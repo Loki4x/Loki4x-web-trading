@@ -181,7 +181,7 @@ export function LotCalculator() {
 
   function pillBtn(active: boolean) {
     return cx(
-      "rounded-full border px-3 py-1.5 text-body-sm font-medium transition-colors",
+      "rounded-full border px-2.5 py-1 text-caption font-medium transition-colors",
       active
         ? "border-primary bg-primary-subtle text-primary"
         : "border-border text-text-secondary hover:bg-surface-hover"
