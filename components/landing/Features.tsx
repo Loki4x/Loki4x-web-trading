@@ -1,4 +1,4 @@
-import { NotebookPen, Newspaper, LineChart, Compass, Calculator, GraduationCap } from "lucide-react";
+import { NotebookPen, Newspaper, LineChart, Landmark, Calculator, GraduationCap } from "lucide-react";
 import { Reveal } from "@/components/ui/Reveal";
 
 const modules = [
@@ -15,10 +15,10 @@ const modules = [
       "Follow curated trade signals backed by a transparent, verifiable track record — no cherry-picked results.",
   },
   {
-    icon: Compass,
-    title: "Market Positioning",
+    icon: Landmark,
+    title: "Institutional Positioning (COT)",
     description:
-      "See how the market is positioned before you enter. Retail sentiment and positioning data in one view.",
+      "See how large institutions are positioned before you enter, based on official CFTC Commitment of Traders (COT) data.",
   },
   {
     icon: Newspaper,
