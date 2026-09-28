@@ -1,5 +1,10 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { ArrowRight, Radio } from "lucide-react";
+
+// Animasi masuk hero murni CSS (class `animate-enter` di globals.css), jadi langsung
+// jalan sejak paint pertama tanpa nunggu JS dan nggak ada "kedip" dari HTML server-render.
+const enter = (delayMs: number) => ({ "--enter-delay": `${delayMs}ms` }) as CSSProperties;
 
 export function Hero() {
   return (
@@ -8,21 +13,30 @@ export function Hero() {
 
       <div className="relative mx-auto max-w-content px-6 pb-20 pt-16 md:pt-24">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-caption font-semibold tracking-wide text-text-secondary">
+          <span
+            className="animate-enter inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-caption font-semibold tracking-wide text-text-secondary"
+            style={enter(0)}
+          >
             <Radio className="h-3.5 w-3.5 text-primary" />
             TRADING JOURNAL &amp; MARKET NEWS
           </span>
 
-          <h1 className="mt-6 text-display text-text-primary">
+          <h1 className="animate-enter mt-6 text-display text-text-primary" style={enter(100)}>
             Log every trade. Read every market move.
           </h1>
 
-          <p className="mx-auto mt-5 max-w-lg text-body-lg text-text-secondary">
+          <p
+            className="animate-enter mx-auto mt-5 max-w-lg text-body-lg text-text-secondary"
+            style={enter(200)}
+          >
             Loki4x Academy keeps your entries, exits and reasoning in one disciplined
             journal, next to the economic releases that actually move price.
           </p>
 
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div
+            className="animate-enter mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
+            style={enter(300)}
+          >
             <Link href="/signup" className="btn-primary">
               Get Started Free
               <ArrowRight className="h-4 w-4" />
@@ -34,7 +48,7 @@ export function Hero() {
         </div>
 
         {/* Preview frame: stylised dashboard mockup, not a literal screenshot */}
-        <div className="relative mx-auto mt-16 max-w-4xl">
+        <div className="animate-enter relative mx-auto mt-16 max-w-4xl" style={enter(450)}>
           <div className="rounded-2xl border border-border bg-surface p-3 shadow-md glow-border sm:p-4">
             <div className="mb-3 flex items-center gap-1.5 px-2">
               <span className="h-2.5 w-2.5 rounded-full bg-error/60" />
@@ -64,6 +78,7 @@ export function Hero() {
                   </p>
                   <svg viewBox="0 0 300 90" className="h-20 w-full">
                     <polyline
+                      className="draw-line"
                       points="0,70 40,62 80,66 120,45 160,50 200,28 240,34 300,10"
                       fill="none"
                       stroke="#5F85DB"
