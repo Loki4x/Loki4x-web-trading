@@ -15,13 +15,13 @@ const plans = [
   },
   {
     name: "VIP",
-    description: "Unlock signals and market positioning data.",
+    description: "Unlock signals and institutional COT positioning data.",
     price: "$20",
     period: "/ month",
     features: [
       "Everything in Free",
       "Signals & Track Record",
-      "Market Positioning data",
+      "Institutional Positioning (COT)",
       "Or join free via IB partner broker",
     ],
     cta: "Get VIP",
