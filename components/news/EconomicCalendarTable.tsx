@@ -165,7 +165,7 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
             {f.label}
             <span
               className={cx(
-                "rounded-full px-1 text-caption",
+                "rounded-full px-1 text-badge",
                 filter === f.key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-muted"
               )}
             >
@@ -221,7 +221,7 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
                     </span>
                     <span
                       className={cx(
-                        "w-20 shrink-0 rounded-sm px-2 py-0.5 text-center text-caption font-semibold",
+                        "w-20 shrink-0 rounded-sm px-1.5 py-0.5 text-center text-badge font-semibold",
                         IMPACT_STYLE[event.impact]
                       )}
                     >
