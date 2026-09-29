@@ -21,7 +21,7 @@ export function KpiCard({ label, value, icon: Icon, valueClassName, featured }: 
         <span className="text-body-sm text-text-secondary">{label}</span>
         {Icon && <Icon className="h-4 w-4 text-text-muted" />}
       </div>
-      <span className={cx("tabular-nums text-h2 font-semibold", valueClassName ?? "text-text-primary")}>
+      <span className={cx("tabular-nums text-h3 font-semibold", valueClassName ?? "text-text-primary")}>
         {value}
       </span>
     </div>
