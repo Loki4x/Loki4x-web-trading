@@ -106,7 +106,7 @@ export function AccountPanel({
         <div className="flex flex-col gap-2">
           <label className="text-body-sm font-medium text-text-secondary">Jenis akun</label>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary-subtle px-1.5 py-0.5 text-caption font-semibold leading-none text-primary">
+            <span className="rounded-full bg-primary-subtle px-1.5 py-0.5 text-badge font-semibold leading-none text-primary">
               {TIER_LABEL[profile?.tier ?? "FREE"]}
             </span>
             {memberSince && (
