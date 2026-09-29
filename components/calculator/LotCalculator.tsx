@@ -464,7 +464,7 @@ export function LotCalculator() {
             <div className="flex items-center justify-between">
               <p className="text-caption font-semibold uppercase tracking-wide text-text-muted">Trade Preview</p>
               {calc.rr && (
-                <span className="rounded-full bg-primary-subtle px-1.5 py-0.5 text-caption font-semibold leading-none text-primary">
+                <span className="rounded-full bg-primary-subtle px-1.5 py-0.5 text-badge font-semibold leading-none text-primary">
                   R:R 1:{calc.rr.toFixed(1)}
                 </span>
               )}
