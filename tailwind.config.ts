@@ -50,7 +50,7 @@ const config: Config = {
         body: ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
         "body-sm": ["0.75rem", { lineHeight: "1.45", fontWeight: "400" }],
         caption: ["0.625rem", { lineHeight: "1.3", fontWeight: "500" }],
-        badge: ["0.5625rem", { lineHeight: "1.2", fontWeight: "600" }],
+        badge: ["0.625rem", { lineHeight: "1.2", fontWeight: "600" }],
       },
       borderRadius: {
         sm: "0.375rem",
