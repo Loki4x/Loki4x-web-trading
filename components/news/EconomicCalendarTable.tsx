@@ -156,7 +156,7 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
             type="button"
             onClick={() => setFilter(f.key)}
             className={cx(
-              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-caption font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-full border px-1.5 py-0.5 text-caption font-medium transition-colors",
               filter === f.key
                 ? "border-primary bg-primary-subtle text-primary"
                 : "border-border text-text-secondary hover:bg-surface-hover"
@@ -165,7 +165,7 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
             {f.label}
             <span
               className={cx(
-                "rounded-full px-1.5 text-caption",
+                "rounded-full px-1 text-caption",
                 filter === f.key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-muted"
               )}
             >
