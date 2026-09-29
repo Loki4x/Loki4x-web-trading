@@ -5,10 +5,10 @@ import { cx } from "@/lib/utils";
 import type { CalendarEvent, CalendarImpact } from "@/lib/economic-calendar";
 
 const IMPACT_LABEL: Record<CalendarImpact, string> = {
-  HIGH: "Tinggi",
-  MEDIUM: "Sedang",
-  LOW: "Rendah",
-  HOLIDAY: "Libur",
+  HIGH: "High",
+  MEDIUM: "Medium",
+  LOW: "Low",
+  HOLIDAY: "Holiday",
 };
 
 const IMPACT_STYLE: Record<CalendarImpact, string> = {
@@ -43,9 +43,9 @@ type FilterKey = "ALL" | "HIGH" | "MEDIUM" | "LOW";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "ALL", label: "Semua" },
-  { key: "HIGH", label: "Tinggi" },
-  { key: "MEDIUM", label: "Sedang" },
-  { key: "LOW", label: "Rendah" },
+  { key: "HIGH", label: "High" },
+  { key: "MEDIUM", label: "Medium" },
+  { key: "LOW", label: "Low" },
 ];
 
 const dayFormatter = new Intl.DateTimeFormat("id-ID", {
