@@ -44,7 +44,7 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-caption font-medium text-text-secondary hover:bg-surface-hover"
+      className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-caption font-medium text-text-secondary hover:bg-surface-hover"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "Tersalin" : "Copy"}
@@ -230,7 +230,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                       type="button"
                       onClick={() => selectBank(b.method)}
                       className={cx(
-                        "rounded-full border px-2.5 py-1 text-caption font-medium transition-colors",
+                        "rounded-full border px-1.5 py-0.5 text-caption font-medium transition-colors",
                         bank === b.method
                           ? "border-primary bg-primary-subtle text-primary"
                           : "border-border text-text-secondary hover:bg-surface-hover"
