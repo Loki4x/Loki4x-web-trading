@@ -174,14 +174,14 @@ export function LotCalculator() {
 
   function segmentBtn(active: boolean) {
     return cx(
-      "rounded-md px-1.5 py-0.5 text-caption font-semibold transition-colors",
+      "rounded-md px-2 py-1 text-caption font-semibold transition-colors",
       active ? "bg-primary text-text-on-primary" : "text-text-secondary hover:text-text-primary"
     );
   }
 
   function pillBtn(active: boolean) {
     return cx(
-      "rounded-full border px-1.5 py-0.5 text-caption font-medium transition-colors",
+      "rounded-full border px-2 py-1 text-caption font-medium transition-colors",
       active
         ? "border-primary bg-primary-subtle text-primary"
         : "border-border text-text-secondary hover:bg-surface-hover"
