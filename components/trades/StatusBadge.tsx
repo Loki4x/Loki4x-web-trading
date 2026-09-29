@@ -5,7 +5,7 @@ export function StatusBadge({ status }: { status: TradeStatus }) {
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-caption font-semibold leading-none",
+        "inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-caption font-semibold leading-none",
         status === "OPEN"
           ? "bg-info-subtle text-info"
           : "bg-surface-2 text-text-secondary"
