@@ -124,7 +124,7 @@ export function RetailBiasClient({ items }: { items: RetailBiasItem[] }) {
                   </span>
                 )}
               </div>
-              <span className={cx("rounded-full px-1.5 py-0.5 text-caption font-semibold", SIGNAL_STYLE[p.signal])}>
+              <span className={cx("rounded-full px-1.5 py-0.5 text-badge font-semibold", SIGNAL_STYLE[p.signal])}>
                 {SIGNAL_LABEL[p.signal]}
               </span>
             </div>
