@@ -99,7 +99,7 @@ export function UsersTable({ users }: { users: Profile[] }) {
                 <td className="px-4 py-3">
                   <span
                     className={cx(
-                      "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption font-bold leading-none",
+                      "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-badge font-bold leading-none",
                       u.is_admin
                         ? "bg-warning-subtle text-warning"
                         : u.tier === "VIP"
@@ -114,7 +114,7 @@ export function UsersTable({ users }: { users: Profile[] }) {
                 <td className="px-4 py-3">
                   <span
                     className={cx(
-                      "inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-caption font-semibold leading-none",
+                      "inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-badge font-semibold leading-none",
                       u.is_suspended ? "bg-error-subtle text-error" : "bg-success-subtle text-success"
                     )}
                   >
