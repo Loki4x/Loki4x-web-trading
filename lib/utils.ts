@@ -1,7 +1,22 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
 import type { AccountCurrency } from "@/lib/types";
 import { categorizeSymbol } from "@/lib/asset-category";
+
+// tailwind-merge nggak tahu token ukuran font kustom dari tailwind.config.ts
+// (text-caption, text-badge, text-h2, dst) dan mengiranya warna teks. Akibatnya,
+// kalau di cx() yang sama ada kelas warna (text-success, text-text-secondary, ...),
+// ukuran fontnya ikut terhapus diam-diam dan teks jatuh ke ukuran bawaan 16px.
+// Daftar di bawah HARUS sama dengan `fontSize` di tailwind.config.ts.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [
+        { text: ["display", "h1", "h2", "h3", "body-lg", "body", "body-sm", "caption", "badge"] },
+      ],
+    },
+  },
+});
 
 export function cx(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
