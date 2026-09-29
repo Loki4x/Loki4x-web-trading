@@ -92,7 +92,7 @@ export function RetailBiasClient({ items }: { items: RetailBiasItem[] }) {
               key={key}
               onClick={() => setCategory(key)}
               className={cx(
-                "rounded-full px-1.5 py-0.5 text-caption font-semibold transition-colors",
+                "rounded-full px-2 py-1 text-caption font-semibold transition-colors",
                 category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
               )}
             >
