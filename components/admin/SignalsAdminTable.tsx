@@ -69,7 +69,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
                 <button
                   onClick={() => setEditingSignal(s)}
                   className={cx(
-                    "inline-flex rounded-md px-2 py-0.5 text-caption font-bold leading-none transition-opacity hover:opacity-80",
+                    "inline-flex rounded-md px-1.5 py-0.5 text-caption font-bold leading-none transition-opacity hover:opacity-80",
                     signalStatusClass(s.status)
                   )}
                 >
