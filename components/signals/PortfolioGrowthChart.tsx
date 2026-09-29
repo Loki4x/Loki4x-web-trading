@@ -46,7 +46,7 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
               key={key}
               onClick={() => setRange(key)}
               className={cx(
-                "rounded-full px-1.5 py-0.5 text-caption font-semibold transition-colors",
+                "rounded-full px-2 py-1 text-caption font-semibold transition-colors",
                 range === key ? "bg-primary text-text-on-primary" : "text-text-secondary hover:text-text-primary"
               )}
             >
@@ -59,7 +59,7 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
       <div className="mb-4 flex flex-wrap items-baseline gap-6">
         <div>
           <p className="text-caption text-text-muted">Pertumbuhan</p>
-          <p className={cx("text-h2", isPositive ? "text-success" : "text-error")}>
+          <p className={cx("text-h3", isPositive ? "text-success" : "text-error")}>
             {isPositive ? "+" : ""}
             {latest.toFixed(1)}%
           </p>
