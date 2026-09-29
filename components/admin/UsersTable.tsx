@@ -1,257 +1,180 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ImageIcon } from "lucide-react";
-import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
-import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
-import { SignalAnalysisModal } from "@/components/signals/SignalAnalysisModal";
-import { cx, formatDate, formatPrice } from "@/lib/utils";
-import { categorizeSymbol, CATEGORY_LABEL, type AssetCategory } from "@/lib/asset-category";
-import {
-  buildGrowthSeries,
-  computeSignalStats,
-  livePercent,
-  signalStatusClass,
-  SIGNAL_STATUS_LABEL,
-  isTerminalStatus,
-} from "@/lib/signal-metrics";
-import type { Signal } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { Search, Ban, CheckCircle, Eye, Crown } from "lucide-react";
+import { cx, formatDate } from "@/lib/utils";
+import { toggleSuspend } from "@/app/admin/actions";
+import { ChangeTierModal } from "@/components/admin/ChangeTierModal";
+import { UserDetailModal } from "@/components/admin/UserDetailModal";
+import type { Profile } from "@/lib/types";
 
-type CategoryFilter = "ALL" | AssetCategory;
-type PositionTab = "ACTIVE" | "DONE";
+type RoleFilter = "ALL" | "FREE" | "VIP" | "ADMIN";
+const PAGE_SIZE = 10;
 
-const CATEGORY_FILTERS: { key: CategoryFilter; label: string }[] = [
-  { key: "ALL", label: "Semua" },
-  { key: "CURRENCY", label: "Currency" },
-  { key: "COMMODITY", label: "Commodity" },
-  { key: "INDEX", label: "Index" },
-  { key: "CRYPTO", label: "Crypto" },
-];
-
-function daysAgoLabel(dateString: string): string {
-  const diffMs = Date.now() - new Date(dateString).getTime();
-  const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-  if (days <= 0) return "Hari ini";
-  return `${days}d lalu`;
-}
-
-function priceDistancePercent(reference: number, target: number): string {
-  const pct = (Math.abs(target - reference) / reference) * 100;
-  return `${pct.toFixed(2)}% dari harga`;
-}
-
-export function SignalsList({ signals }: { signals: Signal[] }) {
-  const [category, setCategory] = useState<CategoryFilter>("ALL");
-  const [positionTab, setPositionTab] = useState<PositionTab>("ACTIVE");
-  const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
+export function UsersTable({ users }: { users: Profile[] }) {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [role, setRole] = useState<RoleFilter>("ALL");
+  const [page, setPage] = useState(1);
+  const [tierModalUser, setTierModalUser] = useState<Profile | null>(null);
+  const [detailModalUser, setDetailModalUser] = useState<Profile | null>(null);
 
   const filtered = useMemo(() => {
-    if (category === "ALL") return signals;
-    return signals.filter((s) => categorizeSymbol(s.symbol) === category);
-  }, [signals, category]);
+    return users.filter((u) => {
+      const q = search.toLowerCase();
+      if (q && !(u.full_name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))) return false;
+      if (role === "ADMIN" && !u.is_admin) return false;
+      if (role === "FREE" && (u.tier !== "FREE" || u.is_admin)) return false;
+      if (role === "VIP" && u.tier !== "VIP") return false;
+      return true;
+    });
+  }, [users, search, role]);
 
-  const stats = useMemo(() => computeSignalStats(filtered), [filtered]);
-  const growthSeries = useMemo(() => buildGrowthSeries(filtered), [filtered]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const activeSignals = filtered.filter((s) => !isTerminalStatus(s.status));
-  const doneSignals = filtered.filter((s) => isTerminalStatus(s.status));
-  const visibleSignals = positionTab === "ACTIVE" ? activeSignals : doneSignals;
-
-  const sortedVisible = [...visibleSignals].sort(
-    (a, b) => new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime()
-  );
+  async function handleToggleSuspend(user: Profile) {
+    const action = user.is_suspended ? "unsuspend" : "suspend";
+    if (!confirm(`Are you sure you want to ${action} ${user.full_name || user.email}?`)) return;
+    await toggleSuspend(user.id, !user.is_suspended);
+    router.refresh();
+  }
 
   return (
     <div>
-      {/* Filter jenis pasar */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {CATEGORY_FILTERS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setCategory(key)}
-            className={cx(
-              "rounded-full px-1.5 py-0.5 text-caption font-semibold transition-colors",
-              category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Stats cards */}
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Growth</p>
-          <p className={cx("text-h3", stats.totalGrowthPercent >= 0 ? "text-success" : "text-error")}>
-            {stats.totalGrowthPercent >= 0 ? "+" : ""}
-            {stats.totalGrowthPercent.toFixed(1)}%
-          </p>
-          <p className="text-caption text-text-muted">
-            {stats.monthGrowthPercent >= 0 ? "+" : ""}
-            {stats.monthGrowthPercent.toFixed(1)}% bulan ini
-          </p>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search name or email"
+            className="input-field pl-9"
+          />
         </div>
-        <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Win Rate</p>
-          <p className="text-h3 text-text-primary">{stats.winRate.toFixed(0)}%</p>
-          <p className="text-caption text-text-muted">
-            {stats.wins} profit · {stats.losses} loss
-          </p>
-        </div>
-        <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Drawdown Maksimum</p>
-          <p className="text-h3 text-error">{stats.maxDrawdownPercent.toFixed(1)}%</p>
-          <p className="text-caption text-text-muted">penurunan portofolio terburuk</p>
-        </div>
-        <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Sinyal Aktif</p>
-          <p className="text-h3 text-text-primary">{stats.activeCount}</p>
-          <p className="text-caption text-text-muted">menunggu entry / berjalan</p>
-        </div>
-      </div>
-
-      {/* Total pips, ditampilkan terpisah karena satuannya beda (pips, bukan %) */}
-      <div className="mb-6 card !p-4">
-        <p className="text-caption text-text-secondary">Total Pips Diperoleh</p>
-        <p className={cx("text-h3", stats.totalPips >= 0 ? "text-success" : "text-error")}>
-          {stats.totalPips >= 0 ? "+" : ""}
-          {stats.totalPips.toFixed(1)} pips
-        </p>
-      </div>
-
-      {/* Chart pertumbuhan portofolio */}
-      <div className="mb-6">
-        <PortfolioGrowthChart points={growthSeries} />
-      </div>
-
-      {/* Tabel posisi */}
-      <div className="mb-4 flex items-center gap-2">
-        <button
-          onClick={() => setPositionTab("ACTIVE")}
-          className={cx(
-            "rounded-full px-1.5 py-0.5 text-caption font-semibold transition-colors",
-            positionTab === "ACTIVE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
-          )}
+        <select
+          value={role}
+          onChange={(e) => {
+            setRole(e.target.value as RoleFilter);
+            setPage(1);
+          }}
+          className="input-field w-auto"
         >
-          Aktif ({activeSignals.length})
-        </button>
-        <button
-          onClick={() => setPositionTab("DONE")}
-          className={cx(
-            "rounded-full px-1.5 py-0.5 text-caption font-semibold transition-colors",
-            positionTab === "DONE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
-          )}
-        >
-          Selesai ({doneSignals.length})
-        </button>
+          <option value="ALL">All Roles</option>
+          <option value="FREE">Free</option>
+          <option value="VIP">VIP</option>
+          <option value="ADMIN">Admin</option>
+        </select>
       </div>
 
-      {sortedVisible.length === 0 ? (
-        <div className="card py-12 text-center text-body-sm text-text-muted">
-          {positionTab === "ACTIVE" ? "Belum ada sinyal aktif." : "Belum ada sinyal yang selesai."}
-        </div>
-      ) : (
-        <div className="card overflow-x-auto !p-0">
-          <table className="w-full min-w-[920px] border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-surface text-left">
-                {["Aset", "Arah", "Entry", "Hasil", "Stop Loss", "Take Profit", "Status", "Dibuka", "Analisa"].map(
-                  (h) => (
-                    <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
-                      {h}
-                    </th>
-                  )
-                )}
+      <div className="card overflow-x-auto !p-0">
+        <table className="w-full min-w-[720px] border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-surface text-left">
+              {["User", "Role", "Status", "Joined", ""].map((h) => (
+                <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {paginated.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-body-sm text-text-muted">
+                  No users match your filters.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {sortedVisible.map((s) => {
-                const pnl = livePercent(s);
-                return (
-                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
-                    <td className="px-4 py-3">
-                      <p className="text-body-sm font-semibold text-text-primary">{s.symbol}</p>
-                      <p className="text-caption text-text-muted">{CATEGORY_LABEL[categorizeSymbol(s.symbol)]}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <TradeSideBadge side={s.side} />
-                    </td>
-                    <td className="tabular-nums px-4 py-3 text-body-sm text-text-secondary">
-                      {formatPrice(s.entry_price, s.symbol)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {pnl !== null ? (
-                        <span className={cx("text-body-sm font-semibold", pnl >= 0 ? "text-success" : "text-error")}>
-                          {pnl >= 0 ? "+" : ""}
-                          {pnl.toFixed(2)}%
-                        </span>
-                      ) : (
-                        <span className="text-body-sm text-text-muted">—</span>
+            )}
+            {paginated.map((u) => (
+              <tr key={u.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
+                <td className="px-4 py-3">
+                  <p className="text-body-sm font-semibold text-text-primary">{u.full_name || "—"}</p>
+                  <p className="text-caption text-text-muted">{u.email}</p>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={cx(
+                      "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption font-bold leading-none",
+                      u.is_admin
+                        ? "bg-warning-subtle text-warning"
+                        : u.tier === "VIP"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-surface-2 text-text-secondary"
+                    )}
+                  >
+                    {u.tier === "VIP" && !u.is_admin && <Crown className="h-3 w-3" />}
+                    {u.is_admin ? "ADMIN" : u.tier}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={cx(
+                      "inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-caption font-semibold leading-none",
+                      u.is_suspended ? "bg-error-subtle text-error" : "bg-success-subtle text-success"
+                    )}
+                  >
+                    <span className={cx("h-1.5 w-1.5 rounded-full", u.is_suspended ? "bg-error" : "bg-success")} />
+                    {u.is_suspended ? "Suspended" : "Active"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-body-sm text-text-secondary">{formatDate(u.created_at)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => setTierModalUser(u)}
+                      className="text-caption font-semibold text-primary hover:underline"
+                    >
+                      Change Tier
+                    </button>
+                    <button
+                      onClick={() => handleToggleSuspend(u)}
+                      className={cx(
+                        "flex items-center gap-1 text-caption font-semibold hover:underline",
+                        u.is_suspended ? "text-success" : "text-error"
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.stop_loss !== null ? (
-                        <>
-                          <p className="tabular-nums text-body-sm text-error">{formatPrice(s.stop_loss, s.symbol)}</p>
-                          <p className="text-caption text-text-muted">
-                            {priceDistancePercent(s.entry_price, s.stop_loss)}
-                          </p>
-                        </>
-                      ) : (
-                        <span className="text-body-sm text-text-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.take_profit !== null ? (
-                        <>
-                          <p className="tabular-nums text-body-sm text-success">{formatPrice(s.take_profit, s.symbol)}</p>
-                          <p className="text-caption text-text-muted">
-                            {priceDistancePercent(s.entry_price, s.take_profit)}
-                          </p>
-                        </>
-                      ) : (
-                        <span className="text-body-sm text-text-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cx("inline-flex rounded-md px-1.5 py-0.5 text-caption font-bold leading-none", signalStatusClass(s.status))}>
-                        {SIGNAL_STATUS_LABEL[s.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-body-sm text-text-secondary">{formatDate(s.posted_at)}</p>
-                      <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at)}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.chart_image_url || s.notes ? (
-                        <button
-                          onClick={() => setAnalysisSignal(s)}
-                          className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                          Lihat
-                        </button>
-                      ) : (
-                        <span className="text-body-sm text-text-muted">—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    >
+                      {u.is_suspended ? <CheckCircle className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                      {u.is_suspended ? "Unsuspend" : "Suspend"}
+                    </button>
+                    <button
+                      onClick={() => setDetailModalUser(u)}
+                      className="text-text-muted hover:text-text-primary"
+                      aria-label="View detail"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i + 1)}
+              className={cx(
+                "h-8 w-8 rounded-md text-body-sm font-medium",
+                page === i + 1 ? "bg-primary text-text-on-primary" : "text-text-secondary hover:bg-surface-hover"
+              )}
+            >
+              {i + 1}
+            </button>
+          ))}
         </div>
       )}
 
-      <p className="mt-4 text-caption text-text-muted">
-        Performa disimulasikan dengan risiko tetap per sinyal (default 2%, bisa diatur per sinyal). Kinerja masa lalu
-        tidak menjamin hasil di masa depan.
-      </p>
-
-      {analysisSignal && (
-        <SignalAnalysisModal signal={analysisSignal} onClose={() => setAnalysisSignal(null)} />
-      )}
+      {tierModalUser && <ChangeTierModal user={tierModalUser} onClose={() => setTierModalUser(null)} />}
+      {detailModalUser && <UserDetailModal user={detailModalUser} onClose={() => setDetailModalUser(null)} />}
     </div>
   );
 }
