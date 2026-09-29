@@ -215,7 +215,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={cx("inline-flex rounded-md px-1.5 py-0.5 text-caption font-bold leading-none", signalStatusClass(s.status))}>
+                      <span className={cx("inline-flex rounded-md px-1.5 py-0.5 text-badge font-bold leading-none", signalStatusClass(s.status))}>
                         {SIGNAL_STATUS_LABEL[s.status]}
                       </span>
                     </td>
