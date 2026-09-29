@@ -19,7 +19,7 @@ const LABELS: Record<MarketNewsCategory, string> = {
 
 export function CategoryBadge({ category }: { category: MarketNewsCategory }) {
   return (
-    <span className={cx("inline-flex rounded-full px-1.5 py-0.5 text-caption font-semibold", STYLES[category])}>
+    <span className={cx("inline-flex rounded-full px-1.5 py-0.5 text-badge font-semibold", STYLES[category])}>
       {LABELS[category]}
     </span>
   );
