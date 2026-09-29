@@ -11,7 +11,7 @@ export function NewsImpactBadge({ impact }: { impact: NewsImpact }) {
   return (
     <span
       className={cx(
-        "inline-flex rounded-sm px-2 py-0.5 text-caption font-semibold",
+        "inline-flex rounded-sm px-1.5 py-0.5 text-caption font-semibold",
         styles[impact]
       )}
     >
