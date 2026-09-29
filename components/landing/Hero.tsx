@@ -14,7 +14,7 @@ export function Hero() {
       <div className="relative mx-auto max-w-content px-6 pb-20 pt-16 md:pt-24">
         <div className="mx-auto max-w-2xl text-center">
           <span
-            className="animate-enter inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-caption font-semibold tracking-wide text-text-secondary"
+            className="animate-enter inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-badge font-semibold tracking-wide text-text-secondary"
             style={enter(0)}
           >
             <Radio className="h-3.5 w-3.5 text-primary" />
@@ -92,13 +92,13 @@ export function Hero() {
                   </p>
                   <div className="flex flex-col gap-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-sm bg-error-subtle px-1.5 py-0.5 text-caption font-semibold text-error">
+                      <span className="rounded-sm bg-error-subtle px-1.5 py-0.5 text-badge font-semibold text-error">
                         High
                       </span>
                       <span className="text-caption text-text-secondary">USD Non-Farm Payrolls</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="rounded-sm bg-warning-subtle px-1.5 py-0.5 text-caption font-semibold text-warning">
+                      <span className="rounded-sm bg-warning-subtle px-1.5 py-0.5 text-badge font-semibold text-warning">
                         Med
                       </span>
                       <span className="text-caption text-text-secondary">EUR CPI y/y</span>
