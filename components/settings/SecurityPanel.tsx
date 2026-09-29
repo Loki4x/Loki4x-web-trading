@@ -80,7 +80,7 @@ export function SecurityPanel({
             <p className="text-body-sm font-medium text-text-primary">
               {currentDevice.browser}
               {currentDevice.os ? ` · ${currentDevice.os}` : ""}
-              <span className="ml-2 rounded-full bg-primary-subtle px-2 py-0.5 text-caption font-semibold text-primary">
+              <span className="ml-2 rounded-full bg-primary-subtle px-1.5 py-0.5 text-caption font-semibold text-primary">
                 Perangkat ini
               </span>
             </p>
@@ -110,7 +110,7 @@ export function SecurityPanel({
                       {os ? ` · ${os}` : ""}
                     </p>
                   </div>
-                  <span className="rounded-full bg-success-subtle px-2 py-0.5 text-caption font-semibold leading-none text-success">
+                  <span className="rounded-full bg-success-subtle px-1.5 py-0.5 text-caption font-semibold leading-none text-success">
                     Berhasil
                   </span>
                 </div>
