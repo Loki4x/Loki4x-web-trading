@@ -112,7 +112,7 @@ export function VipRequestForm({
               }`}
             >
               {plan.featured && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-0.5 text-caption font-bold leading-none uppercase tracking-wide text-text-on-primary">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-0.5 text-badge font-bold leading-none uppercase tracking-wide text-text-on-primary">
                   Paling Populer
                 </span>
               )}
