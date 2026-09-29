@@ -49,7 +49,7 @@ const config: Config = {
         "body-lg": ["1rem", { lineHeight: "1.6", fontWeight: "400" }],
         body: ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
         "body-sm": ["0.75rem", { lineHeight: "1.45", fontWeight: "400" }],
-        caption: ["0.6875rem", { lineHeight: "1.4", fontWeight: "500" }],
+        caption: ["0.625rem", { lineHeight: "1.3", fontWeight: "500" }],
       },
       borderRadius: {
         sm: "0.375rem",
