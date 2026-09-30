@@ -35,6 +35,10 @@ export function UsersTable({ users }: { users: Profile[] }) {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   async function handleToggleSuspend(user: Profile) {
+    if (user.is_admin && !user.is_suspended) {
+      alert("Akun admin tidak bisa di-suspend. Cabut status admin-nya dulu kalau memang perlu.");
+      return;
+    }
     const action = user.is_suspended ? "unsuspend" : "suspend";
     if (!confirm(`Are you sure you want to ${action} ${user.full_name || user.email}?`)) return;
     await toggleSuspend(user.id, !user.is_suspended);
