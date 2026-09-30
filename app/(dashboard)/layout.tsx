@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,7 +19,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }[] = [];
 
   if (user) {
-    const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin, is_suspended")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.is_suspended) {
+      redirect("/auth/suspended");
+    }
     isAdmin = !!profile?.is_admin;
 
     const { data: notifs } = await supabase
