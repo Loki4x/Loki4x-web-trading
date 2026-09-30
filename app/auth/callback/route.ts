@@ -2,10 +2,24 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logLoginActivity } from "@/lib/login-activity";
 
+// `next` dipakai untuk redirect setelah login, jadi harus dipastikan tetap di
+// domain kita. Tanpa ini, nilai seperti "@situs-jahat.com" atau "//situs-jahat.com"
+// bisa mengalihkan user ke situs lain (open redirect, biasa dipakai untuk phishing).
+function safeNextPath(raw: string | null, origin: string): string {
+  if (!raw) return "/dashboard";
+  try {
+    const url = new URL(raw, origin);
+    if (url.origin !== origin) return "/dashboard";
+    return url.pathname + url.search;
+  } catch {
+    return "/dashboard";
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = safeNextPath(searchParams.get("next"), origin);
 
   if (code) {
     const supabase = await createClient();
