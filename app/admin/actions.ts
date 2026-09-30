@@ -6,6 +6,7 @@ import { notifyUser, notifyAllUsers } from "@/lib/notifications";
 import { simulatePakasirPayment } from "@/lib/pakasir";
 import { planToTier, isLifetimePlan, type Plan } from "@/lib/pakasir-constants";
 import { uploadToR2 } from "@/lib/r2";
+import { createServiceClient } from "@/lib/supabase/service";
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -49,7 +50,27 @@ export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEM
 export async function toggleSuspend(userId: string, suspend: boolean) {
   const supabase = await assertIsAdmin();
 
+  // Jangan sampai admin mengunci dirinya sendiri.
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+  if (suspend && currentUser?.id === userId) {
+    throw new Error("Tidak bisa menangguhkan akun sendiri");
+  }
+
   await supabase.from("profiles").update({ is_suspended: suspend }).eq("id", userId);
+
+  // Flag di tabel profiles saja nggak cukup: sesi user yang sedang login tetap
+  // valid. Ban di Supabase Auth menolak login baru & refresh token, jadi sesi
+  // lamanya mati begitu access token-nya kedaluwarsa. Sementara itu, layout
+  // dashboard mengecek is_suspended dan langsung menendangnya saat pindah halaman.
+  const service = createServiceClient();
+  const { error: banError } = await service.auth.admin.updateUserById(userId, {
+    ban_duration: suspend ? "876000h" : "none",
+  });
+  if (banError) {
+    console.error(`[admin] Gagal ${suspend ? "ban" : "unban"} user ${userId} di Supabase Auth:`, banError);
+  }
 
   revalidatePath("/admin/users");
 }
@@ -120,6 +141,10 @@ export async function updateSignalStatus(
     closed_at: isTerminal ? new Date().toISOString() : null,
   };
 
+  // Kalau admin nggak isi Take Profit waktu posting sinyal (dibiarkan kosong),
+  // begitu status di-set TP, harga penutupan yang diinput langsung dipakai
+  // sebagai nilai Take Profit — supaya tetap tampil di tabel, bukan cuma
+  // tersimpan di current_price.
   if (status === "TP" && currentPrice !== null) {
     updatePayload.take_profit = currentPrice;
   }
@@ -319,6 +344,9 @@ export async function approveUsdtPayment(paymentId: string, userId: string, plan
   const tier = planToTier(plan);
   const lifetime = isLifetimePlan(plan);
 
+  // Lifetime: nggak pernah kedaluwarsa (vip_expires_at = null). Bulanan:
+  // perpanjang 30 hari dari sekarang, atau dari tanggal expired saat ini
+  // kalau membership-nya masih aktif — sama seperti alur Pakasir otomatis.
   const now = new Date();
   const currentExpiry = targetProfile?.vip_expires_at ? new Date(targetProfile.vip_expires_at) : null;
   const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
