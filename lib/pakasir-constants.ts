@@ -44,3 +44,31 @@ export const BANK_VA_METHODS: { method: PakasirMethod; label: string }[] = [
   { method: "artha_graha_va", label: "Artha Graha" },
   { method: "sampoerna_va", label: "Sampoerna" },
 ];
+
+// Daftar metode yang boleh dikirim ke Pakasir. Dipakai untuk validasi di server
+// (nilai `method` masuk ke path URL API Pakasir, jadi nggak boleh dari input bebas).
+export const PAKASIR_METHODS: PakasirMethod[] = ["qris", ...BANK_VA_METHODS.map((b) => b.method)];
+
+export type MembershipTierName = "FREE" | "VIP" | "MEMBERSHIP";
+
+/**
+ * Paket yang boleh dibeli user sesuai statusnya sekarang. Dipakai di halaman
+ * Upgrade (paket apa yang ditampilkan) DAN di server action pembayaran
+ * (validasi), jadi keduanya selalu sepakat.
+ *
+ * - FREE / sudah kedaluwarsa : semua paket
+ * - VIP aktif                : perpanjang VIP, atau naik ke Membership / Lifetime
+ * - VIP tanpa batas waktu    : hanya naik ke Membership / Lifetime
+ * - Membership aktif         : perpanjang, atau pindah ke Lifetime
+ * - Membership tanpa batas   : tidak ada (sudah paling atas)
+ *
+ * Paket dengan tier LEBIH RENDAH dari tier aktif tidak pernah ditawarkan, supaya
+ * user nggak bayar lalu malah turun tier.
+ */
+export function purchasablePlans(status: { tier: MembershipTierName; permanent: boolean }): Plan[] {
+  if (status.tier === "FREE") return ["VIP", "MEMBERSHIP", "MEMBERSHIP_LIFETIME"];
+  if (status.tier === "VIP") {
+    return status.permanent ? ["MEMBERSHIP", "MEMBERSHIP_LIFETIME"] : ["VIP", "MEMBERSHIP", "MEMBERSHIP_LIFETIME"];
+  }
+  return status.permanent ? [] : ["MEMBERSHIP", "MEMBERSHIP_LIFETIME"];
+}
