@@ -12,12 +12,33 @@ export function hasAccess(userTier: Tier, requiredTier: Tier) {
   return TIER_RANK[userTier] >= TIER_RANK[requiredTier];
 }
 
-export async function getCurrentUserTier(): Promise<Tier> {
+export interface MembershipStatus {
+  /** Tier yang berlaku SEKARANG (kalau masa aktif sudah habis -> FREE). */
+  tier: Tier;
+  /** Tier yang tersimpan di database (bisa masih VIP/MEMBERSHIP walau sudah kedaluwarsa). */
+  storedTier: Tier;
+  /** Tanggal kedaluwarsa (ISO), null = tidak ada batas waktu. */
+  expiresAt: string | null;
+  /** True kalau tier berbayar tapi masa aktifnya sudah lewat. */
+  expired: boolean;
+  /** True kalau aktif dan tanpa batas waktu (lifetime, persetujuan IB, atau pemberian manual admin). */
+  permanent: boolean;
+}
+
+const FREE_STATUS: MembershipStatus = {
+  tier: "FREE",
+  storedTier: "FREE",
+  expiresAt: null,
+  expired: false,
+  permanent: false,
+};
+
+export async function getMembershipStatus(): Promise<MembershipStatus> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return "FREE";
+  if (!user) return FREE_STATUS;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -25,12 +46,23 @@ export async function getCurrentUserTier(): Promise<Tier> {
     .eq("id", user.id)
     .single();
 
-  if (!profile) return "FREE";
+  if (!profile) return FREE_STATUS;
 
-  if (profile.tier !== "FREE" && profile.vip_expires_at) {
-    const expired = new Date(profile.vip_expires_at) < new Date();
-    if (expired) return "FREE";
-  }
+  const storedTier = (profile.tier as Tier) ?? "FREE";
+  if (storedTier === "FREE") return FREE_STATUS;
 
-  return (profile.tier as Tier) ?? "FREE";
+  const expiresAt: string | null = profile.vip_expires_at ?? null;
+  const expired = expiresAt !== null && new Date(expiresAt) < new Date();
+
+  return {
+    tier: expired ? "FREE" : storedTier,
+    storedTier,
+    expiresAt,
+    expired,
+    permanent: !expired && expiresAt === null,
+  };
+}
+
+export async function getCurrentUserTier(): Promise<Tier> {
+  return (await getMembershipStatus()).tier;
 }
