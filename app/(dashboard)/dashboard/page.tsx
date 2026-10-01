@@ -182,12 +182,6 @@ export default async function DashboardOverviewPage() {
           </div>
         )}
 
-        {marketHighlights && (
-          <div className="mb-6">
-            <MarketHighlights cot={marketHighlights.cot} retailBias={marketHighlights.retailBias} />
-          </div>
-        )}
-
         {tradingSnapshot && (
           <div className="mb-6">
             <div className="mb-4 flex items-center justify-between">
@@ -223,6 +217,12 @@ export default async function DashboardOverviewPage() {
               </div>
               <TopPairsList pairs={tradingSnapshot.topPairs} currency={tradingSnapshot.currency} />
             </div>
+          </div>
+        )}
+
+        {marketHighlights && (
+          <div className="mb-6">
+            <MarketHighlights cot={marketHighlights.cot} retailBias={marketHighlights.retailBias} />
           </div>
         )}
 
