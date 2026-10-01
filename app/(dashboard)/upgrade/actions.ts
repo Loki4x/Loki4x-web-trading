@@ -7,7 +7,8 @@ import { createPakasirTransaction, type PakasirMethod } from "@/lib/pakasir";
 import { finalizePakasirPayment } from "@/lib/pakasir-fulfillment";
 import { generateQrDataUrl } from "@/lib/qrcode";
 import { uploadToR2 } from "@/lib/r2";
-import { PLAN_PRICE_IDR, type Plan } from "@/lib/pakasir-constants";
+import { PLAN_PRICE_IDR, PAKASIR_METHODS, purchasablePlans, type Plan } from "@/lib/pakasir-constants";
+import { getMembershipStatus } from "@/lib/tier";
 import { USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 
 export async function submitVipRequest(formData: FormData) {
@@ -47,6 +48,18 @@ export async function createInstantPayment({ plan, method }: { plan: Plan; metho
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  // `plan` dan `method` datang dari client, jadi jangan dipercaya begitu saja.
+  // Paket harus salah satu yang memang boleh dibeli akun ini (mencegah downgrade
+  // tak sengaja & pembelian lifetime dua kali), dan `method` masuk ke path URL
+  // API Pakasir sehingga wajib dari daftar yang sudah ditentukan.
+  const status = await getMembershipStatus();
+  if (!purchasablePlans(status).includes(plan)) {
+    throw new Error("Paket ini tidak tersedia untuk akun kamu saat ini.");
+  }
+  if (!PAKASIR_METHODS.includes(method)) {
+    throw new Error("Metode pembayaran tidak valid.");
+  }
 
   const amount = PLAN_PRICE_IDR[plan];
   const orderId = `LOKI4X-${user.id.slice(0, 8)}-${Date.now()}`;
@@ -106,6 +119,11 @@ export async function submitUsdtPayment(formData: FormData) {
 
   const plan = String(formData.get("plan"));
   if (plan !== "VIP" && plan !== "MEMBERSHIP" && plan !== "MEMBERSHIP_LIFETIME") throw new Error("Paket tidak valid");
+
+  const status = await getMembershipStatus();
+  if (!purchasablePlans(status).includes(plan)) {
+    throw new Error("Paket ini tidak tersedia untuk akun kamu saat ini.");
+  }
 
   const network = String(formData.get("network")) as UsdtNetwork;
   if (network !== "BEP20" && network !== "TRC20") throw new Error("Network tidak valid");
