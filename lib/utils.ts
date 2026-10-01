@@ -74,6 +74,26 @@ export function formatPlainCurrency(value: number, currency: AccountCurrency = "
   })}`;
 }
 
+/**
+ * Nilai untuk <input type="datetime-local"> ("YYYY-MM-DDTHH:mm"), selalu dalam
+ * WIB (Asia/Jakarta) — apa pun zona waktu perangkat admin. Server membaca input
+ * itu sebagai WIB juga (lihat parseWibDateTime di app/admin/actions.ts), jadi
+ * keduanya selalu konsisten.
+ */
+export function nowWibInputValue(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
 export function formatDate(dateString: string): string {
   const d = new Date(dateString);
   return d.toLocaleDateString("en-US", {
