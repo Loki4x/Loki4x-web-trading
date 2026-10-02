@@ -6,6 +6,7 @@ import { updateProfile } from "@/app/(dashboard)/settings/actions";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import type { Profile } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 function initials(name: string | null) {
   if (!name) return "U";
@@ -14,6 +15,7 @@ function initials(name: string | null) {
 }
 
 export function ProfilePanel({ profile, isGoogleUser }: { profile: Profile | null; isGoogleUser: boolean }) {
+  const t = useT();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -25,7 +27,7 @@ export function ProfilePanel({ profile, isGoogleUser }: { profile: Profile | nul
     const result = await updateProfile(formData);
     setSaving(false);
     if (result.success) {
-      setMessage({ type: "success", text: "Profil berhasil disimpan." });
+      setMessage({ type: "success", text: t("profile.saved") });
       router.refresh();
     } else {
       setMessage({ type: "error", text: result.message });
@@ -34,14 +36,14 @@ export function ProfilePanel({ profile, isGoogleUser }: { profile: Profile | nul
 
   return (
     <div className="card !p-6">
-      <h2 className="text-h3 text-text-primary">Profil</h2>
-      <p className="mb-5 text-body-sm text-text-secondary">Identitas publik Anda di Loki4x Academy.</p>
+      <h2 className="text-h3 text-text-primary">{t("profile.title")}</h2>
+      <p className="mb-5 text-body-sm text-text-secondary">{t("profile.subtitle")}</p>
 
       <div className="mb-6 flex items-center gap-4">
         {profile?.avatar_url ? (
           <img
             src={profile.avatar_url}
-            alt={profile.full_name ?? "Foto profil"}
+            alt={profile.full_name ?? t("profile.photoAlt")}
             className="h-16 w-16 shrink-0 rounded-full object-cover"
           />
         ) : (
@@ -50,11 +52,11 @@ export function ProfilePanel({ profile, isGoogleUser }: { profile: Profile | nul
           </div>
         )}
         <div>
-          <p className="text-body-sm font-semibold text-text-primary">Foto profil</p>
+          <p className="text-body-sm font-semibold text-text-primary">{t("profile.photo")}</p>
           <p className="text-caption text-text-muted">
             {isGoogleUser
-              ? "Diambil otomatis dari akun Google Anda."
-              : "Login dengan Google untuk otomatis pakai foto profil Google Anda."}
+              ? t("profile.photoGoogle")
+              : t("profile.photoNoGoogle")}
           </p>
         </div>
       </div>
@@ -62,21 +64,21 @@ export function ProfilePanel({ profile, isGoogleUser }: { profile: Profile | nul
       <form action={handleSubmit} className="flex flex-col gap-4">
         <Input
           name="full_name"
-          label="Nama tampilan"
-          placeholder="Nama Anda"
+          label={t("profile.displayName")}
+          placeholder={t("profile.displayNamePh")}
           defaultValue={profile?.full_name ?? ""}
         />
 
         <Input
           name="username"
           label="Username"
-          placeholder="username_unik"
+          placeholder={t("profile.usernamePh")}
           defaultValue={profile?.username ?? ""}
         />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-body-sm font-medium text-text-secondary">Bio</label>
+            <label className="text-body-sm font-medium text-text-secondary">{t("profile.bio")}</label>
             <span className="text-caption text-text-muted">{bioLength}/160</span>
           </div>
           <textarea
@@ -85,7 +87,7 @@ export function ProfilePanel({ profile, isGoogleUser }: { profile: Profile | nul
             maxLength={160}
             defaultValue={profile?.bio ?? ""}
             onChange={(e) => setBioLength(e.target.value.length)}
-            placeholder="Bio singkat tentang diri Anda"
+            placeholder={t("profile.bioPh")}
             className="input-field resize-none"
           />
         </div>
@@ -97,7 +99,7 @@ export function ProfilePanel({ profile, isGoogleUser }: { profile: Profile | nul
         )}
 
         <Button type="submit" disabled={saving} className="mt-2 w-fit">
-          {saving ? "Menyimpan..." : "Simpan perubahan"}
+          {saving ? t("common.saving") : t("profile.save")}
         </Button>
       </form>
     </div>
