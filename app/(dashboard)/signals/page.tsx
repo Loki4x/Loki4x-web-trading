@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { SignalsList } from "@/components/signals/SignalsList";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { getT } from "@/lib/i18n/server";
 
 export default async function SignalsPage() {
+  const { t } = await getT();
   const tier = await getCurrentUserTier();
   if (!hasAccess(tier, "VIP")) {
     return <AccessDenied requiredTier="VIP" />;
@@ -20,8 +22,8 @@ export default async function SignalsPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-h2 text-text-primary">Signals & Track Record</h1>
-        <p className="text-body-sm text-text-secondary">Sinyal trading dan rekam jejak performa.</p>
+        <h1 className="text-h2 text-text-primary">{t("signals.title")}</h1>
+        <p className="text-body-sm text-text-secondary">{t("signals.subtitle")}</p>
       </div>
 
       <SignalsList signals={signals ?? []} />
