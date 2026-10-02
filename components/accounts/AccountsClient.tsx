@@ -7,6 +7,7 @@ import { AddAccountModal } from "@/components/accounts/AddAccountModal";
 import { deleteAccount } from "@/app/(dashboard)/accounts/actions";
 import { formatPlainCurrency, formatCurrency, pnlColorClass } from "@/lib/utils";
 import type { TradingAccount } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 interface TradeSummary {
   account_id: string | null;
@@ -21,11 +22,12 @@ export function AccountsClient({
   accounts: TradingAccount[];
   trades: TradeSummary[];
 }) {
+  const t = useT();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Hapus akun "${name}"? Semua trade di akun ini akan ikut terhapus.`)) return;
+    if (!confirm(t('Hapus akun "{name}"? Semua trade di akun ini akan ikut terhapus.', { name }))) return;
     const result = await deleteAccount(id);
     if (result.success) {
       router.refresh();
@@ -49,7 +51,7 @@ export function AccountsClient({
           className="btn-primary text-body-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
-          Tambah Akun ({accounts.length}/5)
+          {t("Tambah Akun (")}{accounts.length}/5)
         </button>
       </div>
 
@@ -75,10 +77,10 @@ export function AccountsClient({
               </div>
               <p className="text-h3 text-text-primary">{formatPlainCurrency(balance, acc.currency)}</p>
               <div className="mt-3 flex items-center justify-between text-caption text-text-secondary">
-                <span>Balance awal: {formatPlainCurrency(acc.initial_balance, acc.currency)}</span>
+                <span>{t("Balance awal:")} {formatPlainCurrency(acc.initial_balance, acc.currency)}</span>
                 <span className={pnlColorClass(totalPnl)}>{formatCurrency(totalPnl, acc.currency)}</span>
               </div>
-              <p className="mt-1 text-caption text-text-muted">{tradeCount} trade ditutup</p>
+              <p className="mt-1 text-caption text-text-muted">{tradeCount} {t("trade ditutup")}</p>
             </div>
           );
         })}
