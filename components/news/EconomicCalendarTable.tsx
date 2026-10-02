@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { cx } from "@/lib/utils";
 import type { CalendarEvent, CalendarImpact } from "@/lib/economic-calendar";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { dateLocale } from "@/lib/i18n/dictionary";
 
 const IMPACT_LABEL: Record<CalendarImpact, string> = {
   HIGH: "High",
@@ -48,25 +50,20 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "LOW", label: "Low" },
 ];
 
-const dayFormatter = new Intl.DateTimeFormat("id-ID", {
-  weekday: "long",
-  day: "numeric",
-  month: "short",
-  timeZone: "Asia/Jakarta",
-});
+const formatterCache = new Map<string, { day: Intl.DateTimeFormat; shortDay: Intl.DateTimeFormat; time: Intl.DateTimeFormat }>();
 
-const shortDayFormatter = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric",
-  month: "short",
-  timeZone: "Asia/Jakarta",
-});
-
-const timeFormatter = new Intl.DateTimeFormat("id-ID", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: "Asia/Jakarta",
-});
+function getFormatters(loc: string) {
+  let f = formatterCache.get(loc);
+  if (!f) {
+    f = {
+      day: new Intl.DateTimeFormat(loc, { weekday: "long", day: "numeric", month: "short", timeZone: "Asia/Jakarta" }),
+      shortDay: new Intl.DateTimeFormat(loc, { day: "numeric", month: "short", timeZone: "Asia/Jakarta" }),
+      time: new Intl.DateTimeFormat(loc, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" }),
+    };
+    formatterCache.set(loc, f);
+  }
+  return f;
+}
 
 // yyyy-mm-dd key in WIB, used to group/filter events by local day (not UTC day)
 const dayKeyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" });
@@ -76,6 +73,9 @@ function toWIBDayKey(dateISO: string) {
 }
 
 export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
+  const t = useT();
+  const locale = useLocale();
+  const fmt = getFormatters(dateLocale(locale));
   const [filter, setFilter] = useState<FilterKey>("ALL");
   const [selectedDate, setSelectedDate] = useState<string>(""); // "" = semua tanggal, else yyyy-mm-dd (WIB)
 
@@ -109,18 +109,18 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
       const date = new Date(event.dateISO);
       const key = dayKeyFormatter.format(date);
       if (!map.has(key)) {
-        map.set(key, { label: dayFormatter.format(date), items: [] });
+        map.set(key, { label: fmt.day.format(date), items: [] });
       }
       map.get(key)!.items.push(event);
     }
     return Array.from(map.values());
-  }, [byDate, filter]);
+  }, [byDate, filter, fmt]);
 
   return (
     <div className="card !p-0">
       <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
         <label htmlFor="calendar-date" className="text-body-sm font-medium text-text-secondary">
-          Tanggal
+          {t("Tanggal")}
         </label>
         <input
           id="calendar-date"
@@ -138,18 +138,18 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
             onClick={() => setSelectedDate("")}
             className="text-body-sm text-primary underline-offset-2 hover:underline"
           >
-            Tampilkan semua tanggal
+            {t("Tampilkan semua tanggal")}
           </button>
         )}
         {minDate && maxDate && (
           <span className="text-caption text-text-muted">
-            Data tersedia {shortDayFormatter.format(new Date(minDate))} – {shortDayFormatter.format(new Date(maxDate))}
+            {t("Data tersedia")} {fmt.shortDay.format(new Date(minDate))} – {fmt.shortDay.format(new Date(maxDate))}
           </span>
         )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-4">
-        <span className="mr-1 text-body-sm font-medium text-text-secondary">Dampak</span>
+        <span className="mr-1 text-body-sm font-medium text-text-secondary">{t("Dampak")}</span>
         {FILTERS.map((f) => (
           <button
             key={f.key}
@@ -162,7 +162,7 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
                 : "border-border text-text-secondary hover:bg-surface-hover"
             )}
           >
-            {f.label}
+            {t(f.label)}
             <span
               className={cx(
                 "rounded-full px-1 text-badge",
@@ -177,13 +177,13 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
 
       {events.length === 0 && (
         <p className="p-6 text-center text-body-sm text-text-muted">
-          Data kalender sedang tidak bisa dimuat dari sumbernya. Coba refresh beberapa saat lagi.
+          {t("Data kalender sedang tidak bisa dimuat dari sumbernya. Coba refresh beberapa saat lagi.")}
         </p>
       )}
 
       {events.length > 0 && groups.length === 0 && (
         <p className="p-6 text-center text-body-sm text-text-muted">
-          Tidak ada event pada tanggal/filter yang dipilih.
+          {t("Tidak ada event pada tanggal/filter yang dipilih.")}
         </p>
       )}
 
@@ -191,10 +191,10 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
         <div className="min-w-[800px]">
           {groups.length > 0 && (
             <div className="flex items-center gap-4 border-b border-border bg-surface-2 px-4 py-2 text-caption font-semibold uppercase tracking-wide text-text-muted">
-              <span className="w-12 shrink-0">Jam</span>
+              <span className="w-12 shrink-0">{t("Jam")}</span>
               <span className="w-8 shrink-0" />
-              <span className="w-12 shrink-0">Mata Uang</span>
-              <span className="w-20 shrink-0">Dampak</span>
+              <span className="w-12 shrink-0">{t("Mata Uang")}</span>
+              <span className="w-20 shrink-0">{t("Dampak")}</span>
               <span className="flex-1">Event</span>
               <div className="flex w-72 shrink-0 justify-end gap-5">
                 <span className="w-20 text-right">Forecast</span>
@@ -213,7 +213,7 @@ export function EconomicCalendarTable({ events }: { events: CalendarEvent[] }) {
                 {group.items.map((event) => (
                   <div key={event.id} className="flex items-center gap-4 px-4 py-3">
                     <span className="w-12 shrink-0 font-mono text-body-sm text-text-secondary">
-                      {timeFormatter.format(new Date(event.dateISO))}
+                      {fmt.time.format(new Date(event.dateISO))}
                     </span>
                     <span className="w-8 shrink-0 text-center">{CURRENCY_FLAG[event.currency] ?? "🏳️"}</span>
                     <span className="w-12 shrink-0 text-caption font-semibold text-text-secondary">
