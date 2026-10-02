@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { addTrade } from "@/app/(dashboard)/trades/actions";
 import type { AccountCurrency } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 export function AddTradeModal({
   onClose,
@@ -16,6 +17,7 @@ export function AddTradeModal({
   accountId: string;
   accountCurrency?: AccountCurrency;
 }) {
+  const t = useT();
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
@@ -69,7 +71,7 @@ export function AddTradeModal({
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Session</label>
             <select name="session" className="input-field" defaultValue="">
-              <option value="">Nggak diisi</option>
+              <option value="">{t("Nggak diisi")}</option>
               <option value="LONDON">London</option>
               <option value="NEW_YORK">New York</option>
               <option value="ASIA">Asia</option>
