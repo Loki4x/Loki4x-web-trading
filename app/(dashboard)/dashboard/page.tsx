@@ -20,8 +20,10 @@ import type { Tier } from "@/lib/tier";
 import { hasAccess } from "@/lib/tier";
 import Link from "next/link";
 import { ArrowRight, Wallet, TrendingUp, Percent, Hash } from "lucide-react";
+import { getT } from "@/lib/i18n/server";
 
 export default async function DashboardOverviewPage() {
+  const { t } = await getT();
   const supabase = await createClient();
 
   const {
@@ -186,11 +188,11 @@ export default async function DashboardOverviewPage() {
           <div className="mb-6">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-h3 text-text-primary">Ringkasan Trading</h2>
-                <p className="text-body-sm text-text-secondary">Akun aktif: {tradingSnapshot.accountName}</p>
+                <h2 className="text-h3 text-text-primary">{t("Ringkasan Trading")}</h2>
+                <p className="text-body-sm text-text-secondary">{t("Akun aktif:")} {tradingSnapshot.accountName}</p>
               </div>
               <Link href="/trades" className="flex items-center gap-1 text-body-sm font-medium text-primary hover:underline">
-                Lihat Journal lengkap
+                {t("Lihat Journal lengkap")}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
