@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { markNotificationRead, markAllNotificationsRead } from "@/app/(dashboard)/notifications/actions";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { dateLocale } from "@/lib/i18n/dictionary";
 
 interface NotificationItem {
   id: string;
@@ -15,6 +17,8 @@ interface NotificationItem {
 }
 
 export function NotificationBell({ notifications }: { notifications: NotificationItem[] }) {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -33,7 +37,7 @@ export function NotificationBell({ notifications }: { notifications: Notificatio
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen((prev) => !prev)} className="relative text-text-primary" aria-label="Notifikasi">
+      <button onClick={() => setOpen((prev) => !prev)} className="relative text-text-primary" aria-label={t("Notifikasi")}>
         <Bell className="h-6 w-6" />
         {unreadCount > 0 && (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
@@ -47,16 +51,16 @@ export function NotificationBell({ notifications }: { notifications: Notificatio
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-50 mt-2 max-h-96 w-80 overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <p className="text-body-sm font-semibold text-text-primary">Notifikasi</p>
+              <p className="text-body-sm font-semibold text-text-primary">{t("Notifikasi")}</p>
               {unreadCount > 0 && (
                 <button onClick={handleMarkAllRead} className="text-caption text-primary hover:text-primary-hover">
-                  Tandai semua dibaca
+                  {t("Tandai semua dibaca")}
                 </button>
               )}
             </div>
 
             {notifications.length === 0 ? (
-              <p className="px-4 py-6 text-center text-body-sm text-text-muted">Belum ada notifikasi.</p>
+              <p className="px-4 py-6 text-center text-body-sm text-text-muted">{t("Belum ada notifikasi.")}</p>
             ) : (
               <div className="flex flex-col divide-y divide-border">
                 {notifications.map((n) => (
@@ -70,7 +74,7 @@ export function NotificationBell({ notifications }: { notifications: Notificatio
                     <p className="text-body-sm font-medium text-text-primary">{n.title}</p>
                     <p className="text-caption text-text-secondary">{n.message}</p>
                     <p className="text-caption text-text-muted">
-                      {new Date(n.created_at).toLocaleDateString("id-ID", {
+                      {new Date(n.created_at).toLocaleDateString(dateLocale(locale), {
                         day: "numeric",
                         month: "short",
                         hour: "2-digit",
