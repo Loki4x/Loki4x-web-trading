@@ -2,6 +2,7 @@
 
 import { X, ExternalLink } from "lucide-react";
 import { getVideoEmbed } from "@/lib/video-embed";
+import { useT } from "@/lib/i18n/client";
 
 export function VideoPlayerModal({
   title,
@@ -12,6 +13,7 @@ export function VideoPlayerModal({
   videoUrl: string;
   onClose: () => void;
 }) {
+  const t = useT();
   const embed = getVideoEmbed(videoUrl);
 
   return (
@@ -43,9 +45,9 @@ export function VideoPlayerModal({
 
         {embed.kind === "unknown" && (
           <p className="text-center text-caption text-white/60">
-            Kalau video di atas tidak muncul, coba{" "}
+            {t("Kalau video di atas tidak muncul, coba")}{" "}
             <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline">
-              buka link aslinya <ExternalLink className="h-3 w-3" />
+              {t("buka link aslinya")} <ExternalLink className="h-3 w-3" />
             </a>
           </p>
         )}
