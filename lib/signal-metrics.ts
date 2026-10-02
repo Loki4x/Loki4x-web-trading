@@ -104,6 +104,8 @@ export interface SignalStats {
   maxDrawdownPercent: number;
   activeCount: number;
   totalPips: number;
+  profitPips: number; // total pips dari sinyal TP (tanpa dikurangi SL)
+  lossPips: number; // total pips kerugian dari sinyal SL (nilai positif)
 }
 
 export function computeSignalStats(signals: Signal[]): SignalStats {
@@ -141,6 +143,12 @@ export function computeSignalStats(signals: Signal[]): SignalStats {
   const winRate = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
 
   const totalPips = signals.reduce((sum, s) => sum + (s.result_pips ?? 0), 0);
+  const profitPips = signals
+    .filter((s) => s.status === "TP")
+    .reduce((sum, s) => sum + Math.abs(s.result_pips ?? 0), 0);
+  const lossPips = signals
+    .filter((s) => s.status === "SL")
+    .reduce((sum, s) => sum + Math.abs(s.result_pips ?? 0), 0);
   const activeCount = signals.filter((s) => s.status === "OPEN" || s.status === "HIT_ENTRY").length;
 
   return {
@@ -152,5 +160,7 @@ export function computeSignalStats(signals: Signal[]): SignalStats {
     maxDrawdownPercent,
     activeCount,
     totalPips,
+    profitPips,
+    lossPips,
   };
 }
