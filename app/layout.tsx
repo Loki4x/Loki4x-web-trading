@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { LocaleProvider } from "@/lib/i18n/client";
+import { getLocale } from "@/lib/i18n/server";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -26,13 +28,15 @@ export const metadata: Metadata = {
     "Log your trades with discipline and stay ahead of high-impact market news, all in one focused dark workspace.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en" data-theme="dark">
+    <html lang={locale} data-theme="dark">
       <head>
         {/* Set tema sebelum halaman ke-render, biar nggak ada "kedipan" tema salah pas awal buka. */}
         <script
@@ -44,7 +48,7 @@ export default function RootLayout({
       <body
         className={`${plusJakarta.variable} ${inter.variable} ${jetbrainsMono.variable} font-body`}
       >
-        {children}
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
       </body>
     </html>
   );
