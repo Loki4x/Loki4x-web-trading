@@ -29,40 +29,50 @@ import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 import type { TradingAccount } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
+import type { DictKey } from "@/lib/i18n/dictionary";
 
- const topLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/upgrade", label: "Upgrade", icon: Crown },
+const topLinks: { href: string; key: DictKey; icon: typeof LayoutDashboard }[] = [
+  { href: "/dashboard", key: "nav.dashboard", icon: LayoutDashboard },
+  { href: "/upgrade", key: "nav.upgrade", icon: Crown },
 ];
 
-const groups = [
+const groups: {
+  id: string;
+  key: DictKey;
+  icon: typeof LineChart;
+  links: { href: string; key: DictKey; icon: typeof LineChart }[];
+}[] = [
   {
-    label: "Analisa Market",
+    id: "market",
+    key: "nav.group.market",
     icon: LineChart,
     links: [
-      { href: "/signals", label: "Signals & Track Record", icon: LineChart },
-      { href: "/cot", label: "Institutional (COT)", icon: Landmark },
-      { href: "/positioning", label: "Retail Bias", icon: Compass },
+      { href: "/signals", key: "nav.signals", icon: LineChart },
+      { href: "/cot", key: "nav.cot", icon: Landmark },
+      { href: "/positioning", key: "nav.retail", icon: Compass },
     ],
   },
   {
-    label: "Trading Tools",
+    id: "tools",
+    key: "nav.group.tools",
     icon: NotebookText,
     links: [
-      { href: "/trades", label: "Journal", icon: NotebookText },
-      { href: "/reports", label: "Report & Performance", icon: BarChart3 },
-      { href: "/calculator", label: "Lot Calculator", icon: Calculator },
-      { href: "/news", label: "Economic News", icon: Newspaper },
-      { href: "/market-news", label: "Fundamental Pasar", icon: Globe },
+      { href: "/trades", key: "nav.journal", icon: NotebookText },
+      { href: "/reports", key: "nav.reports", icon: BarChart3 },
+      { href: "/calculator", key: "nav.calculator", icon: Calculator },
+      { href: "/news", key: "nav.news", icon: Newspaper },
+      { href: "/market-news", key: "nav.fundamental", icon: Globe },
     ],
   },
   {
-    label: "Academy",
+    id: "academy",
+    key: "nav.group.academy",
     icon: GraduationCap,
     links: [
-      { href: "/academy/technical", label: "Belajar Teknikal", icon: GraduationCap },
-      { href: "/academy/fundamental", label: "Fundamental Forex", icon: GraduationCap },
-      { href: "/academy/psychology", label: "Psikologi & Risk", icon: GraduationCap },
+      { href: "/academy/technical", key: "nav.technical", icon: GraduationCap },
+      { href: "/academy/fundamental", key: "nav.fxFundamental", icon: GraduationCap },
+      { href: "/academy/psychology", key: "nav.psychology", icon: GraduationCap },
     ],
   },
 ];
@@ -87,13 +97,14 @@ export function Sidebar({
   desktopOpen: boolean;
   onToggleDesktop: () => void;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    "Analisa Market": true,
-    "Trading Tools": true,
-    Academy: true,
+    market: true,
+    tools: true,
+    academy: true,
     Admin: false,
   });
 
@@ -131,14 +142,14 @@ export function Sidebar({
         )}
       >
         <div className="flex items-center gap-3">
-          <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label="Open menu">
+          <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label={t("nav.openMenu")}>
             <Menu className="h-6 w-6" />
           </button>
           {!desktopOpen && (
             <button
               onClick={onToggleDesktop}
               className="hidden text-text-muted transition-colors hover:text-text-primary lg:block"
-              aria-label="Tampilkan sidebar"
+              aria-label={t("nav.showSidebar")}
             >
               <PanelLeft className="h-5 w-5" />
             </button>
@@ -167,7 +178,7 @@ export function Sidebar({
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
                   >
                     <CircleUserRound className="h-4 w-4" />
-                    Settings
+                    {t("nav.settings")}
                   </Link>
                   <form action={signOut}>
                     <button
@@ -175,7 +186,7 @@ export function Sidebar({
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-error"
                     >
                       <LogOut className="h-4 w-4" />
-                      Logout
+                      {t("nav.logout")}
                     </button>
                   </form>
                 </div>
@@ -205,31 +216,31 @@ export function Sidebar({
             <button
               onClick={onToggleDesktop}
               className="hidden text-text-muted transition-colors hover:text-text-primary lg:block"
-              aria-label="Sembunyikan sidebar"
+              aria-label={t("nav.hideSidebar")}
             >
               <PanelLeftClose className="h-5 w-5" />
             </button>
-            <button onClick={() => setMobileOpen(false)} className="text-text-muted lg:hidden" aria-label="Close menu">
+            <button onClick={() => setMobileOpen(false)} className="text-text-muted lg:hidden" aria-label={t("nav.closeMenu")}>
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
-          {topLinks.map(({ href, label, icon: Icon }) => (
+          {topLinks.map(({ href, key, icon: Icon }) => (
             <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={linkClass(pathname === href)}>
               <Icon className="h-4 w-4" />
-              {label}
+              {t(key)}
             </Link>
           ))}
 
           {groups.map((group) => {
-            const isOpen = openGroups[group.label];
+            const isOpen = openGroups[group.id];
             const groupActive = group.links.some((l) => pathname.startsWith(l.href));
             return (
-              <div key={group.label} className="mt-2">
+              <div key={group.id} className="mt-2">
                 <button
-                  onClick={() => toggleGroup(group.label)}
+                  onClick={() => toggleGroup(group.id)}
                   className={cx(
                     "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium uppercase tracking-wide",
                     groupActive ? "text-primary" : "text-text-muted"
@@ -237,13 +248,13 @@ export function Sidebar({
                 >
                   <span className="flex items-center gap-2">
                     <group.icon className="h-3.5 w-3.5" />
-                    {group.label}
+                    {t(group.key)}
                   </span>
                   <ChevronDown className={cx("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
                 </button>
                 {isOpen && (
                   <div className="flex flex-col gap-1 pl-2">
-                    {group.links.map(({ href, label, icon: Icon }) => (
+                    {group.links.map(({ href, key, icon: Icon }) => (
                       <Link
                         key={href}
                         href={href}
@@ -251,7 +262,7 @@ export function Sidebar({
                         className={linkClass(pathname.startsWith(href))}
                       >
                         <Icon className="h-4 w-4" />
-                        {label}
+                        {t(key)}
                       </Link>
                     ))}
                   </div>
@@ -273,7 +284,7 @@ export function Sidebar({
               >
                 <span className="flex items-center gap-2">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Admin
+                  {t("nav.admin")}
                 </span>
                 <ChevronDown className={cx("h-3.5 w-3.5 transition-transform", openGroups.Admin && "rotate-180")} />
               </button>
@@ -285,7 +296,7 @@ export function Sidebar({
                     className={linkClass(pathname.startsWith("/admin"))}
                   >
                     <ShieldCheck className="h-4 w-4" />
-                    Admin Panel
+                    {t("nav.adminPanel")}
                   </Link>
                 </div>
               )}
