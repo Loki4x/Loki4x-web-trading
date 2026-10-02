@@ -3,8 +3,10 @@ import { getRetailSentiment, mergeRetailSentiment } from "@/lib/myfxbook";
 import { RetailBiasClient, type RetailBiasItem } from "@/components/positioning/RetailBiasClient";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { getT } from "@/lib/i18n/server";
 
 export default async function PositioningPage() {
+  const { t } = await getT();
   const tier = await getCurrentUserTier();
   if (!hasAccess(tier, "VIP")) {
     return <AccessDenied requiredTier="VIP" />;
@@ -35,8 +37,7 @@ export default async function PositioningPage() {
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Retail Bias</h1>
         <p className="text-body-sm text-text-secondary">
-          Sentimen retail (long vs short) — dibaca kontrarian. Ditandai <span className="font-semibold text-success">Live</span> kalau
-          otomatis dari Myfxbook, sisanya data manual admin.
+          {t("Sentimen retail (long vs short) — dibaca kontrarian. Ditandai")} <span className="font-semibold text-success">Live</span> {t("kalau otomatis dari Myfxbook, sisanya data manual admin.")}
         </p>
       </div>
 
