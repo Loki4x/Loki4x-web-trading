@@ -5,8 +5,10 @@ import { X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { addAcademyVideo } from "@/app/admin/actions";
+import { useT } from "@/lib/i18n/client";
 
 export function AddVideoModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
@@ -29,36 +31,35 @@ export function AddVideoModal({ onClose }: { onClose: () => void }) {
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Category</label>
             <select name="category" required className="input-field" defaultValue="TECHNICAL">
-              <option value="TECHNICAL">Belajar Teknikal</option>
-              <option value="FUNDAMENTAL">Fundamental Forex</option>
-              <option value="PSYCHOLOGY">Psikologi & Risk</option>
+              <option value="TECHNICAL">{t("Belajar Teknikal")}</option>
+              <option value="FUNDAMENTAL">{t("Fundamental Forex")}</option>
+              <option value="PSYCHOLOGY">{t("Psikologi & Risk")}</option>
             </select>
           </div>
 
-          <Input name="title" label="Judul Video" placeholder="Cara Membaca Candlestick" required />
+          <Input name="title" label={t("Judul Video")} placeholder={t("Cara Membaca Candlestick")} required />
 
           <div className="flex flex-col gap-2">
-            <label className="text-body-sm font-medium text-text-secondary">Deskripsi (opsional)</label>
-            <textarea name="description" rows={2} className="input-field resize-none" placeholder="Ringkasan singkat isi video..." />
+            <label className="text-body-sm font-medium text-text-secondary">{t("Deskripsi (opsional)")}</label>
+            <textarea name="description" rows={2} className="input-field resize-none" placeholder={t("Ringkasan singkat isi video...")} />
           </div>
 
           <Input
             name="thumbnail_url"
-            label="URL Thumbnail (gambar)"
+            label={t("URL Thumbnail (gambar)")}
             placeholder="https://..."
             required
           />
           <p className="-mt-2 text-caption text-text-muted">
-            Bisa upload gambar ke Google Drive/ImgBB, lalu copy link gambarnya di sini.
+            {t("Bisa upload gambar ke Google Drive/ImgBB, lalu copy link gambarnya di sini.")}
           </p>
 
           <div className="flex flex-col gap-2">
-            <label className="text-body-sm font-medium text-text-secondary">URL Video (Google Drive / YouTube / lainnya)</label>
+            <label className="text-body-sm font-medium text-text-secondary">{t("URL Video (Google Drive / YouTube / lainnya)")}</label>
             <input name="video_url" placeholder="https://..." required className="input-field" />
             <p className="text-caption text-text-muted">
-              Khusus Google Drive: klik kanan file → <strong>Share</strong> → ganti akses jadi{" "}
-              <strong>&quot;Anyone with the link&quot;</strong> (bukan restricted), baru copy link-nya ke sini.
-              Kalau tidak, videonya nggak akan bisa diputar di web.
+              {t("Khusus Google Drive: klik kanan file →")} <strong>Share</strong> {t("→ ganti akses jadi")}{" "}
+              <strong>&quot;Anyone with the link&quot;</strong> {t("(bukan restricted), baru copy link-nya ke sini. Kalau tidak, videonya nggak akan bisa diputar di web.")}
             </p>
           </div>
 
