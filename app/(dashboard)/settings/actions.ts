@@ -1,9 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
+import { LOCALE_COOKIE, isLocale } from "@/lib/i18n/dictionary";
 
 export async function updateProfile(formData: FormData) {
+  const { t } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,7 +20,7 @@ export async function updateProfile(formData: FormData) {
   const bio = String(formData.get("bio") ?? "").slice(0, 160);
 
   if (!username) {
-    return { success: false as const, message: "Username tidak boleh kosong." };
+    return { success: false as const, message: t("profile.err.usernameEmpty") };
   }
 
   const { error } = await supabase
@@ -26,7 +30,7 @@ export async function updateProfile(formData: FormData) {
 
   if (error) {
     if (error.code === "23505") {
-      return { success: false as const, message: "Username sudah dipakai, coba yang lain." };
+      return { success: false as const, message: t("profile.err.usernameTaken") };
     }
     return { success: false as const, message: error.message };
   }
@@ -42,7 +46,8 @@ export async function updateAccountPrefs(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, message: "Not authenticated" };
 
-  const language = String(formData.get("language") ?? "id");
+  const languageRaw = String(formData.get("language") ?? "id");
+  const language = isLocale(languageRaw) ? languageRaw : "id";
   const timezone = String(formData.get("timezone") ?? "Asia/Jakarta");
 
   const { error } = await supabase
@@ -54,11 +59,19 @@ export async function updateAccountPrefs(formData: FormData) {
     return { success: false as const, message: error.message };
   }
 
-  revalidatePath("/settings");
+  const store = await cookies();
+  store.set(LOCALE_COOKIE, language, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+
+  revalidatePath("/", "layout");
   return { success: true as const };
 }
 
 export async function changePassword(formData: FormData) {
+  const { t } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -74,10 +87,10 @@ export async function changePassword(formData: FormData) {
   const signOutOthers = formData.get("sign_out_others") === "on";
 
   if (newPassword.length < 6) {
-    return { success: false as const, message: "Kata sandi baru minimal 6 karakter." };
+    return { success: false as const, message: t("security.err.min") };
   }
   if (newPassword !== confirmPassword) {
-    return { success: false as const, message: "Konfirmasi kata sandi tidak cocok." };
+    return { success: false as const, message: t("security.err.mismatch") };
   }
 
   if (hasPassword) {
@@ -87,7 +100,7 @@ export async function changePassword(formData: FormData) {
       password: currentPassword,
     });
     if (verifyError) {
-      return { success: false as const, message: "Kata sandi saat ini salah." };
+      return { success: false as const, message: t("security.err.wrongCurrent") };
     }
   }
 
