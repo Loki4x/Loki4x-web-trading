@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { VipRequestsTable } from "@/components/admin/VipRequestsTable";
+import { getT } from "@/lib/i18n/server";
 
 export default async function AdminVipRequestsPage() {
+  const { t } = await getT();
   const supabase = await createClient();
 
   const { data: requests } = await supabase
@@ -13,7 +15,7 @@ export default async function AdminVipRequestsPage() {
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">VIP Requests</h1>
-        <p className="text-body-sm text-text-secondary">Pengajuan upgrade VIP via IB broker.</p>
+        <p className="text-body-sm text-text-secondary">{t("Pengajuan upgrade VIP via IB broker.")}</p>
       </div>
 
       <VipRequestsTable requests={requests ?? []} />
