@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, type ReactNode } from "react";
-import { DEFAULT_LOCALE, translate, type DictKey, type Locale } from "@/lib/i18n/dictionary";
+import { DEFAULT_LOCALE, translate, type TKey, type Locale } from "@/lib/i18n/dictionary";
 
 const LocaleContext = createContext<Locale>(DEFAULT_LOCALE);
 
@@ -16,7 +16,7 @@ export function useLocale(): Locale {
 export function useT() {
   const locale = useLocale();
   return useCallback(
-    (key: DictKey, vars?: Record<string, string | number>) => translate(locale, key, vars),
+    (key: TKey, vars?: Record<string, string | number>) => translate(locale, key, vars),
     [locale]
   );
 }
