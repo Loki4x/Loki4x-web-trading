@@ -5,6 +5,7 @@ import { ExternalLink, RefreshCw } from "lucide-react";
 import { cx, formatRelativeTime } from "@/lib/utils";
 import { CategoryBadge } from "@/components/market-news/CategoryBadge";
 import type { MarketNewsCategory, MarketNewsItem } from "@/lib/market-news";
+import { useLocale, useT } from "@/lib/i18n/client";
 
 type FilterKey = "ALL" | MarketNewsCategory;
 
@@ -18,6 +19,8 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 export function MarketNewsClient({ news }: { news: MarketNewsItem[] }) {
+  const t = useT();
+  const locale = useLocale();
   const [filter, setFilter] = useState<FilterKey>("ALL");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -46,7 +49,7 @@ export function MarketNewsClient({ news }: { news: MarketNewsItem[] }) {
                   : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
               )}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -63,7 +66,7 @@ export function MarketNewsClient({ news }: { news: MarketNewsItem[] }) {
 
       {filtered.length === 0 ? (
         <div className="card py-12 text-center text-body-sm text-text-muted">
-          Belum ada berita untuk kategori ini.
+          {t("Belum ada berita untuk kategori ini.")}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -90,7 +93,7 @@ export function MarketNewsClient({ news }: { news: MarketNewsItem[] }) {
               <div className="mt-auto flex items-center justify-between pt-1 text-caption text-text-muted">
                 <span className="font-medium">{item.source}</span>
                 <span className="flex items-center gap-1">
-                  {formatRelativeTime(item.publishedAt)}
+                  {formatRelativeTime(item.publishedAt, locale)}
                   <ExternalLink className="h-3 w-3" />
                 </span>
               </div>
