@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
+import { useT } from "@/lib/i18n/client";
 
 const STORAGE_KEY = "loki4x-theme";
 
 export function ThemeToggle() {
+  const t = useT();
   const [theme, setTheme] = useState<"dark" | "light" | null>(null);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={theme === "dark" ? "Ganti ke tema terang" : "Ganti ke tema gelap"}
+      aria-label={theme === "dark" ? t("Ganti ke tema terang") : t("Ganti ke tema gelap")}
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
     >
       {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
