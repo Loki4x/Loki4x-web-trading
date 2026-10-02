@@ -5,8 +5,10 @@ import { getCotHistory, COT_WATCHLIST } from "@/lib/cot";
 import { CotHistoryClient } from "@/components/cot/CotHistoryClient";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { getT } from "@/lib/i18n/server";
 
 export default async function CotAssetHistoryPage({ params }: { params: { asset: string } }) {
+  const { t } = await getT();
   const tier = await getCurrentUserTier();
   if (!hasAccess(tier, "VIP")) {
     return <AccessDenied requiredTier="VIP" />;
@@ -22,12 +24,12 @@ export default async function CotAssetHistoryPage({ params }: { params: { asset:
     <main className="mx-auto max-w-content px-6 py-8">
       <Link href="/cot" className="mb-4 flex w-fit items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" />
-        Kembali ke COT Dashboard
+        {t("Kembali ke COT Dashboard")}
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-h2 text-text-primary">Riwayat Institutional Positioning · {label}</h1>
-        <p className="text-body-sm text-text-secondary">Pantau pergerakan arus big money dari waktu ke waktu.</p>
+        <h1 className="text-h2 text-text-primary">{t("Riwayat Institutional Positioning ·")} {label}</h1>
+        <p className="text-body-sm text-text-secondary">{t("Pantau pergerakan arus big money dari waktu ke waktu.")}</p>
       </div>
 
       <CotHistoryClient label={label} points={points} />
