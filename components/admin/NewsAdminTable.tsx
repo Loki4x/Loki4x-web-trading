@@ -8,13 +8,15 @@ import { AddNewsModal } from "@/components/admin/AddNewsModal";
 import { formatDate, formatTime } from "@/lib/utils";
 import { deleteNewsEvent } from "@/app/admin/actions";
 import type { NewsEvent } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 export function NewsAdminTable({ events }: { events: NewsEvent[] }) {
+  const t = useT();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus event berita ini?")) return;
+    if (!confirm(t("Hapus event berita ini?"))) return;
     await deleteNewsEvent(id);
     router.refresh();
   }
@@ -43,7 +45,7 @@ export function NewsAdminTable({ events }: { events: NewsEvent[] }) {
             {events.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-body-sm text-text-muted">
-                  Belum ada event berita.
+                  {t("Belum ada event berita.")}
                 </td>
               </tr>
             )}
