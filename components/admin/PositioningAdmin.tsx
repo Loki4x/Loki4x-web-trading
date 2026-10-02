@@ -6,8 +6,12 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { upsertPositioning, deletePositioning } from "@/app/admin/actions";
 import type { Positioning } from "@/lib/types";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { dateLocale } from "@/lib/i18n/dictionary";
 
 export function PositioningAdmin({ items }: { items: Positioning[] }) {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
@@ -16,7 +20,7 @@ export function PositioningAdmin({ items }: { items: Positioning[] }) {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus data positioning ini?")) return;
+    if (!confirm(t("Hapus data positioning ini?"))) return;
     await deletePositioning(id);
     router.refresh();
   }
@@ -24,7 +28,7 @@ export function PositioningAdmin({ items }: { items: Positioning[] }) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="card lg:col-span-1">
-        <h3 className="mb-4 text-body font-semibold text-text-primary">Tambah / Update Simbol</h3>
+        <h3 className="mb-4 text-body font-semibold text-text-primary">{t("Tambah / Update Simbol")}</h3>
         <form action={handleSubmit} className="flex flex-col gap-4">
           <Input name="symbol" label="Symbol" placeholder="EURUSD" required />
           <Input
@@ -38,10 +42,10 @@ export function PositioningAdmin({ items }: { items: Positioning[] }) {
             required
           />
           <p className="text-caption text-text-muted">
-            Short otomatis dihitung: 100% dikurangi Long%. Kalau symbol sudah ada, datanya akan diupdate.
+            {t("Short otomatis dihitung: 100% dikurangi Long%. Kalau symbol sudah ada, datanya akan diupdate.")}
           </p>
           <Button type="submit" withArrow className="mt-2 w-full justify-center">
-            Simpan
+            {t("Simpan")}
           </Button>
         </form>
       </div>
@@ -61,7 +65,7 @@ export function PositioningAdmin({ items }: { items: Positioning[] }) {
             {items.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-body-sm text-text-muted">
-                  Belum ada data positioning.
+                  {t("Belum ada data positioning.")}
                 </td>
               </tr>
             )}
@@ -71,7 +75,7 @@ export function PositioningAdmin({ items }: { items: Positioning[] }) {
                 <td className="px-4 py-3 text-body-sm text-success">{p.long_percent}%</td>
                 <td className="px-4 py-3 text-body-sm text-error">{p.short_percent}%</td>
                 <td className="px-4 py-3 text-caption text-text-muted">
-                  {new Date(p.updated_at).toLocaleDateString("id-ID")}
+                  {new Date(p.updated_at).toLocaleDateString(dateLocale(locale))}
                 </td>
                 <td className="px-4 py-3">
                   <button onClick={() => handleDelete(p.id)} className="text-text-muted hover:text-error">
