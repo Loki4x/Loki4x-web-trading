@@ -1,5 +1,6 @@
 "use server";
 
+import { getT } from "@/lib/i18n/server";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +21,7 @@ export async function setActiveAccount(accountId: string) {
 }
 
 export async function createAccount(formData: FormData) {
+  const { t } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,7 +34,7 @@ export async function createAccount(formData: FormData) {
     .eq("user_id", user.id);
 
   if ((count ?? 0) >= 5) {
-    return { success: false as const, message: "Maksimal 5 akun journaling per user." };
+    return { success: false as const, message: t("Maksimal 5 akun journaling per user.") };
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -41,7 +43,7 @@ export async function createAccount(formData: FormData) {
   const currency = currencyInput === "IDR" ? "IDR" : "USD";
 
   if (!name) {
-    return { success: false as const, message: "Nama akun tidak boleh kosong." };
+    return { success: false as const, message: t("Nama akun tidak boleh kosong.") };
   }
 
   const { error } = await supabase.from("trading_accounts").insert({
@@ -64,6 +66,7 @@ export async function createAccount(formData: FormData) {
 }
 
 export async function deleteAccount(accountId: string) {
+  const { t } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -76,7 +79,7 @@ export async function deleteAccount(accountId: string) {
     .eq("user_id", user.id);
 
   if ((count ?? 0) <= 1) {
-    return { success: false as const, message: "Minimal harus ada 1 akun journaling." };
+    return { success: false as const, message: t("Minimal harus ada 1 akun journaling.") };
   }
 
   const { error } = await supabase
