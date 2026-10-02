@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { NewsImpactBadge } from "@/components/news/NewsImpactBadge";
 import { formatDate, formatTime } from "@/lib/utils";
 import type { NewsEvent, NewsImpact } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 type ImpactFilter = "ALL" | NewsImpact;
 
@@ -12,6 +13,7 @@ function toDateInputValue(d: Date) {
 }
 
 export function NewsTable({ events }: { events: NewsEvent[] }) {
+  const t = useT();
   const [date, setDate] = useState("");
   const [impact, setImpact] = useState<ImpactFilter>("ALL");
   const [currency, setCurrency] = useState("ALL");
@@ -46,7 +48,7 @@ export function NewsTable({ events }: { events: NewsEvent[] }) {
               onClick={() => setDate("")}
               className="text-caption font-semibold text-primary hover:underline"
             >
-              Reset tanggal
+              {t("Reset tanggal")}
             </button>
           )}
           <select value={impact} onChange={(e) => setImpact(e.target.value as ImpactFilter)} className="input-field w-auto">
