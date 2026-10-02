@@ -6,6 +6,7 @@ import { ChevronDown, Wallet, Settings2 } from "lucide-react";
 import { ManageAccountsModal } from "@/components/accounts/ManageAccountsModal";
 import { setActiveAccount } from "@/app/(dashboard)/accounts/actions";
 import type { TradingAccount } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 interface TradeSummary {
   account_id: string | null;
@@ -22,6 +23,7 @@ export function AccountControl({
   tradesSummary: TradeSummary[];
   activeAccountId?: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -43,7 +45,7 @@ export function AccountControl({
     <div className="mb-4 px-1">
       <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
         <Wallet className="h-3 w-3" />
-        Akun Aktif
+        {t("Akun Aktif")}
       </label>
       <div className="flex items-center gap-1.5">
         <div className="relative flex-1">
@@ -62,7 +64,7 @@ export function AccountControl({
         </div>
         <button
           onClick={() => setManageOpen(true)}
-          aria-label="Kelola Akun"
+          aria-label={t("Kelola Akun")}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
         >
           <Settings2 className="h-4 w-4" />
