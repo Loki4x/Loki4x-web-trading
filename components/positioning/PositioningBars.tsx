@@ -1,8 +1,11 @@
 import type { Positioning } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
+import { dateLocale } from "@/lib/i18n/dictionary";
 
-export function PositioningBars({ items }: { items: Positioning[] }) {
+export async function PositioningBars({ items }: { items: Positioning[] }) {
+  const { t, locale } = await getT();
   if (items.length === 0) {
-    return <div className="card py-12 text-center text-body-sm text-text-muted">Belum ada data positioning.</div>;
+    return <div className="card py-12 text-center text-body-sm text-text-muted">{t("Belum ada data positioning.")}</div>;
   }
 
   return (
@@ -12,7 +15,7 @@ export function PositioningBars({ items }: { items: Positioning[] }) {
           <div className="mb-2 flex items-center justify-between">
             <p className="text-body-sm font-semibold text-text-primary">{p.symbol}</p>
             <p className="text-caption text-text-muted">
-              {new Date(p.updated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
+              {new Date(p.updated_at).toLocaleDateString(dateLocale(locale), { day: "2-digit", month: "short" })}
             </p>
           </div>
           <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-2">
