@@ -2,8 +2,10 @@ import { getCotSnapshot } from "@/lib/cot";
 import { CotDashboardClient } from "@/components/cot/CotDashboardClient";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { getT } from "@/lib/i18n/server";
 
 export default async function CotPage() {
+  const { t } = await getT();
   const tier = await getCurrentUserTier();
   if (!hasAccess(tier, "VIP")) {
     return <AccessDenied requiredTier="VIP" />;
@@ -16,7 +18,7 @@ export default async function CotPage() {
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Institutional Positioning (COT)</h1>
         <p className="text-body-sm text-text-secondary">
-          Data resmi CFTC (Commitment of Traders) — dipakai juga oleh CME Group.
+          {t("Data resmi CFTC (Commitment of Traders) — dipakai juga oleh CME Group.")}
         </p>
       </div>
 
