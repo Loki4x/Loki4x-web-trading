@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { SignalsAdminTable } from "@/components/admin/SignalsAdminTable";
+import { getT } from "@/lib/i18n/server";
 
 export default async function AdminSignalsPage() {
+  const { t } = await getT();
   const supabase = await createClient();
   const { data: signals } = await supabase
     .from("signals")
@@ -14,7 +16,7 @@ export default async function AdminSignalsPage() {
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Signals & Track Record</h1>
-        <p className="text-body-sm text-text-secondary">Kelola sinyal trading yang ditampilkan ke user.</p>
+        <p className="text-body-sm text-text-secondary">{t("Kelola sinyal trading yang ditampilkan ke user.")}</p>
       </div>
 
       <SignalsAdminTable signals={signals ?? []} />
