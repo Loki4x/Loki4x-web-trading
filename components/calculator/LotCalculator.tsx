@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Copy } from "lucide-react";
 import { cx } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 type InstrumentType = "Forex" | "Commodity" | "Index" | "Crypto" | "Custom";
 type MarginBasis = "quote" | "base"; // "quote": notional = lots × contractSize × price. "base": notional = lots × contractSize (price-independent, e.g. USD adalah base currency).
@@ -50,6 +51,7 @@ function fmt(n: number | null, digits = 2) {
 }
 
 export function LotCalculator() {
+  const t = useT();
   const [symbol, setSymbol] = useState("XAUUSD");
   const [direction, setDirection] = useState<"LONG" | "SHORT">("SHORT");
   const [balance, setBalance] = useState("400");
@@ -197,13 +199,13 @@ export function LotCalculator() {
           <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="input-field mt-2">
             {INSTRUMENTS.map((i) => (
               <option key={i.symbol} value={i.symbol}>
-                {i.symbol === "CUSTOM" ? "Custom (isi manual)" : i.symbol}
+                {i.symbol === "CUSTOM" ? t("Custom (isi manual)") : i.symbol}
               </option>
             ))}
           </select>
           {!isCustom && (
             <p className="mt-1 text-caption text-text-muted">
-              Pip: {instrument.pipSize} · Tipe: {instrument.type}
+              Pip: {instrument.pipSize} {t("· Tipe:")} {instrument.type}
             </p>
           )}
         </div>
@@ -229,12 +231,12 @@ export function LotCalculator() {
               />
             </div>
             <div>
-              <label className="text-caption text-text-secondary">Contract Size (opsional)</label>
+              <label className="text-caption text-text-secondary">{t("Contract Size (opsional)")}</label>
               <input
                 type="number"
                 value={customContractSize}
                 onChange={(e) => setCustomContractSize(e.target.value)}
-                placeholder="buat estimasi margin"
+                placeholder={t("buat estimasi margin")}
                 className="input-field mt-1 py-2"
               />
             </div>
@@ -364,7 +366,7 @@ export function LotCalculator() {
             <p className="mt-1 text-caption text-text-muted">
               {slMode === "PIPS" ? `= ${fmt(calc.slPrice, isCustom ? 5 : 3)}` : `= ${fmt(calc.slPips, 1)} pips`}
               {calc.slOnWrongSide && (
-                <span className="ml-2 text-warning">⚠ SL ada di sisi yang salah buat {direction}</span>
+                <span className="ml-2 text-warning">{t("⚠ SL ada di sisi yang salah buat")} {direction}</span>
               )}
             </p>
           )}
@@ -372,7 +374,7 @@ export function LotCalculator() {
 
         <div>
           <div className="flex items-center justify-between">
-            <label className="text-body-sm font-medium text-success">Take Profit (opsional)</label>
+            <label className="text-body-sm font-medium text-success">{t("Take Profit (opsional)")}</label>
             <div className="flex rounded-lg border border-border p-0.5">
               <button type="button" onClick={() => setTpMode("PRICE")} className={segmentBtn(tpMode === "PRICE")}>
                 Price
@@ -413,7 +415,7 @@ export function LotCalculator() {
               className="flex items-center gap-1.5 text-caption font-medium text-primary hover:underline disabled:opacity-40"
             >
               <Copy className="h-3.5 w-3.5" />
-              {copied ? "Tersalin!" : "Copy"}
+              {copied ? t("Tersalin!") : t("Copy")}
             </button>
           </div>
           <p className="mt-1 text-h1 font-display font-extrabold text-primary">
@@ -442,7 +444,7 @@ export function LotCalculator() {
         <div className="card">
           <div className="flex items-center justify-between">
             <p className="text-caption font-semibold uppercase tracking-wide text-text-muted">Risk Exposure</p>
-            <span className={cx("text-caption font-semibold", risk.color)}>{risk.label}</span>
+            <span className={cx("text-caption font-semibold", risk.color)}>{t(risk.label)}</span>
           </div>
           <p className="mt-1 text-h3 text-text-primary">
             {riskPercent || 0}% <span className="text-body-sm text-text-muted">({calc ? fmt(calc.riskAmount) : "—"})</span>
@@ -509,7 +511,7 @@ export function LotCalculator() {
           <div className="card">
             <p className="text-caption text-text-muted">Risk Amount</p>
             <p className="mt-1 text-body font-semibold text-text-primary">{calc ? fmt(calc.riskAmount) : "—"}</p>
-            <p className="text-caption text-text-muted">{riskPercent || 0}% dari balance</p>
+            <p className="text-caption text-text-muted">{riskPercent || 0}{t("% dari balance")}</p>
           </div>
           <div className="card">
             <p className="text-caption text-text-muted">Pip Value</p>
@@ -521,31 +523,29 @@ export function LotCalculator() {
           <div className="card">
             <p className="text-caption text-text-muted">Pips at Risk</p>
             <p className="mt-1 text-body font-semibold text-error">{calc ? fmt(calc.slPips, 1) : "—"}</p>
-            <p className="text-caption text-text-muted">ke stop loss</p>
+            <p className="text-caption text-text-muted">{t("ke stop loss")}</p>
           </div>
           <div className="card">
             <p className="text-caption text-text-muted">Pips to Target</p>
             <p className="mt-1 text-body font-semibold text-success">{calc?.tpPips ? fmt(calc.tpPips, 1) : "—"}</p>
-            <p className="text-caption text-text-muted">ke take profit</p>
+            <p className="text-caption text-text-muted">{t("ke take profit")}</p>
           </div>
           <div className="card">
             <p className="text-caption text-text-muted">Est. Margin</p>
             <p className="mt-1 text-body font-semibold text-text-primary">{calc?.estMargin ? fmt(calc.estMargin) : "—"}</p>
-            <p className="text-caption text-text-muted">di leverage 1:{leverage || "-"}</p>
+            <p className="text-caption text-text-muted">{t("di leverage 1:")}{leverage || "-"}</p>
           </div>
           <div className="card">
             <p className="text-caption text-text-muted">Potential Profit</p>
             <p className="mt-1 text-body font-semibold text-success">
               {calc?.potentialProfit ? fmt(calc.potentialProfit) : "—"}
             </p>
-            <p className="text-caption text-text-muted">kalau TP kena</p>
+            <p className="text-caption text-text-muted">{t("kalau TP kena")}</p>
           </div>
         </div>
 
         <p className="text-caption text-text-muted">
-          Kalkulator ini pakai asumsi kontrak standar yang umum dipakai broker. Nilai pip &amp; margin untuk indeks,
-          kripto, dan pair custom bisa berbeda tergantung broker kamu — selalu cek spesifikasi kontrak brokermu
-          sebelum entry.
+          {t("Kalkulator ini pakai asumsi kontrak standar yang umum dipakai broker. Nilai pip & margin untuk indeks, kripto, dan pair custom bisa berbeda tergantung broker kamu — selalu cek spesifikasi kontrak brokermu sebelum entry.")}
         </p>
       </div>
     </div>
