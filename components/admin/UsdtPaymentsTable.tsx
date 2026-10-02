@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, X, FileImage } from "lucide-react";
 import { approveUsdtPayment, rejectUsdtPayment } from "@/app/admin/actions";
 import type { Plan } from "@/lib/pakasir-constants";
+import { useT } from "@/lib/i18n/client";
 
 interface PaymentRow {
   id: string;
@@ -33,6 +34,7 @@ const statusClass: Record<PaymentRow["status"], string> = {
 };
 
 export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
+  const t = useT();
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
   }
 
   if (payments.length === 0) {
-    return <div className="card text-body-sm text-text-muted">Belum ada pembayaran USDT.</div>;
+    return <div className="card text-body-sm text-text-muted">{t("Belum ada pembayaran USDT.")}</div>;
   }
 
   return (
@@ -60,11 +62,11 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
         <thead>
           <tr className="border-b border-border text-left text-caption uppercase text-text-muted">
             <th className="px-4 py-3">User</th>
-            <th className="px-4 py-3">Paket</th>
-            <th className="px-4 py-3">Jumlah</th>
+            <th className="px-4 py-3">{t("Paket")}</th>
+            <th className="px-4 py-3">{t("Jumlah")}</th>
             <th className="px-4 py-3">Network</th>
-            <th className="px-4 py-3">Bukti</th>
-            <th className="px-4 py-3">Catatan</th>
+            <th className="px-4 py-3">{t("Bukti")}</th>
+            <th className="px-4 py-3">{t("Catatan")}</th>
             <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3"></th>
           </tr>
@@ -73,7 +75,7 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
           {payments.map((p) => (
             <tr key={p.id} className="border-b border-border last:border-0">
               <td className="px-4 py-3 text-text-primary">{p.profiles?.full_name || p.profiles?.email || p.user_id}</td>
-              <td className="px-4 py-3">{planLabel[p.plan]}</td>
+              <td className="px-4 py-3">{t(planLabel[p.plan])}</td>
               <td className="px-4 py-3">{p.amount} USDT</td>
               <td className="px-4 py-3 uppercase">{p.payment_method?.replace("usdt_", "")}</td>
               <td className="px-4 py-3">
@@ -84,7 +86,7 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-primary hover:underline"
                   >
-                    <FileImage className="h-4 w-4" /> Lihat
+                    <FileImage className="h-4 w-4" /> {t("Lihat")}
                   </a>
                 ) : (
                   "-"
