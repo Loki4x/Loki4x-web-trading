@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { Trade, TradeSession } from "@/lib/types";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { getT } from "@/lib/i18n/server";
 
 function parseDateParts(dateStr: string) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -19,6 +20,7 @@ export default async function ReportsPage({
 }: {
   searchParams: { account?: string };
 }) {
+  const { t } = await getT();
   const tier = await getCurrentUserTier();
   if (!hasAccess(tier, "MEMBERSHIP")) {
     return <AccessDenied requiredTier="MEMBERSHIP" />;
@@ -90,7 +92,7 @@ export default async function ReportsPage({
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Reports &amp; Performance</h1>
-        <p className="text-body-sm text-text-secondary">Pantau performa trading kamu dari berbagai sudut.</p>
+        <p className="text-body-sm text-text-secondary">{t("Pantau performa trading kamu dari berbagai sudut.")}</p>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
