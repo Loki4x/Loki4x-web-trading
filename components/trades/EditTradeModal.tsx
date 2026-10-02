@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { updateTrade } from "@/app/(dashboard)/trades/actions";
 import type { AccountCurrency, Trade } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 export function EditTradeModal({
   onClose,
@@ -16,6 +17,7 @@ export function EditTradeModal({
   trade: Trade;
   accountCurrency?: AccountCurrency;
 }) {
+  const t = useT();
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
@@ -98,7 +100,7 @@ export function EditTradeModal({
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Session</label>
             <select name="session" className="input-field" defaultValue={trade.session ?? ""}>
-              <option value="">Nggak diisi</option>
+              <option value="">{t("Nggak diisi")}</option>
               <option value="LONDON">London</option>
               <option value="NEW_YORK">New York</option>
               <option value="ASIA">Asia</option>
@@ -118,7 +120,7 @@ export function EditTradeModal({
                   rel="noopener noreferrer"
                   className="text-caption text-primary hover:underline"
                 >
-                  Lihat foto saat ini
+                  {t("Lihat foto saat ini")}
                 </a>
               )}
               <input
@@ -127,7 +129,7 @@ export function EditTradeModal({
                 accept="image/*"
                 className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
               />
-              <p className="text-caption text-text-muted">Kosongkan kalau nggak mau ganti foto.</p>
+              <p className="text-caption text-text-muted">{t("Kosongkan kalau nggak mau ganti foto.")}</p>
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-body-sm font-medium text-text-secondary">After Photo</label>
@@ -138,7 +140,7 @@ export function EditTradeModal({
                   rel="noopener noreferrer"
                   className="text-caption text-primary hover:underline"
                 >
-                  Lihat foto saat ini
+                  {t("Lihat foto saat ini")}
                 </a>
               )}
               <input
@@ -147,7 +149,7 @@ export function EditTradeModal({
                 accept="image/*"
                 className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
               />
-              <p className="text-caption text-text-muted">Kosongkan kalau nggak mau ganti foto.</p>
+              <p className="text-caption text-text-muted">{t("Kosongkan kalau nggak mau ganti foto.")}</p>
             </div>
           </div>
 
@@ -163,7 +165,7 @@ export function EditTradeModal({
           </div>
 
           <Button type="submit" withArrow className="mt-2 w-full justify-center">
-            Simpan Perubahan
+            {t("Simpan Perubahan")}
           </Button>
         </form>
       </div>
