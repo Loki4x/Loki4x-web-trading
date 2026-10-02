@@ -6,6 +6,8 @@ import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { CATEGORY_LABEL, type AssetCategory } from "@/lib/asset-category";
 import type { CotAssetRow } from "@/lib/cot";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { dateLocale } from "@/lib/i18n/dictionary";
 
 type CategoryFilter = "ALL" | AssetCategory;
 type SortMode = "LONG_PCT" | "NET_CHG";
@@ -33,6 +35,8 @@ function formatOpenInterest(n: number) {
 }
 
 export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; reportDate: string | null }) {
+  const t = useT();
+  const locale = useLocale();
   const [category, setCategory] = useState<CategoryFilter>("ALL");
   const [sortMode, setSortMode] = useState<SortMode>("LONG_PCT");
 
@@ -60,18 +64,18 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
   }, [rows]);
 
   if (rows.length === 0) {
-    return <div className="card py-12 text-center text-body-sm text-text-muted">Data COT belum tersedia.</div>;
+    return <div className="card py-12 text-center text-body-sm text-text-muted">{t("Data COT belum tersedia.")}</div>;
   }
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-body-sm text-text-secondary">
-          Pantau pergerakan arus big money.{" "}
+          {t("Pantau pergerakan arus big money.")}{" "}
           {reportDate && (
             <span className="text-text-muted">
-              Terakhir diperbarui{" "}
-              {new Date(reportDate).toLocaleDateString("id-ID", { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}
+              {t("Terakhir diperbarui")}{" "}
+              {new Date(reportDate).toLocaleDateString(dateLocale(locale), { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}
             </span>
           )}
         </p>
@@ -87,7 +91,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
               category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
             )}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
@@ -97,27 +101,27 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
           <div className="card">
             <div className="mb-2 flex items-center gap-2 text-text-muted">
               <TrendingUp className="h-4 w-4" />
-              <span className="text-caption font-semibold uppercase tracking-wide">Paling Long</span>
+              <span className="text-caption font-semibold uppercase tracking-wide">{t("Paling Long")}</span>
             </div>
             <p className="text-h3 text-text-primary">{summary.mostLong.label}</p>
-            <p className="text-body-sm text-text-secondary">long terbesar · {summary.mostLong.longPct}%</p>
+            <p className="text-body-sm text-text-secondary">{t("long terbesar ·")} {summary.mostLong.longPct}%</p>
           </div>
           <div className="card">
             <div className="mb-2 flex items-center gap-2 text-text-muted">
               <TrendingDown className="h-4 w-4" />
-              <span className="text-caption font-semibold uppercase tracking-wide">Paling Short</span>
+              <span className="text-caption font-semibold uppercase tracking-wide">{t("Paling Short")}</span>
             </div>
             <p className="text-h3 text-text-primary">{summary.mostShort.label}</p>
-            <p className="text-body-sm text-text-secondary">long terkecil · {summary.mostShort.longPct}%</p>
+            <p className="text-body-sm text-text-secondary">{t("long terkecil ·")} {summary.mostShort.longPct}%</p>
           </div>
           <div className="card">
             <div className="mb-2 flex items-center gap-2 text-text-muted">
               <Activity className="h-4 w-4" />
-              <span className="text-caption font-semibold uppercase tracking-wide">Perubahan Terbesar</span>
+              <span className="text-caption font-semibold uppercase tracking-wide">{t("Perubahan Terbesar")}</span>
             </div>
             <p className="text-h3 text-text-primary">{summary.biggestChange.label}</p>
             <p className={cx("text-body-sm", summary.biggestChange.netChangePct >= 0 ? "text-success" : "text-error")}>
-              net chg minggu ini · {formatSigned(summary.biggestChange.netChangePct)}%
+              {t("net chg minggu ini ·")} {formatSigned(summary.biggestChange.netChangePct)}%
             </p>
           </div>
         </div>
@@ -127,7 +131,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-body font-semibold text-text-primary">Long vs Short</h3>
-            <p className="text-caption text-text-muted">% dari total kontrak</p>
+            <p className="text-caption text-text-muted">{t("% dari total kontrak")}</p>
           </div>
           <div className="flex gap-2">
             <button
@@ -137,7 +141,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
                 sortMode === "LONG_PCT" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary"
               )}
             >
-              Urut Long %
+              {t("Urut Long %")}
             </button>
             <button
               onClick={() => setSortMode("NET_CHG")}
@@ -146,7 +150,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
                 sortMode === "NET_CHG" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary"
               )}
             >
-              Urut Net Chg
+              {t("Urut Net Chg")}
             </button>
           </div>
         </div>
@@ -173,7 +177,7 @@ export function CotDashboardClient({ rows, reportDate }: { rows: CotAssetRow[]; 
 
       <div className="card overflow-x-auto !p-0">
         <div className="border-b border-border px-4 py-3">
-          <h3 className="text-body font-semibold text-text-primary">Posisi saat ini &amp; perubahan minggu ini</h3>
+          <h3 className="text-body font-semibold text-text-primary">{t("Posisi saat ini & perubahan minggu ini")}</h3>
         </div>
         <table className="w-full min-w-[880px] border-collapse">
           <thead>
