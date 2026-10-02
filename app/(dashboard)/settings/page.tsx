@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { parseUserAgent } from "@/lib/login-activity";
 import { SettingsClient } from "@/components/settings/SettingsClient";
 import type { Profile, LoginActivity } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export default async function SettingsPage() {
+  const { t } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,9 +37,9 @@ export default async function SettingsPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-h2 text-text-primary">Pengaturan</h1>
+        <h1 className="text-h2 text-text-primary">{t("settings.title")}</h1>
         <p className="text-body-sm text-text-secondary">
-          Kelola profil, keamanan, notifikasi, dan preferensi Anda.
+          {t("settings.subtitle")}
         </p>
       </div>
 
