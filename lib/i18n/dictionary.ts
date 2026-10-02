@@ -1,3 +1,5 @@
+import { EN_STRINGS } from "@/lib/i18n/en-strings";
+
 export type Locale = "id" | "en";
 export const LOCALES: Locale[] = ["id", "en"];
 export const DEFAULT_LOCALE: Locale = "id";
@@ -339,15 +341,28 @@ const en: Record<DictKey, string> = {
 
 export const DICTIONARIES: Record<Locale, Record<DictKey, string>> = { id, en };
 
+/** Key bisa berupa key kamus (mis. "nav.signals") ATAU teks Indonesia apa adanya. */
+export type TKey = DictKey | (string & {});
+
+export function dateLocale(locale: Locale): string {
+  return locale === "en" ? "en-US" : "id-ID";
+}
+
 export function translate(
   locale: Locale,
-  key: DictKey,
+  key: TKey,
   vars?: Record<string, string | number>
 ): string {
-  let text = DICTIONARIES[locale][key] ?? DICTIONARIES[DEFAULT_LOCALE][key] ?? key;
+  const dict = DICTIONARIES[locale] as Record<string, string>;
+  const fallbackDict = DICTIONARIES[DEFAULT_LOCALE] as Record<string, string>;
+  let text: string;
+  if (key in dict) text = dict[key];
+  else if (locale === "en" && key in EN_STRINGS) text = EN_STRINGS[key];
+  else if (key in fallbackDict) text = fallbackDict[key];
+  else text = key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
-      text = text.replaceAll(`{${k}}`, String(v));
+      text = text.split(`{${k}}`).join(String(v));
     }
   }
   return text;
