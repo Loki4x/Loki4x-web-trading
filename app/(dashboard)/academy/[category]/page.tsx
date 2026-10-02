@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { VideoGrid } from "@/components/academy/VideoGrid";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { getT } from "@/lib/i18n/server";
 
 const categoryMap: Record<string, { db: string; title: string; subtitle: string }> = {
   technical: {
@@ -23,6 +24,7 @@ const categoryMap: Record<string, { db: string; title: string; subtitle: string 
 };
 
 export default async function AcademyCategoryPage({ params }: { params: { category: string } }) {
+  const { t } = await getT();
   const tier = await getCurrentUserTier();
   if (!hasAccess(tier, "MEMBERSHIP")) {
     return <AccessDenied requiredTier="MEMBERSHIP" />;
@@ -41,8 +43,8 @@ export default async function AcademyCategoryPage({ params }: { params: { catego
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-h2 text-text-primary">{meta.title}</h1>
-        <p className="text-body-sm text-text-secondary">{meta.subtitle}</p>
+        <h1 className="text-h2 text-text-primary">{t(meta.title)}</h1>
+        <p className="text-body-sm text-text-secondary">{t(meta.subtitle)}</p>
       </div>
 
       <VideoGrid videos={videos ?? []} />
