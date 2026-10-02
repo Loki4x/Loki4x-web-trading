@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { createAccount, deleteAccount } from "@/app/(dashboard)/accounts/actions";
 import { formatPlainCurrency, formatCurrency, pnlColorClass } from "@/lib/utils";
 import type { TradingAccount } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 interface TradeSummary {
   account_id: string | null;
@@ -24,6 +25,7 @@ export function ManageAccountsModal({
   trades: TradeSummary[];
   onClose: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCurrency, setNewCurrency] = useState<"USD" | "IDR">("USD");
@@ -39,7 +41,7 @@ export function ManageAccountsModal({
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Hapus akun "${name}"? Semua trade di akun ini akan ikut terhapus.`)) return;
+    if (!confirm(t('Hapus akun "{name}"? Semua trade di akun ini akan ikut terhapus.', { name }))) return;
     const result = await deleteAccount(id);
     if (result.success) {
       router.refresh();
@@ -58,7 +60,7 @@ export function ManageAccountsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-h3 text-text-primary">Kelola Akun Journaling</h2>
+          <h2 className="text-h3 text-text-primary">{t("Kelola Akun Journaling")}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary">
             <X className="h-5 w-5" />
           </button>
@@ -86,7 +88,7 @@ export function ManageAccountsModal({
                 </div>
                 <p className="text-body font-semibold text-text-primary">{formatPlainCurrency(balance, acc.currency)}</p>
                 <div className="mt-1 flex items-center justify-between text-caption text-text-secondary">
-                  <span>Awal: {formatPlainCurrency(acc.initial_balance, acc.currency)}</span>
+                  <span>{t("Awal:")} {formatPlainCurrency(acc.initial_balance, acc.currency)}</span>
                   <span className={pnlColorClass(totalPnl)}>{formatCurrency(totalPnl, acc.currency)}</span>
                   <span className="text-text-muted">{tradeCount} trade</span>
                 </div>
@@ -97,10 +99,10 @@ export function ManageAccountsModal({
 
         {showAddForm ? (
           <form action={handleAdd} className="flex flex-col gap-3 rounded-xl border border-border p-4">
-            <Input name="name" label="Nama Akun" placeholder="Contoh: Akun Demo" required />
+            <Input name="name" label={t("Nama Akun")} placeholder={t("Contoh: Akun Demo")} required />
 
             <div className="flex flex-col gap-2">
-              <label className="text-body-sm font-medium text-text-secondary">Mata Uang</label>
+              <label className="text-body-sm font-medium text-text-secondary">{t("Mata Uang")}</label>
               <select
                 name="currency"
                 value={newCurrency}
@@ -116,20 +118,20 @@ export function ManageAccountsModal({
               name="initial_balance"
               type="number"
               step={newCurrency === "IDR" ? "1000" : "0.01"}
-              label={`Balance Awal (${newCurrency === "IDR" ? "Rp" : "$"})`}
+              label={t("Balance Awal ({cur})", { cur: newCurrency === "IDR" ? "Rp" : "$" })}
               defaultValue={newCurrency === "IDR" ? "150000000" : "10000"}
               required
             />
             <div className="flex gap-2">
               <Button type="submit" withArrow className="flex-1 justify-center">
-                Buat Akun
+                {t("Buat Akun")}
               </Button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
                 className="btn-secondary !px-4"
               >
-                Batal
+                {t("Batal")}
               </button>
             </div>
           </form>
@@ -140,7 +142,7 @@ export function ManageAccountsModal({
             className="btn-secondary w-full justify-center text-body-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
-            Tambah Akun ({accounts.length}/5)
+            {t("Tambah Akun (")}{accounts.length}/5)
           </button>
         )}
       </div>
