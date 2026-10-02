@@ -6,6 +6,7 @@ import { Trash2, Plus } from "lucide-react";
 import { AddVideoModal } from "@/components/admin/AddVideoModal";
 import { deleteAcademyVideo } from "@/app/admin/actions";
 import type { AcademyVideo } from "@/components/academy/VideoGrid";
+import { useT } from "@/lib/i18n/client";
 
 interface AdminVideo extends AcademyVideo {
   category: string;
@@ -18,11 +19,12 @@ const categoryLabel: Record<string, string> = {
 };
 
 export function AcademyAdminTable({ videos }: { videos: AdminVideo[] }) {
+  const t = useT();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus video ini?")) return;
+    if (!confirm(t("Hapus video ini?"))) return;
     await deleteAcademyVideo(id);
     router.refresh();
   }
@@ -51,7 +53,7 @@ export function AcademyAdminTable({ videos }: { videos: AdminVideo[] }) {
             {videos.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-10 text-center text-body-sm text-text-muted">
-                  Belum ada video.
+                  {t("Belum ada video.")}
                 </td>
               </tr>
             )}
