@@ -10,6 +10,7 @@ import { addSignal } from "@/app/admin/actions";
 import { nowWibInputValue } from "@/lib/utils";
 import { SIGNAL_STATUS_LABEL } from "@/lib/signal-metrics";
 import type { SignalStatus } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 const STATUS_OPTIONS: SignalStatus[] = ["OPEN", "HIT_ENTRY", "TP", "SL", "PARTIAL", "CANCEL", "MISS"];
 const TERMINAL: SignalStatus[] = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"];
@@ -18,6 +19,7 @@ const NEEDS_RESULT: SignalStatus[] = ["TP", "SL", "PARTIAL"];
 type Intent = "close" | "again";
 
 export function AddSignalModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const intentRef = useRef<Intent>("close");
@@ -70,14 +72,14 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
       <div ref={scrollRef} className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-surface p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-h3 text-text-primary">Post Signal</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary" aria-label="Tutup">
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary" aria-label={t("Tutup")}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {saved && (
           <p className="mb-4 rounded-lg border border-success/30 bg-success-subtle px-3 py-2 text-body-sm text-success">
-            {saved}. Form dikosongkan untuk sinyal berikutnya.
+            {saved}{t(". Form dikosongkan untuk sinyal berikutnya.")}
           </p>
         )}
 
@@ -96,13 +98,13 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
             <Input
               name="posted_at"
               type="datetime-local"
-              label="Tanggal & jam sinyal (WIB)"
+              label={t("Tanggal & jam sinyal (WIB)")}
               value={postedAt}
               onChange={(e) => setPostedAt(e.target.value)}
               required
             />
             <p className="mt-1.5 text-caption text-text-muted">
-              Default sekarang. Ubah untuk memasukkan sinyal lama sesuai tanggal aslinya.
+              {t("Default sekarang. Ubah untuk memasukkan sinyal lama sesuai tanggal aslinya.")}
             </p>
           </div>
 
@@ -114,7 +116,7 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
               <Input name="stop_loss" type="number" step="0.00001" label="Stop Loss (optional)" />
             </div>
             <p className="mt-1.5 text-caption text-text-muted">
-              Isi Stop Loss supaya sinyal ini ikut dihitung di grafik pertumbuhan &amp; drawdown.
+              {t("Isi Stop Loss supaya sinyal ini ikut dihitung di grafik pertumbuhan & drawdown.")}
             </p>
           </div>
 
@@ -144,7 +146,7 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <p className="mt-1.5 text-caption text-text-muted">
-              Memasukkan sinyal lama? Pilih status akhirnya (TP/SL/dst), lalu isi tanggal ditutup.
+              {t("Memasukkan sinyal lama? Pilih status akhirnya (TP/SL/dst), lalu isi tanggal ditutup.")}
             </p>
           </div>
 
@@ -156,12 +158,12 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
                     name="closing_price"
                     type="number"
                     step="0.00001"
-                    label={status === "PARTIAL" ? "Harga Penutupan" : "Harga Penutupan (opsional)"}
+                    label={status === "PARTIAL" ? t("Harga Penutupan") : t("Harga Penutupan (opsional)")}
                     placeholder={
                       status === "TP"
-                        ? "Kosong = pakai Take Profit"
+                        ? t("Kosong = pakai Take Profit")
                         : status === "SL"
-                          ? "Kosong = pakai Stop Loss"
+                          ? t("Kosong = pakai Stop Loss")
                           : ""
                     }
                     required={status === "PARTIAL"}
@@ -170,20 +172,20 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
                     name="result_pips"
                     type="number"
                     step="0.1"
-                    label="Hasil (pips, boleh minus untuk loss)"
-                    placeholder="e.g. 25 atau -10"
+                    label={t("Hasil (pips, boleh minus untuk loss)")}
+                    placeholder={t("e.g. 25 atau -10")}
                   />
                 </>
               )}
               <div>
-                <Input name="closed_at" type="datetime-local" label="Tanggal & jam ditutup (WIB)" />
-                <p className="mt-1.5 text-caption text-text-muted">Kosongkan = sama dengan tanggal sinyal.</p>
+                <Input name="closed_at" type="datetime-local" label={t("Tanggal & jam ditutup (WIB)")} />
+                <p className="mt-1.5 text-caption text-text-muted">{t("Kosongkan = sama dengan tanggal sinyal.")}</p>
               </div>
             </>
           )}
 
           <div className="flex flex-col gap-2">
-            <label className="text-body-sm font-medium text-text-secondary">Chart Screenshot / Analisa (optional)</label>
+            <label className="text-body-sm font-medium text-text-secondary">{t("Chart Screenshot / Analisa (optional)")}</label>
             <input
               name="chart_image"
               type="file"
@@ -191,13 +193,13 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
               className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
             />
             <p className="text-caption text-text-muted">
-              Screenshot chart/analisa ini akan ditampilkan ke user lain sebagai alasan sinyal.
+              {t("Screenshot chart/analisa ini akan ditampilkan ke user lain sebagai alasan sinyal.")}
             </p>
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-body-sm font-medium text-text-secondary">Notes / Alasan Sinyal (optional)</label>
-            <textarea name="notes" rows={3} className="input-field resize-none" placeholder="Alasan/setup sinyal..." />
+            <label className="text-body-sm font-medium text-text-secondary">{t("Notes / Alasan Sinyal (optional)")}</label>
+            <textarea name="notes" rows={3} className="input-field resize-none" placeholder={t("Alasan/setup sinyal...")} />
           </div>
 
           {error && (
@@ -213,7 +215,7 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
               onClick={() => (intentRef.current = "close")}
               className="w-full justify-center"
             >
-              Simpan
+              {t("Simpan")}
             </Button>
             <Button
               type="submit"
@@ -223,7 +225,7 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
               onClick={() => (intentRef.current = "again")}
               className="w-full justify-center"
             >
-              Simpan &amp; Tambah Lagi
+              {t("Simpan & Tambah Lagi")}
             </Button>
           </div>
         </form>
