@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { PositioningAdmin } from "@/components/admin/PositioningAdmin";
+import { getT } from "@/lib/i18n/server";
 
 export default async function AdminPositioningPage() {
+  const { t } = await getT();
   const supabase = await createClient();
   const { data: positioning } = await supabase
     .from("positioning")
@@ -12,7 +14,7 @@ export default async function AdminPositioningPage() {
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Positioning</h1>
-        <p className="text-body-sm text-text-secondary">Kelola data long/short per simbol.</p>
+        <p className="text-body-sm text-text-secondary">{t("Kelola data long/short per simbol.")}</p>
       </div>
 
       <PositioningAdmin items={positioning ?? []} />
