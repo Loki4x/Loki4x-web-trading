@@ -76,7 +76,10 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
                   {SIGNAL_STATUS_LABEL[s.status]}
                 </button>
               </td>
-              <td className="px-4 py-3 text-body-sm text-text-secondary">{formatDate(s.posted_at)}</td>
+              <td className="px-4 py-3">
+                <p className="text-body-sm text-text-secondary">{formatDate(s.posted_at)}</p>
+                {s.closed_at && <p className="text-caption text-text-muted">ditutup {formatDate(s.closed_at)}</p>}
+              </td>
               <td className="px-4 py-3">
                 {s.chart_image_url || s.notes ? (
                   <button
