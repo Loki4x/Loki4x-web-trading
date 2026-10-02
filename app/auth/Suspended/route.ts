@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
 // Dipanggil dari layout dashboard kalau user yang login ternyata ditangguhkan.
 // Sesinya harus dihapus di sini (Route Handler boleh mengubah cookie, Server
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
 
   await supabase.auth.signOut();
 
-  const message = "Akun kamu ditangguhkan. Hubungi admin untuk info lebih lanjut.";
+  const { t } = await getT();
+  const message = t("Akun kamu ditangguhkan. Hubungi admin untuk info lebih lanjut.");
   return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(message)}`);
 }
