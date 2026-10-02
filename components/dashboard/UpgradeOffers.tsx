@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check, Zap } from "lucide-react";
 import type { Tier } from "@/lib/tier";
+import { getT } from "@/lib/i18n/server";
 
 const offers = [
   {
@@ -19,7 +20,8 @@ const offers = [
   },
 ];
 
-export function UpgradeOffers({ tier }: { tier: Tier }) {
+export async function UpgradeOffers({ tier }: { tier: Tier }) {
+  const { t } = await getT();
   if (tier === "MEMBERSHIP") return null;
   const visibleOffers = offers.filter((o) => o.key !== tier);
 
@@ -31,7 +33,7 @@ export function UpgradeOffers({ tier }: { tier: Tier }) {
         </div>
         <div>
           <p className="text-caption font-semibold uppercase tracking-wide text-primary">Upgrade Membership</p>
-          <p className="text-body-sm font-semibold text-text-primary">Ambil paket buat unlock semua fitur</p>
+          <p className="text-body-sm font-semibold text-text-primary">{t("Ambil paket buat unlock semua fitur")}</p>
         </div>
       </div>
 
@@ -42,14 +44,14 @@ export function UpgradeOffers({ tier }: { tier: Tier }) {
               <p className="text-body-sm font-semibold text-text-primary">{offer.name}</p>
               <p className="text-body font-semibold text-text-primary">
                 {offer.price}
-                <span className="text-caption font-normal text-text-muted">{offer.period}</span>
+                <span className="text-caption font-normal text-text-muted">{t(offer.period)}</span>
               </p>
             </div>
             <ul className="mt-2 flex flex-col gap-1">
               {offer.features.map((f) => (
                 <li key={f} className="flex items-center gap-1.5 text-caption text-text-secondary">
                   <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
-                  {f}
+                  {t(f)}
                 </li>
               ))}
             </ul>
@@ -58,7 +60,7 @@ export function UpgradeOffers({ tier }: { tier: Tier }) {
       </div>
 
       <Link href="/upgrade" className="btn-primary mt-4 flex w-full items-center justify-center">
-        Ambil Paket
+        {t("Ambil Paket")}
       </Link>
     </div>
   );
