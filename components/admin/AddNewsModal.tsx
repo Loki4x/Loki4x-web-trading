@@ -5,8 +5,10 @@ import { X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { addNewsEvent } from "@/app/admin/actions";
+import { useT } from "@/lib/i18n/client";
 
 export function AddNewsModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
@@ -43,9 +45,9 @@ export function AddNewsModal({ onClose }: { onClose: () => void }) {
           <Input name="release_time" type="datetime-local" label="Release Time" required />
 
           <div className="grid grid-cols-3 gap-3">
-            <Input name="forecast" label="Forecast (opsional)" />
-            <Input name="previous" label="Previous (opsional)" />
-            <Input name="actual" label="Actual (opsional)" />
+            <Input name="forecast" label={t("Forecast (opsional)")} />
+            <Input name="previous" label={t("Previous (opsional)")} />
+            <Input name="actual" label={t("Actual (opsional)")} />
           </div>
 
           <Button type="submit" withArrow className="mt-2 w-full justify-center">
