@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AccountsClient } from "@/components/accounts/AccountsClient";
 import type { TradingAccount } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export default async function AccountsPage() {
+  const { t } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -25,8 +27,8 @@ export default async function AccountsPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-h2 text-text-primary">Akun Journaling</h1>
-        <p className="text-body-sm text-text-secondary">Kelola akun trading kamu (maksimal 5 akun).</p>
+        <h1 className="text-h2 text-text-primary">{t("Akun Journaling")}</h1>
+        <p className="text-body-sm text-text-secondary">{t("Kelola akun trading kamu (maksimal 5 akun).")}</p>
       </div>
 
       <AccountsClient
