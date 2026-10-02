@@ -9,15 +9,17 @@ import { SecurityPanel } from "@/components/settings/SecurityPanel";
 import { NotificationsPanel } from "@/components/settings/NotificationsPanel";
 import { AppearancePanel } from "@/components/settings/AppearancePanel";
 import type { Profile, LoginActivity } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
+import type { DictKey } from "@/lib/i18n/dictionary";
 
 type TabKey = "profile" | "account" | "security" | "notifications" | "appearance";
 
-const TABS: { key: TabKey; label: string; icon: typeof User }[] = [
-  { key: "profile", label: "Profil", icon: User },
-  { key: "account", label: "Akun", icon: IdCard },
-  { key: "security", label: "Keamanan", icon: ShieldCheck },
-  { key: "notifications", label: "Notifikasi", icon: Bell },
-  { key: "appearance", label: "Tampilan", icon: Palette },
+const TABS: { key: TabKey; label: DictKey; icon: typeof User }[] = [
+  { key: "profile", label: "settings.tab.profile", icon: User },
+  { key: "account", label: "settings.tab.account", icon: IdCard },
+  { key: "security", label: "settings.tab.security", icon: ShieldCheck },
+  { key: "notifications", label: "settings.tab.notifications", icon: Bell },
+  { key: "appearance", label: "settings.tab.appearance", icon: Palette },
 ];
 
 export function SettingsClient({
@@ -39,6 +41,7 @@ export function SettingsClient({
   currentDevice: { browser: string; os: string };
   currentIp: string;
 }) {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<TabKey>("profile");
 
   return (
@@ -56,7 +59,7 @@ export function SettingsClient({
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
-            {label}
+            {t(label)}
           </button>
         ))}
       </nav>
