@@ -4,16 +4,19 @@ import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { cx, formatDate } from "@/lib/utils";
 import type { GrowthPoint } from "@/lib/signal-metrics";
+import { useT } from "@/lib/i18n/client";
+import type { DictKey } from "@/lib/i18n/dictionary";
 
 type RangeFilter = "7D" | "30D" | "ALL";
 
-const RANGE_OPTIONS: { key: RangeFilter; label: string; days: number | null }[] = [
-  { key: "7D", label: "7 Hari", days: 7 },
-  { key: "30D", label: "30 Hari", days: 30 },
-  { key: "ALL", label: "Semua", days: null },
+const RANGE_OPTIONS: { key: RangeFilter; label: DictKey; days: number | null }[] = [
+  { key: "7D", label: "signals.chart.7d", days: 7 },
+  { key: "30D", label: "signals.chart.30d", days: 30 },
+  { key: "ALL", label: "signals.chart.all", days: null },
 ];
 
 export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
+  const t = useT();
   const [range, setRange] = useState<RangeFilter>("ALL");
 
   const filtered = useMemo(() => {
@@ -37,8 +40,8 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
     <div className="card">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-h3 text-text-primary">Pertumbuhan Portofolio</h3>
-          <p className="text-caption text-text-secondary">% kumulatif dari sinyal yang sudah selesai</p>
+          <h3 className="text-h3 text-text-primary">{t("signals.chart.title")}</h3>
+          <p className="text-caption text-text-secondary">{t("signals.chart.subtitle")}</p>
         </div>
         <div className="flex gap-1 rounded-full bg-surface-2 p-1">
           {RANGE_OPTIONS.map(({ key, label }) => (
@@ -50,7 +53,7 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
                 range === key ? "bg-primary text-text-on-primary" : "text-text-secondary hover:text-text-primary"
               )}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -58,14 +61,14 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
 
       <div className="mb-4 flex flex-wrap items-baseline gap-6">
         <div>
-          <p className="text-caption text-text-muted">Pertumbuhan</p>
+          <p className="text-caption text-text-muted">{t("signals.chart.growth")}</p>
           <p className={cx("text-h3", isPositive ? "text-success" : "text-error")}>
             {isPositive ? "+" : ""}
             {latest.toFixed(1)}%
           </p>
         </div>
         <div>
-          <p className="text-caption text-text-muted">Perubahan dalam rentang</p>
+          <p className="text-caption text-text-muted">{t("signals.chart.rangeChange")}</p>
           <p className={cx("text-body-sm font-semibold", rangeChange >= 0 ? "text-success" : "text-error")}>
             {rangeChange >= 0 ? "+" : ""}
             {rangeChange.toFixed(1)}%
@@ -75,7 +78,7 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
 
       {chartData.length === 0 ? (
         <div className="flex h-[220px] items-center justify-center text-body-sm text-text-muted">
-          Belum ada sinyal yang selesai di rentang ini.
+          {t("signals.chart.empty")}
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
@@ -104,7 +107,7 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
                 color: "#f8fafc",
               }}
               labelStyle={{ color: "#94a3b8" }}
-              formatter={(value: number) => [`${value >= 0 ? "+" : ""}${value}%`, "Growth"]}
+              formatter={(value: number) => [`${value >= 0 ? "+" : ""}${value}%`, t("signals.chart.tooltip")]}
             />
             <Area
               type="monotone"
