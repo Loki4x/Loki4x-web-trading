@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { cx } from "@/lib/utils";
 import type { CotHistoryPoint } from "@/lib/cot";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { dateLocale, type Locale } from "@/lib/i18n/dictionary";
 
 type PeriodFilter = "ALL" | "1Y" | "3M" | "1M";
 
@@ -25,11 +27,13 @@ function formatSigned(n: number) {
   return `${s}${formatNumber(n)}`;
 }
 
-function formatDateID(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+function formatDateLocal(dateStr: string, locale: Locale) {
+  return new Date(dateStr).toLocaleDateString(dateLocale(locale), { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function CotHistoryClient({ label, points }: { label: string; points: CotHistoryPoint[] }) {
+  const t = useT();
+  const locale = useLocale();
   const [period, setPeriod] = useState<PeriodFilter>("ALL");
   const [page, setPage] = useState(1);
 
@@ -55,12 +59,12 @@ export function CotHistoryClient({ label, points }: { label: string; points: Cot
   const pageRows = tableRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const chartData = filteredPoints.map((p) => ({
-    date: new Date(p.date).toLocaleDateString("id-ID", { month: "short", year: "2-digit" }),
+    date: new Date(p.date).toLocaleDateString(dateLocale(locale), { month: "short", year: "2-digit" }),
     longPct: p.longPct,
   }));
 
   if (points.length === 0) {
-    return <div className="card py-12 text-center text-body-sm text-text-muted">Data histori untuk {label} belum tersedia.</div>;
+    return <div className="card py-12 text-center text-body-sm text-text-muted">{t("Data histori untuk")} {label} {t("belum tersedia.")}</div>;
   }
 
   return (
@@ -75,14 +79,14 @@ export function CotHistoryClient({ label, points }: { label: string; points: Cot
               period === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
             )}
           >
-            {pLabel}
+            {t(pLabel)}
           </button>
         ))}
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="card">
-          <p className="text-caption text-text-muted">Long % saat ini</p>
+          <p className="text-caption text-text-muted">{t("Long % saat ini")}</p>
           <p className="text-h3 text-text-primary">{latest?.longPct ?? "—"}%</p>
         </div>
         <div className="card">
@@ -92,19 +96,19 @@ export function CotHistoryClient({ label, points }: { label: string; points: Cot
           </p>
         </div>
         <div className="card">
-          <p className="text-caption text-text-muted">Net change · 4 mgg</p>
+          <p className="text-caption text-text-muted">{t("Net change · 4 mgg")}</p>
           <p className={cx("text-h3", (netChange4wk ?? 0) >= 0 ? "text-success" : "text-error")}>
             {netChange4wk !== null ? `${formatSigned(Math.round(netChange4wk * 10) / 10)}%` : "—"}
           </p>
         </div>
         <div className="card">
-          <p className="text-caption text-text-muted">Rentang long % periode</p>
+          <p className="text-caption text-text-muted">{t("Rentang long % periode")}</p>
           <p className="text-h3 text-text-primary">{rangeLongPct ? `${rangeLongPct.min}–${rangeLongPct.max}%` : "—"}</p>
         </div>
       </div>
 
       <div className="card mb-6">
-        <h3 className="mb-4 text-body font-semibold text-text-primary">Posisi mingguan · {label}</h3>
+        <h3 className="mb-4 text-body font-semibold text-text-primary">{t("Posisi mingguan ·")} {label}</h3>
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#494B51" />
@@ -121,7 +125,7 @@ export function CotHistoryClient({ label, points }: { label: string; points: Cot
 
       <div className="card overflow-x-auto !p-0">
         <div className="border-b border-border px-4 py-3">
-          <h3 className="text-body font-semibold text-text-primary">Data mingguan · {label}</h3>
+          <h3 className="text-body font-semibold text-text-primary">{t("Data mingguan ·")} {label}</h3>
         </div>
         <table className="w-full min-w-[720px] border-collapse">
           <thead>
@@ -137,10 +141,10 @@ export function CotHistoryClient({ label, points }: { label: string; points: Cot
             {pageRows.map((p, i) => (
               <tr key={p.date} className="border-b border-border last:border-0 hover:bg-surface-hover">
                 <td className="px-4 py-3 text-body-sm text-text-primary">
-                  {formatDateID(p.date)}
+                  {formatDateLocal(p.date, locale)}
                   {page === 1 && i === 0 && (
                     <span className="ml-2 rounded-full bg-primary-subtle px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                      Terbaru
+                      {t("Terbaru")}
                     </span>
                   )}
                 </td>
@@ -166,7 +170,7 @@ export function CotHistoryClient({ label, points }: { label: string; points: Cot
 
         <div className="flex items-center justify-between border-t border-border px-4 py-3">
           <p className="text-caption text-text-muted">
-            Menampilkan {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, tableRows.length)} dari {tableRows.length} minggu
+            {t("Menampilkan")} {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, tableRows.length)} {t("dari")} {tableRows.length} {t("minggu")}
           </p>
           <div className="flex gap-1">
             <button
