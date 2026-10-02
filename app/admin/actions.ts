@@ -1,5 +1,7 @@
 "use server";
 
+import { getT, getUserT } from "@/lib/i18n/server";
+import { dateLocale } from "@/lib/i18n/dictionary";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUser, notifyAllUsers } from "@/lib/notifications";
@@ -35,12 +37,13 @@ export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEM
     .eq("id", userId);
 
   if ((tier === "VIP" || tier === "MEMBERSHIP") && targetProfile?.tier !== tier) {
+    const { t: tu } = await getUserT(supabase, userId);
     await notifyUser({
       userId,
       email: targetProfile?.email ?? null,
       type: "TIER_UPGRADE",
-      title: `Selamat! Akun kamu sekarang ${tier}`,
-      message: `Akun kamu berhasil di-upgrade ke tier ${tier}. Nikmati semua fitur yang terbuka sekarang!`,
+      title: tu("Selamat! Akun kamu sekarang {tier}", { tier }),
+      message: tu("Akun kamu berhasil di-upgrade ke tier {tier}. Nikmati semua fitur yang terbuka sekarang!", { tier }),
     });
   }
 
@@ -133,11 +136,12 @@ function optionalNumber(raw: unknown): number | null {
   return n;
 }
 
-function failure(err: unknown): ActionResult {
-  return { ok: false, message: err instanceof Error ? err.message : "Terjadi kesalahan." };
+function failure(err: unknown, t: (key: string) => string): ActionResult {
+  return { ok: false, message: t(err instanceof Error ? err.message : "Terjadi kesalahan.") };
 }
 
 export async function addSignal(formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
   const supabase = await assertIsAdmin();
 
   try {
@@ -149,15 +153,15 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
     const stopLoss = optionalNumber(formData.get("stop_loss"));
     const riskPercent = optionalNumber(formData.get("risk_percent")) ?? 2;
 
-    if (!symbol) return { ok: false, message: "Symbol wajib diisi." };
-    if (side !== "BUY" && side !== "SELL") return { ok: false, message: "Side harus BUY atau SELL." };
-    if (entryPrice === null || entryPrice <= 0) return { ok: false, message: "Entry price tidak valid." };
-    if (!ALL_SIGNAL_STATUSES.includes(status)) return { ok: false, message: "Status tidak valid." };
+    if (!symbol) return { ok: false, message: t("Symbol wajib diisi.") };
+    if (side !== "BUY" && side !== "SELL") return { ok: false, message: t("Side harus BUY atau SELL.") };
+    if (entryPrice === null || entryPrice <= 0) return { ok: false, message: t("Entry price tidak valid.") };
+    if (!ALL_SIGNAL_STATUSES.includes(status)) return { ok: false, message: t("Status tidak valid.") };
 
     // Tanggal sinyal: kosong = sekarang (perilaku lama). Isi untuk memasukkan sinyal lama.
     const postedAt = parseWibDateTime(formData.get("posted_at")) ?? new Date();
     if (postedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
-      return { ok: false, message: "Tanggal sinyal tidak boleh di masa depan." };
+      return { ok: false, message: t("Tanggal sinyal tidak boleh di masa depan.") };
     }
 
     const isTerminal = TERMINAL_SIGNAL_STATUSES.includes(status);
@@ -169,10 +173,10 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
       // Tanggal ditutup kosong = sama dengan tanggal sinyal (umumnya untuk sinyal lama).
       closedAt = parseWibDateTime(formData.get("closed_at")) ?? postedAt;
       if (closedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
-        return { ok: false, message: "Tanggal ditutup tidak boleh di masa depan." };
+        return { ok: false, message: t("Tanggal ditutup tidak boleh di masa depan.") };
       }
       if (closedAt.getTime() < postedAt.getTime()) {
-        return { ok: false, message: "Tanggal ditutup tidak boleh sebelum tanggal sinyal." };
+        return { ok: false, message: t("Tanggal ditutup tidak boleh sebelum tanggal sinyal.") };
       }
     }
 
@@ -185,8 +189,8 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
           ok: false,
           message:
             status === "PARTIAL"
-              ? "Harga penutupan wajib diisi untuk status PARTIAL."
-              : `Isi harga penutupan, atau isi ${status === "TP" ? "Take Profit" : "Stop Loss"} di atas.`,
+              ? t("Harga penutupan wajib diisi untuk status PARTIAL.")
+              : t("Isi harga penutupan, atau isi {level} di atas.", { level: status === "TP" ? "Take Profit" : "Stop Loss" }),
         };
       }
       currentPrice = closing;
@@ -214,9 +218,9 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
       posted_at: postedAt.toISOString(),
       closed_at: closedAt ? closedAt.toISOString() : null,
     });
-    if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
+    if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
   } catch (err) {
-    return failure(err);
+    return failure(err, t);
   }
 
   revalidatePath("/admin/signals");
@@ -231,9 +235,10 @@ export async function updateSignalStatus(
   resultPips: number | null,
   closedAtInput: string | null = null
 ): Promise<ActionResult> {
+  const { t } = await getT();
   const supabase = await assertIsAdmin();
 
-  if (!ALL_SIGNAL_STATUSES.includes(status)) return { ok: false, message: "Status tidak valid." };
+  if (!ALL_SIGNAL_STATUSES.includes(status)) return { ok: false, message: t("Status tidak valid.") };
 
   const isTerminal = TERMINAL_SIGNAL_STATUSES.includes(status);
   let closedAt: Date | null = null;
@@ -243,15 +248,15 @@ export async function updateSignalStatus(
       // Kosong = sekarang (perilaku lama). Isi untuk sinyal lama yang ditutup di tanggal lain.
       closedAt = parseWibDateTime(closedAtInput) ?? new Date();
       if (closedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
-        return { ok: false, message: "Tanggal ditutup tidak boleh di masa depan." };
+        return { ok: false, message: t("Tanggal ditutup tidak boleh di masa depan.") };
       }
       const { data: existing } = await supabase.from("signals").select("posted_at").eq("id", signalId).single();
       if (existing && closedAt.getTime() < new Date(existing.posted_at).getTime()) {
-        return { ok: false, message: "Tanggal ditutup tidak boleh sebelum tanggal sinyal dibuat." };
+        return { ok: false, message: t("Tanggal ditutup tidak boleh sebelum tanggal sinyal dibuat.") };
       }
     }
   } catch (err) {
-    return failure(err);
+    return failure(err, t);
   }
 
   const updatePayload: Record<string, unknown> = {
@@ -271,7 +276,7 @@ export async function updateSignalStatus(
   }
 
   const { error } = await supabase.from("signals").update(updatePayload).eq("id", signalId);
-  if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
+  if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
 
   revalidatePath("/admin/signals");
   revalidatePath("/signals");
@@ -373,12 +378,13 @@ export async function approveVipRequest(requestId: string, userId: string) {
 
   await supabase.from("profiles").update({ tier: "VIP" }).eq("id", userId);
 
+  const { t: tu } = await getUserT(supabase, userId);
   await notifyUser({
     userId,
     email: targetProfile?.email ?? null,
     type: "TIER_UPGRADE",
-    title: "Selamat! Akun kamu sekarang VIP",
-    message: "Pengajuan upgrade VIP kamu disetujui. Nikmati Signals & Positioning sekarang!",
+    title: tu("Selamat! Akun kamu sekarang VIP"),
+    message: tu("Pengajuan upgrade VIP kamu disetujui. Nikmati Signals & Positioning sekarang!"),
   });
 
   revalidatePath("/admin/vip-requests");
@@ -397,6 +403,7 @@ export async function rejectVipRequest(requestId: string) {
 }
 
 export async function sendAdminNotification(formData: FormData) {
+  const { t } = await getT();
   const supabase = await assertIsAdmin();
 
   const target = String(formData.get("target"));
@@ -411,14 +418,14 @@ export async function sendAdminNotification(formData: FormData) {
 
   if (target === "ALL") {
     await notifyAllUsers({ type: "ANNOUNCEMENT", title, message, channels });
-    return { message: "Notifikasi terkirim ke semua user." };
+    return { message: t("Notifikasi terkirim ke semua user.") };
   }
 
   const email = String(formData.get("email") ?? "");
   const { data: targetProfile } = await supabase.from("profiles").select("id, email").eq("email", email).single();
 
   if (!targetProfile) {
-    return { message: "User dengan email itu nggak ketemu." };
+    return { message: t("User dengan email itu nggak ketemu.") };
   }
 
   await notifyUser({
@@ -430,23 +437,24 @@ export async function sendAdminNotification(formData: FormData) {
     channels,
   });
 
-  return { message: `Notifikasi terkirim ke ${email}.` };
+  return { message: t("Notifikasi terkirim ke {email}.", { email }) };
 }
 
 // Testing khusus mode Sandbox Pakasir — jangan pakai di mode Live/Production.
 export async function simulateSandboxPayment(orderId: string, amount: number) {
+  const { t } = await getT();
   await assertIsAdmin();
 
   const result = await simulatePakasirPayment({ orderId, amount });
 
   if (!result.ok) {
-    return { success: false, message: `Gagal simulasi: ${JSON.stringify(result.data)}` };
+    return { success: false, message: t("Gagal simulasi: {detail}", { detail: JSON.stringify(result.data) }) };
   }
 
   revalidatePath("/admin/pakasir-sandbox");
   return {
     success: true,
-    message: "Simulasi terkirim ke Pakasir. Webhook biasanya masuk dalam beberapa detik — refresh halaman ini.",
+    message: t("Simulasi terkirim ke Pakasir. Webhook biasanya masuk dalam beberapa detik — refresh halaman ini."),
   };
 }
 
@@ -480,16 +488,19 @@ export async function approveUsdtPayment(paymentId: string, userId: string, plan
     .update({ tier, vip_expires_at: newExpiry ? newExpiry.toISOString() : null })
     .eq("id", userId);
 
+  const { t: tu, locale: userLocale } = await getUserT(supabase, userId);
   const expiryLabel = newExpiry
-    ? `sampai ${newExpiry.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`
-    : "selamanya (lifetime)";
+    ? tu("sampai {date}", {
+        date: newExpiry.toLocaleDateString(dateLocale(userLocale), { day: "numeric", month: "long", year: "numeric" }),
+      })
+    : tu("selamanya (lifetime)");
 
   await notifyUser({
     userId,
     email: targetProfile?.email ?? null,
     type: "TIER_UPGRADE",
-    title: `Pembayaran ${plan} berhasil dikonfirmasi`,
-    message: `Pembayaran USDT kamu sudah diverifikasi admin. Akun kamu sekarang aktif sebagai ${tier} ${expiryLabel}.`,
+    title: tu("Pembayaran {plan} berhasil dikonfirmasi", { plan }),
+    message: tu("Pembayaran USDT kamu sudah diverifikasi admin. Akun kamu sekarang aktif sebagai {tier} {expiry}.", { tier, expiry: expiryLabel }),
   });
 
   revalidatePath("/admin/usdt-payments");
