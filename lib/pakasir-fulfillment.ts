@@ -1,3 +1,5 @@
+import { getUserT } from "@/lib/i18n/server";
+import { dateLocale } from "@/lib/i18n/dictionary";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getPakasirTransactionDetail } from "@/lib/pakasir";
 import { notifyUser } from "@/lib/notifications";
@@ -76,9 +78,12 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
     return { status: "PENDING" };
   }
 
+  const { t: tu, locale: userLocale } = await getUserT(service, payment.user_id);
   const expiryLabel = newExpiry
-    ? `sampai ${newExpiry.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`
-    : "selamanya (lifetime)";
+    ? tu("sampai {date}", {
+        date: newExpiry.toLocaleDateString(dateLocale(userLocale), { day: "numeric", month: "long", year: "numeric" }),
+      })
+    : tu("selamanya (lifetime)");
 
   // User sudah terlanjur di-upgrade di titik ini, jadi gagal kirim notifikasi
   // tidak boleh membatalkan apa pun.
@@ -87,8 +92,8 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
       userId: payment.user_id,
       email: profile?.email ?? null,
       type: "TIER_UPGRADE",
-      title: `Pembayaran ${plan} berhasil`,
-      message: `Pembayaran kamu sudah kami terima. Akun kamu sekarang aktif sebagai ${tier} ${expiryLabel}.`,
+      title: tu("Pembayaran {plan} berhasil", { plan }),
+      message: tu("Pembayaran kamu sudah kami terima. Akun kamu sekarang aktif sebagai {tier} {expiry}.", { tier, expiry: expiryLabel }),
       client: service,
     });
   } catch (err) {
