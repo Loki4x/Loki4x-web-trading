@@ -1,4 +1,6 @@
-export function PageLoader({ fullScreen = false }: { fullScreen?: boolean }) {
+import { getT } from "@/lib/i18n/server";
+export async function PageLoader({ fullScreen = false }: { fullScreen?: boolean }) {
+  const { t } = await getT();
   return (
     <div
       className={
@@ -7,8 +9,8 @@ export function PageLoader({ fullScreen = false }: { fullScreen?: boolean }) {
           : "flex min-h-[60vh] w-full items-center justify-center"
       }
     >
-      <div className="dots-loader" role="status" aria-label="Memuat...">
-        <span className="sr-only">Memuat...</span>
+      <div className="dots-loader" role="status" aria-label={t("Memuat...")}>
+        <span className="sr-only">{t("Memuat...")}</span>
       </div>
     </div>
   );
