@@ -1,6 +1,7 @@
+import { getT } from "@/lib/i18n/server";
+import { dateLocale } from "@/lib/i18n/dictionary";
 import type { AccountCurrency } from "@/lib/types";
 
-const DAY_LABELS = ["S", "S", "R", "K", "J", "S", "M"]; // Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu
 
 interface DayPnl {
   day: number;
@@ -22,7 +23,7 @@ function formatCompactAmount(value: number, currency: AccountCurrency) {
   return `${prefix}${scaled.toLocaleString(locale)}k`;
 }
 
-export function DailyPnlHeatmap({
+export async function DailyPnlHeatmap({
   year,
   month,
   days,
@@ -33,6 +34,12 @@ export function DailyPnlHeatmap({
   days: DayPnl[];
   currency?: AccountCurrency;
 }) {
+  const { locale } = await getT();
+  const dateLoc = dateLocale(locale);
+  // 1 Jan 2024 adalah hari Senin -> label hari Senin..Minggu mengikuti bahasa
+  const DAY_LABELS = Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 1 + i).toLocaleDateString(dateLoc, { weekday: "narrow" })
+  );
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 = Minggu .. 6 = Sabtu
   const leadingBlanks = (firstDayOfWeek + 6) % 7; // geser biar mingguan mulai dari Senin
@@ -45,7 +52,7 @@ export function DailyPnlHeatmap({
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
 
-  const monthLabel = new Date(year, month, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  const monthLabel = new Date(year, month, 1).toLocaleDateString(dateLoc, { month: "long", year: "numeric" });
 
   function intensityClass(pnl: number) {
     const ratio = Math.abs(pnl) / maxAbs;
