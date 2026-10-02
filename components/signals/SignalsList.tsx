@@ -16,31 +16,38 @@ import {
   isTerminalStatus,
 } from "@/lib/signal-metrics";
 import type { Signal } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
+import type { DictKey } from "@/lib/i18n/dictionary";
 
 type CategoryFilter = "ALL" | AssetCategory;
 type PositionTab = "ACTIVE" | "DONE";
 
-const CATEGORY_FILTERS: { key: CategoryFilter; label: string }[] = [
-  { key: "ALL", label: "Semua" },
-  { key: "CURRENCY", label: "Currency" },
-  { key: "COMMODITY", label: "Commodity" },
-  { key: "INDEX", label: "Index" },
-  { key: "CRYPTO", label: "Crypto" },
+const CATEGORY_FILTERS: { key: CategoryFilter; label: DictKey | null; raw?: string }[] = [
+  { key: "ALL", label: "signals.filter.all" },
+  { key: "CURRENCY", label: null, raw: "Currency" },
+  { key: "COMMODITY", label: null, raw: "Commodity" },
+  { key: "INDEX", label: null, raw: "Index" },
+  { key: "CRYPTO", label: null, raw: "Crypto" },
 ];
 
-function daysAgoLabel(dateString: string): string {
+function daysAgoLabel(dateString: string, t: (k: DictKey, v?: Record<string, string | number>) => string): string {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-  if (days <= 0) return "Hari ini";
-  return `${days}d lalu`;
+  if (days <= 0) return t("common.today");
+  return t("common.daysAgo", { n: days });
 }
 
-function priceDistancePercent(reference: number, target: number): string {
+function priceDistancePercent(
+  reference: number,
+  target: number,
+  t: (k: DictKey, v?: Record<string, string | number>) => string
+): string {
   const pct = (Math.abs(target - reference) / reference) * 100;
-  return `${pct.toFixed(2)}% dari harga`;
+  return t("signals.fromPrice", { pct: pct.toFixed(2) });
 }
 
 export function SignalsList({ signals }: { signals: Signal[] }) {
+  const t = useT();
   const [category, setCategory] = useState<CategoryFilter>("ALL");
   const [positionTab, setPositionTab] = useState<PositionTab>("ACTIVE");
   const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
@@ -65,7 +72,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
     <div>
       {/* Filter jenis pasar */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {CATEGORY_FILTERS.map(({ key, label }) => (
+        {CATEGORY_FILTERS.map(({ key, label, raw }) => (
           <button
             key={key}
             onClick={() => setCategory(key)}
@@ -74,7 +81,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
               category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
             )}
           >
-            {label}
+            {label ? t(label) : raw}
           </button>
         ))}
       </div>
@@ -82,54 +89,54 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
       {/* Stats cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Growth</p>
+          <p className="text-caption text-text-secondary">{t("signals.totalGrowth")}</p>
           <p className={cx("text-h3", stats.totalGrowthPercent >= 0 ? "text-success" : "text-error")}>
             {stats.totalGrowthPercent >= 0 ? "+" : ""}
             {stats.totalGrowthPercent.toFixed(1)}%
           </p>
           <p className="text-caption text-text-muted">
             {stats.monthGrowthPercent >= 0 ? "+" : ""}
-            {stats.monthGrowthPercent.toFixed(1)}% bulan ini
+            {stats.monthGrowthPercent.toFixed(1)}% {t("signals.thisMonth")}
           </p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Win Rate</p>
+          <p className="text-caption text-text-secondary">{t("signals.winRate")}</p>
           <p className="text-h3 text-text-primary">{stats.winRate.toFixed(0)}%</p>
           <p className="text-caption text-text-muted">
-            {stats.wins} profit · {stats.losses} loss
+            {t("signals.profitLoss", { wins: stats.wins, losses: stats.losses })}
           </p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Drawdown Maksimum</p>
+          <p className="text-caption text-text-secondary">{t("signals.maxDrawdown")}</p>
           <p className="text-h3 text-error">{stats.maxDrawdownPercent.toFixed(1)}%</p>
-          <p className="text-caption text-text-muted">penurunan portofolio terburuk</p>
+          <p className="text-caption text-text-muted">{t("signals.maxDrawdownDesc")}</p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Sinyal Aktif</p>
+          <p className="text-caption text-text-secondary">{t("signals.active")}</p>
           <p className="text-h3 text-text-primary">{stats.activeCount}</p>
-          <p className="text-caption text-text-muted">menunggu entry / berjalan</p>
+          <p className="text-caption text-text-muted">{t("signals.activeDesc")}</p>
         </div>
       </div>
 
       {/* Ringkasan pips, ditampilkan terpisah karena satuannya beda (pips, bukan %) */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Pips Diperoleh</p>
+          <p className="text-caption text-text-secondary">{t("signals.pipsEarned")}</p>
           <p className={cx("text-h3", stats.totalPips >= 0 ? "text-success" : "text-error")}>
             {stats.totalPips >= 0 ? "+" : ""}
             {stats.totalPips.toFixed(1)} pips
           </p>
-          <p className="text-caption text-text-muted">bersih setelah SL</p>
+          <p className="text-caption text-text-muted">{t("signals.pipsEarnedDesc")}</p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Pips Profit (TP)</p>
+          <p className="text-caption text-text-secondary">{t("signals.pipsProfit")}</p>
           <p className="text-h3 text-success">
             +{stats.profitPips.toFixed(1)} pips
           </p>
-          <p className="text-caption text-text-muted">tanpa dikurangi SL</p>
+          <p className="text-caption text-text-muted">{t("signals.pipsProfitDesc")}</p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Pips Kerugian (SL)</p>
+          <p className="text-caption text-text-secondary">{t("signals.pipsLoss")}</p>
           <p className="text-h3 text-error">
             {stats.lossPips > 0 ? "-" : ""}
             {stats.lossPips.toFixed(1)} pips
@@ -151,7 +158,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
             positionTab === "ACTIVE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
           )}
         >
-          Aktif ({activeSignals.length})
+          {t("signals.tabActive")} ({activeSignals.length})
         </button>
         <button
           onClick={() => setPositionTab("DONE")}
@@ -160,23 +167,35 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
             positionTab === "DONE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
           )}
         >
-          Selesai ({doneSignals.length})
+          {t("signals.tabDone")} ({doneSignals.length})
         </button>
       </div>
 
       {sortedVisible.length === 0 ? (
         <div className="card py-12 text-center text-body-sm text-text-muted">
-          {positionTab === "ACTIVE" ? "Belum ada sinyal aktif." : "Belum ada sinyal yang selesai."}
+          {positionTab === "ACTIVE" ? t("signals.emptyActive") : t("signals.emptyDone")}
         </div>
       ) : (
         <div className="card overflow-x-auto !p-0">
           <table className="w-full min-w-[920px] border-collapse">
             <thead>
               <tr className="border-b border-border bg-surface text-left">
-                {["Aset", "Arah", "Entry", "Hasil", "Stop Loss", "Take Profit", "Status", "Dibuka", "Analisa"].map(
+                {(
+                  [
+                    "signals.col.asset",
+                    "signals.col.side",
+                    "signals.col.entry",
+                    "signals.col.result",
+                    "signals.col.sl",
+                    "signals.col.tp",
+                    "signals.col.status",
+                    "signals.col.opened",
+                    "signals.col.analysis",
+                  ] as DictKey[]
+                ).map(
                   (h) => (
                     <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
-                      {h}
+                      {t(h)}
                     </th>
                   )
                 )}
@@ -212,7 +231,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                         <>
                           <p className="tabular-nums text-body-sm text-error">{formatPrice(s.stop_loss, s.symbol)}</p>
                           <p className="text-caption text-text-muted">
-                            {priceDistancePercent(s.entry_price, s.stop_loss)}
+                            {priceDistancePercent(s.entry_price, s.stop_loss, t)}
                           </p>
                         </>
                       ) : (
@@ -224,7 +243,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                         <>
                           <p className="tabular-nums text-body-sm text-success">{formatPrice(s.take_profit, s.symbol)}</p>
                           <p className="text-caption text-text-muted">
-                            {priceDistancePercent(s.entry_price, s.take_profit)}
+                            {priceDistancePercent(s.entry_price, s.take_profit, t)}
                           </p>
                         </>
                       ) : (
@@ -238,7 +257,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-body-sm text-text-secondary">{formatDate(s.posted_at)}</p>
-                      <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at)}</p>
+                      <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at, t)}</p>
                     </td>
                     <td className="px-4 py-3">
                       {s.chart_image_url || s.notes ? (
@@ -247,7 +266,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                           className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
                         >
                           <ImageIcon className="h-4 w-4" />
-                          Lihat
+                          {t("signals.view")}
                         </button>
                       ) : (
                         <span className="text-body-sm text-text-muted">—</span>
@@ -262,8 +281,7 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
       )}
 
       <p className="mt-4 text-caption text-text-muted">
-        Performa disimulasikan dengan risiko tetap per sinyal (default 2%, bisa diatur per sinyal). Kinerja masa lalu
-        tidak menjamin hasil di masa depan.
+        {t("signals.disclaimer")}
       </p>
 
       {analysisSignal && (
