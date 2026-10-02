@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
 import { formatDate, formatTime } from "@/lib/utils";
 import type { LoginActivity } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 export function SecurityPanel({
   loginActivity,
@@ -21,6 +22,7 @@ export function SecurityPanel({
   currentIp: string;
   hasPassword: boolean;
 }) {
+  const t = useT();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [signOutOthers, setSignOutOthers] = useState(true);
@@ -32,7 +34,7 @@ export function SecurityPanel({
     const result = await changePassword(formData);
     setSaving(false);
     if (result.success) {
-      setMessage({ type: "success", text: "Kata sandi berhasil diubah." });
+      setMessage({ type: "success", text: t("security.saved") });
       setFormKey((k) => k + 1); // reset form fields
     } else {
       setMessage({ type: "error", text: result.message });
@@ -42,22 +44,22 @@ export function SecurityPanel({
   return (
     <div className="flex flex-col gap-6">
       <div className="card !p-6">
-        <h2 className="text-h3 text-text-primary">{hasPassword ? "Ubah kata sandi" : "Buat kata sandi"}</h2>
+        <h2 className="text-h3 text-text-primary">{hasPassword ? t("security.changeTitle") : t("security.createTitle")}</h2>
         <p className="mb-5 text-body-sm text-text-secondary">
           {hasPassword
-            ? "Pastikan kata sandi baru berbeda dari yang lama dan cukup kuat."
-            : "Akun Anda login pakai Google dan belum punya kata sandi. Buat satu supaya bisa juga login pakai email + kata sandi."}
+            ? t("security.changeDesc")
+            : t("security.createDesc")}
         </p>
 
         <form key={formKey} action={handleSubmit} className="flex flex-col gap-4">
-          {hasPassword && <Input name="current_password" type="password" label="Kata sandi saat ini" required />}
-          <Input name="new_password" type="password" label="Kata sandi baru" required />
-          <Input name="confirm_password" type="password" label="Konfirmasi kata sandi baru" required />
+          {hasPassword && <Input name="current_password" type="password" label={t("security.current")} required />}
+          <Input name="new_password" type="password" label={t("security.new")} required />
+          <Input name="confirm_password" type="password" label={t("security.confirm")} required />
 
           <label className="flex items-center gap-3">
-            <Switch checked={signOutOthers} onChange={setSignOutOthers} label="Keluar dari semua sesi lain" />
+            <Switch checked={signOutOthers} onChange={setSignOutOthers} label={t("security.signOutOthers")} />
             <input type="hidden" name="sign_out_others" value={signOutOthers ? "on" : ""} />
-            <span className="text-body-sm text-text-secondary">Keluar dari semua sesi lain</span>
+            <span className="text-body-sm text-text-secondary">{t("security.signOutOthers")}</span>
           </label>
 
           {message && (
@@ -67,13 +69,13 @@ export function SecurityPanel({
           )}
 
           <Button type="submit" disabled={saving} className="w-fit">
-            {saving ? "Menyimpan..." : hasPassword ? "Ubah kata sandi" : "Buat kata sandi"}
+            {saving ? t("common.saving") : hasPassword ? t("security.changeTitle") : t("security.createTitle")}
           </Button>
         </form>
       </div>
 
       <div className="card !p-6">
-        <h3 className="mb-4 text-body font-semibold text-text-primary">Perangkat ini</h3>
+        <h3 className="mb-4 text-body font-semibold text-text-primary">{t("security.thisDevice")}</h3>
         <div className="flex items-center gap-3 rounded-lg border border-border p-4">
           <Monitor className="h-5 w-5 shrink-0 text-primary" />
           <div>
@@ -81,20 +83,20 @@ export function SecurityPanel({
               {currentDevice.browser}
               {currentDevice.os ? ` · ${currentDevice.os}` : ""}
               <span className="ml-2 rounded-full bg-primary-subtle px-1.5 py-0.5 text-badge font-semibold text-primary">
-                Perangkat ini
+                {t("security.thisDevice")}
               </span>
             </p>
             <p className="text-caption text-text-muted">
-              {currentIp || "IP tidak diketahui"} · Sekarang aktif
+              {currentIp || t("security.unknownIp")} · {t("security.activeNow")}
             </p>
           </div>
         </div>
       </div>
 
       <div className="card !p-6">
-        <h3 className="mb-4 text-body font-semibold text-text-primary">Aktivitas masuk terbaru</h3>
+        <h3 className="mb-4 text-body font-semibold text-text-primary">{t("security.recent")}</h3>
         {loginActivity.length === 0 ? (
-          <p className="text-body-sm text-text-muted">Belum ada riwayat aktivitas masuk.</p>
+          <p className="text-body-sm text-text-muted">{t("security.noActivity")}</p>
         ) : (
           <div className="flex flex-col divide-y divide-border">
             {loginActivity.map((entry) => {
@@ -106,12 +108,12 @@ export function SecurityPanel({
                       {formatDate(entry.created_at)}, {formatTime(entry.created_at)}
                     </p>
                     <p className="text-caption text-text-muted">
-                      {entry.ip || "IP tidak diketahui"} · {browser}
+                      {entry.ip || t("security.unknownIp")} · {browser}
                       {os ? ` · ${os}` : ""}
                     </p>
                   </div>
                   <span className="rounded-full bg-success-subtle px-1.5 py-0.5 text-badge font-semibold leading-none text-success">
-                    Berhasil
+                    {t("security.success")}
                   </span>
                 </div>
               );
