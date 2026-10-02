@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { approveVipRequest, rejectVipRequest } from "@/app/admin/actions";
+import { useT } from "@/lib/i18n/client";
 
 interface RequestRow {
   id: string;
@@ -17,6 +18,7 @@ interface RequestRow {
 }
 
 export function VipRequestsTable({ requests }: { requests: RequestRow[] }) {
+  const t = useT();
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export function VipRequestsTable({ requests }: { requests: RequestRow[] }) {
   }
 
   if (requests.length === 0) {
-    return <div className="card text-body-sm text-text-muted">Belum ada pengajuan.</div>;
+    return <div className="card text-body-sm text-text-muted">{t("Belum ada pengajuan.")}</div>;
   }
 
   return (
