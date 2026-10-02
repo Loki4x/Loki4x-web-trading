@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sun, Moon, Monitor } from "lucide-react";
 import { cx } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 const STORAGE_KEY = "loki4x-theme";
 type ThemeMode = "light" | "dark" | "system";
@@ -18,6 +19,7 @@ function applyTheme(mode: ThemeMode) {
 }
 
 export function AppearancePanel() {
+  const t = useT();
   const [mode, setMode] = useState<ThemeMode | null>(null);
 
   useEffect(() => {
@@ -51,17 +53,17 @@ export function AppearancePanel() {
   }
 
   const options: { key: ThemeMode; label: string; icon: typeof Sun }[] = [
-    { key: "light", label: "Terang", icon: Sun },
-    { key: "dark", label: "Gelap", icon: Moon },
-    { key: "system", label: "Sistem", icon: Monitor },
+    { key: "light", label: t("appearance.light"), icon: Sun },
+    { key: "dark", label: t("appearance.dark"), icon: Moon },
+    { key: "system", label: t("appearance.system"), icon: Monitor },
   ];
 
   return (
     <div className="card !p-6">
-      <h2 className="text-h3 text-text-primary">Tampilan</h2>
-      <p className="mb-5 text-body-sm text-text-secondary">Perubahan berlaku secara instan dan disimpan otomatis.</p>
+      <h2 className="text-h3 text-text-primary">{t("appearance.title")}</h2>
+      <p className="mb-5 text-body-sm text-text-secondary">{t("appearance.subtitle")}</p>
 
-      <p className="mb-3 text-caption font-semibold uppercase tracking-wide text-text-muted">Tema</p>
+      <p className="mb-3 text-caption font-semibold uppercase tracking-wide text-text-muted">{t("appearance.theme")}</p>
       <div className="grid grid-cols-3 gap-3">
         {options.map(({ key, label, icon: Icon }) => (
           <button
