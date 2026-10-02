@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,6 +22,7 @@ const links = [
 ];
 
 export function AdminSidebar() {
+  const t = useT();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -52,7 +54,7 @@ export function AdminSidebar() {
     <>
       {/* Top bar - persistent across mobile and desktop */}
       <div className="fixed inset-x-0 top-0 z-30 flex h-topbar items-center justify-between border-b border-border bg-surface px-4 lg:pl-sidebar">
-        <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label="Open menu">
+        <button onClick={() => setMobileOpen(true)} className="text-text-primary lg:hidden" aria-label={t("Open menu")}>
           <Menu className="h-6 w-6" />
         </button>
 
@@ -60,7 +62,7 @@ export function AdminSidebar() {
           <button
             onClick={() => setProfileOpen((prev) => !prev)}
             className="text-text-primary"
-            aria-label="Profile & Settings"
+            aria-label={t("Profile & Settings")}
           >
             <CircleUserRound className="h-6 w-6" />
           </button>
@@ -121,7 +123,7 @@ export function AdminSidebar() {
               className={linkClass(pathname === href)}
             >
               <Icon className="h-4 w-4" />
-              {label}
+              {t(label)}
             </Link>
           ))}
         </nav>
