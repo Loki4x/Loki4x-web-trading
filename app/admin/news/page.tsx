@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { NewsAdminTable } from "@/components/admin/NewsAdminTable";
 import type { NewsEvent } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export default async function AdminNewsPage() {
+  const { t } = await getT();
   const supabase = await createClient();
   const { data: news } = await supabase
     .from("news")
@@ -13,7 +15,7 @@ export default async function AdminNewsPage() {
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">Economic News</h1>
-        <p className="text-body-sm text-text-secondary">Kelola kalender berita ekonomi.</p>
+        <p className="text-body-sm text-text-secondary">{t("Kelola kalender berita ekonomi.")}</p>
       </div>
 
       <NewsAdminTable events={(news ?? []) as NewsEvent[]} />
