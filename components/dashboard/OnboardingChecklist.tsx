@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check, Circle } from "lucide-react";
+import { getT } from "@/lib/i18n/server";
 
 interface Step {
   label: string;
@@ -8,13 +9,14 @@ interface Step {
   href: string;
 }
 
-export function OnboardingChecklist({ steps }: { steps: Step[] }) {
+export async function OnboardingChecklist({ steps }: { steps: Step[] }) {
+  const { t } = await getT();
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
     <div className="card mb-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-h3 text-text-primary">Langkah Awal</h2>
+        <h2 className="text-h3 text-text-primary">{t("Langkah Awal")}</h2>
         <span className="text-body-sm text-text-muted">{doneCount}/{steps.length}</span>
       </div>
 
@@ -39,9 +41,9 @@ export function OnboardingChecklist({ steps }: { steps: Step[] }) {
             )}
             <div>
               <p className={`text-body-sm font-medium ${step.done ? "text-text-muted line-through" : "text-text-primary"}`}>
-                {step.label}
+                {t(step.label)}
               </p>
-              <p className="text-caption text-text-muted">{step.description}</p>
+              <p className="text-caption text-text-muted">{t(step.description)}</p>
             </div>
           </Link>
         ))}
