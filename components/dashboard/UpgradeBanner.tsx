@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import type { Tier } from "@/lib/tier";
+import { getT } from "@/lib/i18n/server";
 
 const nextTierCopy: Record<Exclude<Tier, "MEMBERSHIP">, { title: string; desc: string }> = {
   FREE: {
@@ -13,7 +14,8 @@ const nextTierCopy: Record<Exclude<Tier, "MEMBERSHIP">, { title: string; desc: s
   },
 };
 
-export function UpgradeBanner({ tier }: { tier: Tier }) {
+export async function UpgradeBanner({ tier }: { tier: Tier }) {
+  const { t } = await getT();
   if (tier === "MEMBERSHIP") return null;
   const copy = nextTierCopy[tier];
 
@@ -24,12 +26,12 @@ export function UpgradeBanner({ tier }: { tier: Tier }) {
           <Sparkles className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <p className="text-body font-semibold text-text-primary">{copy.title}</p>
-          <p className="mt-0.5 text-body-sm text-text-secondary">{copy.desc}</p>
+          <p className="text-body font-semibold text-text-primary">{t(copy.title)}</p>
+          <p className="mt-0.5 text-body-sm text-text-secondary">{t(copy.desc)}</p>
         </div>
       </div>
       <Link href="/upgrade" className="btn-primary shrink-0 whitespace-nowrap">
-        Ambil Paket
+        {t("Ambil Paket")}
       </Link>
     </div>
   );
