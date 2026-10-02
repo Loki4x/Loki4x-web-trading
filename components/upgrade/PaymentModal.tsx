@@ -11,6 +11,7 @@ import {
 } from "@/app/(dashboard)/upgrade/actions";
 import { BANK_VA_METHODS, PLAN_PRICE_IDR, type PakasirMethod, type Plan } from "@/lib/pakasir-constants";
 import { USDT_WALLETS, USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
+import { useT } from "@/lib/i18n/client";
 
 type Tab = "QRIS" | "BANK" | "USDT";
 
@@ -35,6 +36,7 @@ const PLAN_LABEL: Record<Plan, string> = {
 };
 
 function CopyButton({ text }: { text: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -47,12 +49,13 @@ function CopyButton({ text }: { text: string }) {
       className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-caption font-medium text-text-secondary hover:bg-surface-hover"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-      {copied ? "Tersalin" : "Copy"}
+      {copied ? t("Tersalin") : t("Copy")}
     </button>
   );
 }
 
 function StatusWaiting({ orderId, onCompleted }: { orderId: string; onCompleted: () => void }) {
+  const t = useT();
   useEffect(() => {
     const interval = setInterval(async () => {
       const status = await checkInstantPaymentStatus(orderId);
@@ -67,12 +70,13 @@ function StatusWaiting({ orderId, onCompleted }: { orderId: string; onCompleted:
   return (
     <p className="mt-3 flex items-center gap-2 text-caption text-text-muted">
       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      Menunggu pembayaran — halaman ini otomatis update begitu pembayaran masuk.
+      {t("Menunggu pembayaran — halaman ini otomatis update begitu pembayaran masuk.")}
     </p>
   );
 }
 
 export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("QRIS");
   const [completed, setCompleted] = useState(false);
@@ -103,7 +107,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
       setQrisLoading(true);
       createInstantPayment({ plan, method: "qris" })
         .then(setQris)
-        .catch((e) => setQrisError(e instanceof Error ? e.message : "Gagal membuat QRIS"))
+        .catch((e) => setQrisError(e instanceof Error ? e.message : t("Gagal membuat QRIS")))
         .finally(() => setQrisLoading(false));
     }
   }, [tab, plan]);
@@ -115,7 +119,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
     setBankLoading(true);
     createInstantPayment({ plan, method })
       .then(setBankResult)
-      .catch((e) => setBankError(e instanceof Error ? e.message : "Gagal membuat Virtual Account"))
+      .catch((e) => setBankError(e instanceof Error ? e.message : t("Gagal membuat Virtual Account")))
       .finally(() => setBankLoading(false));
   }
 
@@ -135,7 +139,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
       await submitUsdtPayment(fd);
       setUsdtSubmitted(true);
     } catch (e) {
-      setUsdtError(e instanceof Error ? e.message : "Gagal mengirim bukti transfer");
+      setUsdtError(e instanceof Error ? e.message : t("Gagal mengirim bukti transfer"));
     } finally {
       setUsdtSubmitting(false);
     }
@@ -166,7 +170,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
           <div>
             <h2 className="text-h3 text-text-primary">Payment</h2>
             <p className="text-body-sm text-text-secondary">
-              {PLAN_LABEL[plan]} · {formatIDR(PLAN_PRICE_IDR[plan])}
+              {t(PLAN_LABEL[plan])} · {formatIDR(PLAN_PRICE_IDR[plan])}
             </p>
           </div>
           <button
@@ -183,19 +187,19 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success-subtle">
               <Check className="h-7 w-7 text-success" />
             </div>
-            <p className="text-h3 text-text-primary">Pembayaran berhasil!</p>
+            <p className="text-h3 text-text-primary">{t("Pembayaran berhasil!")}</p>
             <p className="text-body-sm text-text-secondary">
-              Akun kamu sekarang aktif sebagai {PLAN_LABEL[plan]}. Terima kasih!
+              {t("Akun kamu sekarang aktif sebagai")} {t(PLAN_LABEL[plan])}{t(". Terima kasih!")}
             </p>
             <button type="button" onClick={onClose} className="btn-primary mt-2">
-              Tutup
+              {t("Tutup")}
             </button>
           </div>
         ) : (
           <>
             <div className="mt-5 flex gap-1 rounded-xl border border-border p-1">
               {tabBtn("QRIS", "QRIS")}
-              {tabBtn("BANK", "Transfer Bank")}
+              {tabBtn("BANK", t("Transfer Bank"))}
               {tabBtn("USDT", "USDT")}
             </div>
 
@@ -203,7 +207,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
               <div className="mt-5">
                 {qrisLoading && (
                   <p className="flex items-center justify-center gap-2 py-10 text-body-sm text-text-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Membuat QRIS...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t("Membuat QRIS...")}
                   </p>
                 )}
                 {qrisError && <p className="py-6 text-center text-body-sm text-error">{qrisError}</p>}
@@ -213,7 +217,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                       <img src={qris.qrImage} alt="QRIS" className="h-64 w-64 rounded-lg border border-border bg-white p-2" />
                     )}
                     <p className="mt-3 text-body font-semibold text-text-primary">{formatIDR(qris.totalPayment)}</p>
-                    <p className="text-caption text-text-muted">Scan pakai aplikasi e-wallet/mobile banking apa saja</p>
+                    <p className="text-caption text-text-muted">{t("Scan pakai aplikasi e-wallet/mobile banking apa saja")}</p>
                     <StatusWaiting orderId={qris.orderId} onCompleted={handleCompleted} />
                   </div>
                 )}
@@ -222,7 +226,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
 
             {tab === "BANK" && (
               <div className="mt-5">
-                <p className="text-body-sm font-medium text-text-secondary">Pilih Bank</p>
+                <p className="text-body-sm font-medium text-text-secondary">{t("Pilih Bank")}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {BANK_VA_METHODS.map((b) => (
                     <button
@@ -243,13 +247,13 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
 
                 {bankLoading && (
                   <p className="flex items-center justify-center gap-2 py-8 text-body-sm text-text-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Membuat Virtual Account...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t("Membuat Virtual Account...")}
                   </p>
                 )}
                 {bankError && <p className="py-6 text-center text-body-sm text-error">{bankError}</p>}
                 {bankResult && (
                   <div className="mt-4 rounded-lg border border-border bg-surface-2 p-4">
-                    <p className="text-caption text-text-muted">Nomor Virtual Account</p>
+                    <p className="text-caption text-text-muted">{t("Nomor Virtual Account")}</p>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <p className="break-all text-body font-semibold text-text-primary">{bankResult.paymentNumber}</p>
                       <CopyButton text={bankResult.paymentNumber} />
@@ -269,10 +273,9 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warning-subtle">
                       <Check className="h-6 w-6 text-warning" />
                     </div>
-                    <p className="text-body font-semibold text-text-primary">Bukti transfer terkirim</p>
+                    <p className="text-body font-semibold text-text-primary">{t("Bukti transfer terkirim")}</p>
                     <p className="text-body-sm text-text-secondary">
-                      Admin akan verifikasi manual (biasanya beberapa jam). Kamu akan dapat notifikasi begitu akun
-                      kamu aktif.
+                      {t("Admin akan verifikasi manual (biasanya beberapa jam). Kamu akan dapat notifikasi begitu akun kamu aktif.")}
                     </p>
                   </div>
                 ) : (
@@ -296,29 +299,28 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                     </div>
 
                     <div className="mt-3 rounded-lg border border-warning/30 bg-warning-subtle px-3 py-2 text-caption text-warning">
-                      Kirim hanya USDT jaringan {USDT_WALLETS[network].label}. Kirim lewat jaringan lain bisa
-                      mengakibatkan dana hilang.
+                      {t("Kirim hanya USDT jaringan")} {USDT_WALLETS[network].label}{t(". Kirim lewat jaringan lain bisa mengakibatkan dana hilang.")}
                     </div>
 
                     <div className="mt-3 rounded-lg border border-border bg-surface-2 p-4">
-                      <p className="text-caption text-text-muted">Alamat Deposit ({USDT_WALLETS[network].label})</p>
+                      <p className="text-caption text-text-muted">{t("Alamat Deposit (")}{USDT_WALLETS[network].label})</p>
                       <div className="mt-1 flex items-center justify-between gap-2">
                         <p className="break-all text-body-sm font-semibold text-text-primary">
                           {USDT_WALLETS[network].address}
                         </p>
                         <CopyButton text={USDT_WALLETS[network].address} />
                       </div>
-                      <p className="mt-3 text-caption text-text-muted">Jumlah</p>
+                      <p className="mt-3 text-caption text-text-muted">{t("Jumlah")}</p>
                       <p className="text-body font-semibold text-text-primary">{USDT_PRICE[plan]} USDT</p>
                     </div>
 
                     <div className="mt-4">
                       <label className="text-body-sm font-medium text-text-secondary">
-                        Bukti Transfer (wajib)
+                        {t("Bukti Transfer (wajib)")}
                       </label>
                       <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-body-sm text-text-secondary hover:bg-surface-hover">
                         <Upload className="h-4 w-4" />
-                        {slip ? slip.name : "Pilih screenshot / PDF bukti transfer"}
+                        {slip ? slip.name : t("Pilih screenshot / PDF bukti transfer")}
                         <input
                           type="file"
                           accept="image/*,.pdf"
@@ -329,12 +331,12 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                     </div>
 
                     <div className="mt-3">
-                      <label className="text-body-sm font-medium text-text-secondary">Catatan (opsional)</label>
+                      <label className="text-body-sm font-medium text-text-secondary">{t("Catatan (opsional)")}</label>
                       <input
                         type="text"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        placeholder="TxID / hash transaksi"
+                        placeholder={t("TxID / hash transaksi")}
                         className="input-field mt-2"
                       />
                     </div>
@@ -348,7 +350,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                       className="btn-primary mt-4 flex w-full items-center justify-center gap-2 disabled:opacity-60"
                     >
                       {usdtSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                      Saya Sudah Transfer
+                      {t("Saya Sudah Transfer")}
                     </button>
                   </>
                 )}
