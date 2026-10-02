@@ -11,15 +11,17 @@ import { cx, formatDate, formatPrice } from "@/lib/utils";
 import { deleteSignal } from "@/app/admin/actions";
 import { SIGNAL_STATUS_LABEL, signalStatusClass } from "@/lib/signal-metrics";
 import type { Signal } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
+  const t = useT();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSignal, setEditingSignal] = useState<Signal | null>(null);
   const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus sinyal ini?")) return;
+    if (!confirm(t("Hapus sinyal ini?"))) return;
     await deleteSignal(id);
     router.refresh();
   }
@@ -48,7 +50,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
           {signals.length === 0 && (
             <tr>
               <td colSpan={8} className="px-4 py-10 text-center text-body-sm text-text-muted">
-                Belum ada sinyal.
+                {t("Belum ada sinyal.")}
               </td>
             </tr>
           )}
@@ -87,7 +89,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
                     className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
                   >
                     <ImageIcon className="h-4 w-4" />
-                    Lihat
+                    {t("Lihat")}
                   </button>
                 ) : (
                   <span className="text-body-sm text-text-muted">—</span>
