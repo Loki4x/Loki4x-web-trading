@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { cx } from "@/lib/utils";
 import { categorizeSymbol, getContrarianSignal, CATEGORY_LABEL, SIGNAL_LABEL, type AssetCategory, type ContrarianSignal } from "@/lib/asset-category";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { dateLocale } from "@/lib/i18n/dictionary";
 
 export interface RetailBiasItem {
   symbol: string;
@@ -30,6 +32,8 @@ const SIGNAL_STYLE: Record<ContrarianSignal, string> = {
 };
 
 export function RetailBiasClient({ items }: { items: RetailBiasItem[] }) {
+  const t = useT();
+  const locale = useLocale();
   const [category, setCategory] = useState<CategoryFilter>("ALL");
   const [sortMode, setSortMode] = useState<SortMode>("LONG");
 
@@ -65,7 +69,7 @@ export function RetailBiasClient({ items }: { items: RetailBiasItem[] }) {
   }, [filtered, sortMode]);
 
   if (items.length === 0) {
-    return <div className="card py-12 text-center text-body-sm text-text-muted">Belum ada data positioning.</div>;
+    return <div className="card py-12 text-center text-body-sm text-text-muted">{t("Belum ada data positioning.")}</div>;
   }
 
   return (
@@ -96,14 +100,14 @@ export function RetailBiasClient({ items }: { items: RetailBiasItem[] }) {
                 category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
               )}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
 
         <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} className="input-field w-auto">
-          <option value="LONG">Paling Long</option>
-          <option value="SHORT">Paling Short</option>
+          <option value="LONG">{t("Paling Long")}</option>
+          <option value="SHORT">{t("Paling Short")}</option>
           <option value="AZ">A-Z</option>
         </select>
       </div>
@@ -138,7 +142,7 @@ export function RetailBiasClient({ items }: { items: RetailBiasItem[] }) {
                 {p.source === "auto"
                   ? "Myfxbook"
                   : p.updated_at
-                    ? new Date(p.updated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+                    ? new Date(p.updated_at).toLocaleDateString(dateLocale(locale), { day: "2-digit", month: "short" })
                     : "Manual"}
               </span>
               <span className="text-error">Short {p.short_percent}%</span>
