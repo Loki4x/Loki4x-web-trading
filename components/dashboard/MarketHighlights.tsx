@@ -1,5 +1,7 @@
 import { cx } from "@/lib/utils";
 import type { CotHighlight } from "@/lib/cot-highlights";
+import { getT } from "@/lib/i18n/server";
+import { dateLocale } from "@/lib/i18n/dictionary";
 
 interface RetailBiasRow {
   symbol: string;
@@ -33,7 +35,7 @@ function HighlightBar({
   );
 }
 
-function CotCard({
+async function CotCard({
   positive,
   negative,
   reportDate,
@@ -42,6 +44,7 @@ function CotCard({
   negative: CotHighlight[];
   reportDate: string | null;
 }) {
+  const { t, locale } = await getT();
   const maxAbs = Math.max(1, ...[...positive, ...negative].map((i) => Math.abs(i.netChangePct)));
 
   return (
@@ -49,16 +52,18 @@ function CotCard({
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-body font-semibold text-text-primary">COT Highlights</h3>
         <span className="text-caption text-text-muted">
-          {reportDate ? `Laporan ${new Date(reportDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}` : "perubahan mingguan"}
+          {reportDate
+            ? t("Laporan {date}", { date: new Date(reportDate).toLocaleDateString(dateLocale(locale), { day: "2-digit", month: "short" }) })
+            : t("perubahan mingguan")}
         </span>
       </div>
 
       {positive.length === 0 && negative.length === 0 ? (
-        <p className="text-body-sm text-text-muted">Data COT belum tersedia.</p>
+        <p className="text-body-sm text-text-muted">{t("Data COT belum tersedia.")}</p>
       ) : (
         <div className="flex flex-col gap-4">
           <div>
-            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">Net Chg % Positif</p>
+            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">{t("Net Chg % Positif")}</p>
             <div className="flex flex-col gap-2">
               {positive.map((item) => (
                 <HighlightBar
@@ -72,7 +77,7 @@ function CotCard({
             </div>
           </div>
           <div>
-            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">Net Chg % Negatif</p>
+            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">{t("Net Chg % Negatif")}</p>
             <div className="flex flex-col gap-2">
               {negative.map((item) => (
                 <HighlightBar
@@ -91,20 +96,21 @@ function CotCard({
   );
 }
 
-function RetailBiasCard({ longTop, shortTop }: { longTop: RetailBiasRow[]; shortTop: RetailBiasRow[] }) {
+async function RetailBiasCard({ longTop, shortTop }: { longTop: RetailBiasRow[]; shortTop: RetailBiasRow[] }) {
+  const { t } = await getT();
   return (
     <div className="card">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-body font-semibold text-text-primary">Retail Bias Highlights</h3>
-        <span className="text-caption text-text-muted">posisi kontrarian</span>
+        <span className="text-caption text-text-muted">{t("posisi kontrarian")}</span>
       </div>
 
       {longTop.length === 0 && shortTop.length === 0 ? (
-        <p className="text-body-sm text-text-muted">Belum ada data positioning.</p>
+        <p className="text-body-sm text-text-muted">{t("Belum ada data positioning.")}</p>
       ) : (
         <div className="flex flex-col gap-4">
           <div>
-            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">Retail Long Terbanyak</p>
+            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">{t("Retail Long Terbanyak")}</p>
             <div className="flex flex-col gap-2">
               {longTop.map((item) => (
                 <HighlightBar
@@ -118,7 +124,7 @@ function RetailBiasCard({ longTop, shortTop }: { longTop: RetailBiasRow[]; short
             </div>
           </div>
           <div>
-            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">Retail Short Terbanyak</p>
+            <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-text-muted">{t("Retail Short Terbanyak")}</p>
             <div className="flex flex-col gap-2">
               {shortTop.map((item) => (
                 <HighlightBar
