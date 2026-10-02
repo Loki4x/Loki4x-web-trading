@@ -10,6 +10,7 @@ import { updateSignalStatus } from "@/app/admin/actions";
 import { nowWibInputValue } from "@/lib/utils";
 import { SIGNAL_STATUS_LABEL } from "@/lib/signal-metrics";
 import type { Signal, SignalStatus } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 const STATUS_OPTIONS: SignalStatus[] = ["OPEN", "HIT_ENTRY", "TP", "SL", "PARTIAL", "CANCEL", "MISS"];
 const NEEDS_RESULT: SignalStatus[] = ["TP", "SL", "PARTIAL"];
@@ -27,6 +28,7 @@ function resolveClosingPrice(status: SignalStatus, signal: Signal): number | nul
 }
 
 export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
   const [status, setStatus] = useState<SignalStatus>(signal.status);
   const [pending, setPending] = useState(false);
@@ -79,7 +81,7 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
           <h2 className="text-h3 text-text-primary">
             Update Status — {signal.symbol}
           </h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary" aria-label="Tutup">
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary" aria-label={t("Tutup")}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -107,7 +109,7 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
                 name="closing_price"
                 type="number"
                 step="0.00001"
-                label="Harga Penutupan"
+                label={t("Harga Penutupan")}
                 defaultValue={autoPrice ?? signal.entry_price}
                 required
               />
@@ -116,8 +118,8 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
                 name="result_pips"
                 type="number"
                 step="0.1"
-                label="Hasil (pips, boleh minus untuk loss)"
-                placeholder="e.g. 25 atau -10"
+                label={t("Hasil (pips, boleh minus untuk loss)")}
+                placeholder={t("e.g. 25 atau -10")}
                 defaultValue={signal.result_pips ?? ""}
               />
             </>
@@ -128,12 +130,12 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
               <Input
                 name="closed_at"
                 type="datetime-local"
-                label="Tanggal & jam ditutup (WIB)"
+                label={t("Tanggal & jam ditutup (WIB)")}
                 defaultValue={defaultClosedAt}
                 required
               />
               <p className="mt-1.5 text-caption text-text-muted">
-                Ubah kalau sinyal ini sebenarnya ditutup di tanggal lain (mis. memasukkan sinyal lama).
+                {t("Ubah kalau sinyal ini sebenarnya ditutup di tanggal lain (mis. memasukkan sinyal lama).")}
               </p>
             </div>
           )}
@@ -143,7 +145,7 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
           )}
 
           <Button type="submit" withArrow loading={pending} className="mt-2 w-full justify-center">
-            Simpan
+            {t("Simpan")}
           </Button>
         </form>
       </div>
