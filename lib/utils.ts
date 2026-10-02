@@ -1,3 +1,4 @@
+import { dateLocale, translate, type Locale } from "@/lib/i18n/dictionary";
 import { clsx, type ClassValue } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 import type { AccountCurrency } from "@/lib/types";
@@ -115,18 +116,20 @@ export function pnlColorClass(value: number): string {
   return value >= 0 ? "text-success" : "text-error";
 }
 
-export function formatRelativeTime(dateString: string): string {
+export function formatRelativeTime(dateString: string, locale: Locale = "id"): string {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const diffMin = Math.round(diffMs / 60000);
 
-  if (diffMin < 1) return "Baru saja";
-  if (diffMin < 60) return `${diffMin} menit lalu`;
+  const tr = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
+
+  if (diffMin < 1) return tr("Baru saja");
+  if (diffMin < 60) return tr("{n} menit lalu", { n: diffMin });
 
   const diffHour = Math.round(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} jam lalu`;
+  if (diffHour < 24) return tr("{n} jam lalu", { n: diffHour });
 
   const diffDay = Math.round(diffHour / 24);
-  if (diffDay < 7) return `${diffDay} hari lalu`;
+  if (diffDay < 7) return tr("{n} hari lalu", { n: diffDay });
 
-  return new Date(dateString).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(dateString).toLocaleDateString(dateLocale(locale), { day: "2-digit", month: "short", year: "numeric" });
 }
