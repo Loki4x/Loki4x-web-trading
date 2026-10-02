@@ -114,11 +114,12 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
       {/* Ringkasan pips, ditampilkan terpisah karena satuannya beda (pips, bukan %) */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Pips Kerugian (SL)</p>
-          <p className="text-h3 text-error">
-            {stats.lossPips > 0 ? "-" : ""}
-            {stats.lossPips.toFixed(1)} pips
+          <p className="text-caption text-text-secondary">Total Pips Diperoleh</p>
+          <p className={cx("text-h3", stats.totalPips >= 0 ? "text-success" : "text-error")}>
+            {stats.totalPips >= 0 ? "+" : ""}
+            {stats.totalPips.toFixed(1)} pips
           </p>
+          <p className="text-caption text-text-muted">bersih setelah SL</p>
         </div>
         <div className="card !p-4">
           <p className="text-caption text-text-secondary">Total Pips Profit (TP)</p>
@@ -128,12 +129,11 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
           <p className="text-caption text-text-muted">tanpa dikurangi SL</p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">Total Pips Diperoleh</p>
-          <p className={cx("text-h3", stats.totalPips >= 0 ? "text-success" : "text-error")}>
-            {stats.totalPips >= 0 ? "+" : ""}
-            {stats.totalPips.toFixed(1)} pips
+          <p className="text-caption text-text-secondary">Total Pips Kerugian (SL)</p>
+          <p className="text-h3 text-error">
+            {stats.lossPips > 0 ? "-" : ""}
+            {stats.lossPips.toFixed(1)} pips
           </p>
-          <p className="text-caption text-text-muted">bersih setelah SL</p>
         </div>
       </div>
 
