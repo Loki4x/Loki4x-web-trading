@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlayCircle } from "lucide-react";
 import { VideoPlayerModal } from "@/components/academy/VideoPlayerModal";
+import { useT } from "@/lib/i18n/client";
 
 export interface AcademyVideo {
   id: string;
@@ -13,12 +14,13 @@ export interface AcademyVideo {
 }
 
 export function VideoGrid({ videos }: { videos: AcademyVideo[] }) {
+  const t = useT();
   const [playing, setPlaying] = useState<AcademyVideo | null>(null);
 
   if (videos.length === 0) {
     return (
       <div className="card py-12 text-center text-body-sm text-text-muted">
-        Belum ada video di kategori ini.
+        {t("Belum ada video di kategori ini.")}
       </div>
     );
   }
