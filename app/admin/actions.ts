@@ -8,6 +8,8 @@ import { notifyUser, notifyAllUsers } from "@/lib/notifications";
 import { simulatePakasirPayment } from "@/lib/pakasir";
 import { type Plan } from "@/lib/pakasir-constants";
 import { computeGrant } from "@/lib/membership-grant";
+import { logAudit, getAuditActor } from "@/lib/audit";
+import { sendSignalEmails } from "@/lib/signal-emails";
 import { uploadToR2 } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -27,7 +29,11 @@ async function assertIsAdmin() {
 export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEMBERSHIP", vipExpiresAt: string | null) {
   const supabase = await assertIsAdmin();
 
-  const { data: targetProfile } = await supabase.from("profiles").select("email, tier").eq("id", userId).single();
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("email, tier, vip_expires_at")
+    .eq("id", userId)
+    .single();
 
   await supabase
     .from("profiles")
@@ -36,6 +42,19 @@ export async function updateUserTier(userId: string, tier: "FREE" | "VIP" | "MEM
       vip_expires_at: tier !== "FREE" ? vipExpiresAt : null,
     })
     .eq("id", userId);
+
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: "TIER_CHANGED",
+    targetUserId: userId,
+    details: {
+      target_email: targetProfile?.email ?? null,
+      from_tier: targetProfile?.tier ?? null,
+      to_tier: tier,
+      from_expires_at: targetProfile?.vip_expires_at ?? null,
+      to_expires_at: tier !== "FREE" ? vipExpiresAt : null,
+    },
+  });
 
   if ((tier === "VIP" || tier === "MEMBERSHIP") && targetProfile?.tier !== tier) {
     const { t: tu } = await getUserT(supabase, userId);
@@ -63,6 +82,12 @@ export async function toggleSuspend(userId: string, suspend: boolean) {
   }
 
   await supabase.from("profiles").update({ is_suspended: suspend }).eq("id", userId);
+
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: suspend ? "USER_SUSPENDED" : "USER_UNSUSPENDED",
+    targetUserId: userId,
+  });
 
   // Flag di tabel profiles saja nggak cukup: sesi user yang sedang login tetap
   // valid. Ban di Supabase Auth menolak login baru & refresh token, jadi sesi
@@ -107,6 +132,9 @@ export async function getUserStats(userId: string) {
 // ---------------------------------------------------------------------------
 
 type ActionResult = { ok: boolean; message?: string };
+
+// Email notifikasi hanya dikirim untuk kejadian yang baru terjadi (bukan input data lama).
+const FRESH_WINDOW_MS = 30 * 60 * 1000;
 
 const TERMINAL_SIGNAL_STATUSES = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"];
 const ALL_SIGNAL_STATUSES = ["OPEN", "HIT_ENTRY", ...TERMINAL_SIGNAL_STATUSES];
@@ -203,7 +231,9 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
     const chartImageFile = formData.get("chart_image") as File | null;
     const chartImageUrl = await uploadToR2(chartImageFile, `signals/${symbol}-${Date.now()}`);
 
-    const { error } = await supabase.from("signals").insert({
+    const { data: created, error } = await supabase
+      .from("signals")
+      .insert({
       symbol,
       side,
       status,
@@ -218,8 +248,33 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
       chart_image_url: chartImageUrl,
       posted_at: postedAt.toISOString(),
       closed_at: closedAt ? closedAt.toISOString() : null,
-    });
+      })
+      .select("id")
+      .single();
     if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
+
+    await logAudit(supabase, {
+      actor: await getAuditActor(supabase),
+      action: "SIGNAL_CREATED",
+      targetId: created?.id ?? null,
+      details: { symbol, side, status, entry_price: entryPrice, take_profit: takeProfit, stop_loss: stopLoss },
+    });
+
+    // Email hanya untuk sinyal BARU yang masih berjalan (diposting dalam 30 menit terakhir).
+    // Sinyal lama / riwayat yang diinput mundur tidak mengirim email.
+    if (!isTerminal && Date.now() - postedAt.getTime() < FRESH_WINDOW_MS) {
+      await sendSignalEmails({
+        kind: "NEW",
+        signal: {
+          symbol,
+          side,
+          entry_price: entryPrice,
+          take_profit: takeProfit,
+          stop_loss: stopLoss,
+          notes: String(formData.get("notes") ?? "") || null,
+        },
+      });
+    }
   } catch (err) {
     return failure(err, t);
   }
@@ -276,8 +331,86 @@ export async function updateSignalStatus(
     updatePayload.take_profit = currentPrice;
   }
 
+  const { data: before } = await supabase
+    .from("signals")
+    .select("symbol, side, status")
+    .eq("id", signalId)
+    .single();
+
   const { error } = await supabase.from("signals").update(updatePayload).eq("id", signalId);
   if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
+
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: "SIGNAL_STATUS_CHANGED",
+    targetId: signalId,
+    details: {
+      symbol: before?.symbol ?? null,
+      from_status: before?.status ?? null,
+      to_status: status,
+      result_pips: resultPips,
+      closing_price: currentPrice,
+    },
+  });
+
+  // Email penutupan hanya kalau status berubah & penutupannya baru terjadi (30 menit terakhir).
+  if (isTerminal && closedAt && before?.status !== status && Date.now() - closedAt.getTime() < FRESH_WINDOW_MS) {
+    const { data: full } = await supabase
+      .from("signals")
+      .select("symbol, side, entry_price, take_profit, stop_loss, status, result_pips")
+      .eq("id", signalId)
+      .single();
+    if (full) await sendSignalEmails({ kind: "CLOSED", signal: full });
+  }
+
+  revalidatePath("/admin/signals");
+  revalidatePath("/signals");
+  return { ok: true };
+}
+
+const SIGNAL_UPDATE_TYPES = ["SL_TO_BE", "PARTIAL_CLOSE", "MOVE_SL", "MOVE_TP", "NOTE"];
+
+export async function addSignalUpdate(formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
+  const supabase = await assertIsAdmin();
+
+  const signalId = String(formData.get("signal_id") ?? "");
+  const type = String(formData.get("type") ?? "");
+  const message = String(formData.get("message") ?? "").trim().slice(0, 500) || null;
+  const price = optionalNumber(formData.get("price"));
+  const sendEmail = formData.get("send_email") === "1";
+
+  if (!signalId) return { ok: false, message: t("Terjadi kesalahan.") };
+  if (!SIGNAL_UPDATE_TYPES.includes(type)) return { ok: false, message: t("Jenis update tidak valid.") };
+  if (type === "NOTE" && !message) return { ok: false, message: t("Pesan wajib diisi untuk jenis Catatan.") };
+
+  const { data: signal } = await supabase
+    .from("signals")
+    .select("symbol, side, entry_price, take_profit, stop_loss, status, result_pips")
+    .eq("id", signalId)
+    .single();
+  if (!signal) return { ok: false, message: t("Sinyal tidak ditemukan.") };
+
+  const actor = await getAuditActor(supabase);
+  const { error } = await supabase.from("signal_updates").insert({
+    signal_id: signalId,
+    type,
+    message,
+    price,
+    created_by: actor.id,
+  });
+  if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
+
+  await logAudit(supabase, {
+    actor,
+    action: "SIGNAL_UPDATE_POSTED",
+    targetId: signalId,
+    details: { symbol: signal.symbol, type, price, message },
+  });
+
+  if (sendEmail) {
+    await sendSignalEmails({ kind: "UPDATE", signal, updateType: type, message, price });
+  }
 
   revalidatePath("/admin/signals");
   revalidatePath("/signals");
@@ -286,7 +419,18 @@ export async function updateSignalStatus(
 
 export async function deleteSignal(signalId: string) {
   const supabase = await assertIsAdmin();
+  const { data: existing } = await supabase
+    .from("signals")
+    .select("symbol, side, status, entry_price")
+    .eq("id", signalId)
+    .single();
   await supabase.from("signals").delete().eq("id", signalId);
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: "SIGNAL_DELETED",
+    targetId: signalId,
+    details: { ...(existing ?? {}) },
+  });
   revalidatePath("/admin/signals");
   revalidatePath("/signals");
 }
@@ -417,6 +561,18 @@ export async function approveVipRequest(requestId: string, _clientUserId?: strin
     message: tu("Pengajuan upgrade VIP kamu disetujui. Nikmati Signals & Positioning sekarang!"),
   });
 
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: "VIP_REQUEST_APPROVED",
+    targetUserId: userId,
+    targetId: requestId,
+    details: {
+      target_email: targetProfile?.email ?? null,
+      from_tier: targetProfile?.tier ?? null,
+      kept_membership: hasActiveMembership,
+    },
+  });
+
   revalidatePath("/admin/vip-requests");
   revalidatePath("/upgrade");
   return { ok: true };
@@ -425,11 +581,22 @@ export async function approveVipRequest(requestId: string, _clientUserId?: strin
 export async function rejectVipRequest(requestId: string) {
   const supabase = await assertIsAdmin();
 
-  await supabase
+  const { data: rejected } = await supabase
     .from("vip_ib_requests")
     .update({ status: "REJECTED", reviewed_at: new Date().toISOString() })
     .eq("id", requestId)
-    .eq("status", "PENDING");
+    .eq("status", "PENDING")
+    .select("id, user_id")
+    .maybeSingle();
+
+  if (rejected) {
+    await logAudit(supabase, {
+      actor: await getAuditActor(supabase),
+      action: "VIP_REQUEST_REJECTED",
+      targetUserId: rejected.user_id as string,
+      targetId: requestId,
+    });
+  }
 
   revalidatePath("/admin/vip-requests");
 }
@@ -450,6 +617,11 @@ export async function sendAdminNotification(formData: FormData) {
 
   if (target === "ALL") {
     await notifyAllUsers({ type: "ANNOUNCEMENT", title, message, channels });
+    await logAudit(supabase, {
+      actor: await getAuditActor(supabase),
+      action: "ANNOUNCEMENT_SENT",
+      details: { target: "ALL", title, channel: channelValue },
+    });
     return { message: t("Notifikasi terkirim ke semua user.") };
   }
 
@@ -467,6 +639,13 @@ export async function sendAdminNotification(formData: FormData) {
     title,
     message,
     channels,
+  });
+
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: "ANNOUNCEMENT_SENT",
+    targetUserId: targetProfile.id,
+    details: { target: email, title, channel: channelValue },
   });
 
   return { message: t("Notifikasi terkirim ke {email}.", { email }) };
@@ -553,6 +732,21 @@ export async function approveUsdtPayment(paymentId: string, _clientUserId?: stri
     message: tu("Pembayaran USDT kamu sudah diverifikasi admin. Akun kamu sekarang aktif sebagai {tier} {expiry}.", { tier, expiry: expiryLabel }),
   });
 
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: "USDT_APPROVED",
+    targetUserId: userId,
+    targetId: paymentId,
+    details: {
+      target_email: targetProfile?.email ?? null,
+      plan,
+      from_tier: targetProfile?.tier ?? null,
+      to_tier: grant.tier,
+      from_expires_at: targetProfile?.vip_expires_at ?? null,
+      to_expires_at: grant.vip_expires_at,
+    },
+  });
+
   revalidatePath("/admin/usdt-payments");
   revalidatePath("/upgrade");
   return { ok: true };
@@ -560,11 +754,23 @@ export async function approveUsdtPayment(paymentId: string, _clientUserId?: stri
 
 export async function rejectUsdtPayment(paymentId: string) {
   const supabase = await assertIsAdmin();
-  await supabase
+  const { data: rejected } = await supabase
     .from("payments")
     .update({ status: "FAILED" })
     .eq("id", paymentId)
     .eq("currency", "USDT")
-    .eq("status", "PENDING");
+    .eq("status", "PENDING")
+    .select("id, user_id, plan")
+    .maybeSingle();
+
+  if (rejected) {
+    await logAudit(supabase, {
+      actor: await getAuditActor(supabase),
+      action: "USDT_REJECTED",
+      targetUserId: rejected.user_id as string,
+      targetId: paymentId,
+      details: { plan: rejected.plan },
+    });
+  }
   revalidatePath("/admin/usdt-payments");
 }
