@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageFileInput } from "@/components/ui/ImageFileInput";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
@@ -123,9 +124,9 @@ export function EditTradeModal({
                   {t("Lihat foto saat ini")}
                 </a>
               )}
-              <input
+              <ImageFileInput
                 name="before_photo"
-                type="file"
+               
                 accept="image/*"
                 className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
               />
@@ -143,9 +144,9 @@ export function EditTradeModal({
                   {t("Lihat foto saat ini")}
                 </a>
               )}
-              <input
+              <ImageFileInput
                 name="after_photo"
-                type="file"
+               
                 accept="image/*"
                 className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
               />
