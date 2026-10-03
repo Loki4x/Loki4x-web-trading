@@ -5,6 +5,8 @@ export const EN_STRINGS: Record<string, string> = {
   "Sentimen retail (long vs short) — dibaca kontrarian. Ditandai": "Retail sentiment (long vs short) — read contrarian. Marked",
   "kalau otomatis dari Myfxbook, sisanya data manual admin.": "if automatic from Myfxbook, the rest is manual admin data.",
   "trade ditutup": "trades closed",
+  "ditutup": "closed",
+  "Analisa": "Analysis",
   "Verifikasi email kamu": "Verify your email",
   "Kode baru sudah dikirim ulang.": "A new code has been sent.",
   "Verifikasi": "Verify",
