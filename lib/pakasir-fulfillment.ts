@@ -5,6 +5,7 @@ import { getPakasirTransactionDetail } from "@/lib/pakasir";
 import { notifyUser } from "@/lib/notifications";
 import { type Plan } from "@/lib/pakasir-constants";
 import { computeGrant } from "@/lib/membership-grant";
+import { logAudit } from "@/lib/audit";
 
 /**
  * Verifikasi status transaksi ke Pakasir (Transaction Detail API, bukan
@@ -74,6 +75,21 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
       .eq("order_id", orderId);
     return { status: "PENDING" };
   }
+
+  await logAudit(service, {
+    actor: { id: null, email: "system (Pakasir)" },
+    action: "PAYMENT_AUTO_COMPLETED",
+    targetUserId: payment.user_id,
+    targetId: orderId,
+    details: {
+      target_email: profile?.email ?? null,
+      plan,
+      from_tier: profile?.tier ?? null,
+      to_tier: grant.tier,
+      from_expires_at: profile?.vip_expires_at ?? null,
+      to_expires_at: grant.vip_expires_at,
+    },
+  });
 
   const { t: tu, locale: userLocale } = await getUserT(service, payment.user_id);
   const expiryLabel = newExpiry
