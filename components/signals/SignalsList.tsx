@@ -15,7 +15,7 @@ import {
   SIGNAL_STATUS_LABEL,
   isTerminalStatus,
 } from "@/lib/signal-metrics";
-import type { Signal } from "@/lib/types";
+import type { Signal, SignalUpdate } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
 import type { DictKey } from "@/lib/i18n/dictionary";
 
@@ -46,7 +46,13 @@ function priceDistancePercent(
   return t("signals.fromPrice", { pct: pct.toFixed(2) });
 }
 
-export function SignalsList({ signals }: { signals: Signal[] }) {
+export function SignalsList({
+  signals,
+  updatesBySignal = {},
+}: {
+  signals: Signal[];
+  updatesBySignal?: Record<string, SignalUpdate[]>;
+}) {
   const t = useT();
   const [category, setCategory] = useState<CategoryFilter>("ALL");
   const [positionTab, setPositionTab] = useState<PositionTab>("ACTIVE");
@@ -260,13 +266,18 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
                       <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at, t)}</p>
                     </td>
                     <td className="px-4 py-3">
-                      {s.chart_image_url || s.notes ? (
+                      {s.chart_image_url || s.notes || (updatesBySignal[s.id]?.length ?? 0) > 0 ? (
                         <button
                           onClick={() => setAnalysisSignal(s)}
                           className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
                         >
                           <ImageIcon className="h-4 w-4" />
                           {t("signals.view")}
+                          {(updatesBySignal[s.id]?.length ?? 0) > 0 && (
+                            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary">
+                              {updatesBySignal[s.id].length}
+                            </span>
+                          )}
                         </button>
                       ) : (
                         <span className="text-body-sm text-text-muted">—</span>
@@ -285,7 +296,11 @@ export function SignalsList({ signals }: { signals: Signal[] }) {
       </p>
 
       {analysisSignal && (
-        <SignalAnalysisModal signal={analysisSignal} onClose={() => setAnalysisSignal(null)} />
+        <SignalAnalysisModal
+          signal={analysisSignal}
+          updates={updatesBySignal[analysisSignal.id] ?? []}
+          onClose={() => setAnalysisSignal(null)}
+        />
       )}
     </div>
   );
