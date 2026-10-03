@@ -1,10 +1,19 @@
 "use client";
 
 import { X, ImageOff } from "lucide-react";
-import type { Signal } from "@/lib/types";
+import type { Signal, SignalUpdate } from "@/lib/types";
+import { SignalTimeline } from "@/components/signals/SignalTimeline";
 import { useT } from "@/lib/i18n/client";
 
-export function SignalAnalysisModal({ signal, onClose }: { signal: Signal; onClose: () => void }) {
+export function SignalAnalysisModal({
+  signal,
+  updates = [],
+  onClose,
+}: {
+  signal: Signal;
+  updates?: SignalUpdate[];
+  onClose: () => void;
+}) {
   const t = useT();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
@@ -38,6 +47,8 @@ export function SignalAnalysisModal({ signal, onClose }: { signal: Signal; onClo
         ) : (
           <p className="text-body-sm text-text-muted">{t("signals.modal.noNotes")}</p>
         )}
+
+        <SignalTimeline updates={updates} />
       </div>
     </div>
   );
