@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageFileInput } from "@/components/ui/ImageFileInput";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
@@ -84,11 +85,11 @@ export function AddTradeModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label className="text-body-sm font-medium text-text-secondary">Before Photo</label>
-              <input name="before_photo" type="file" accept="image/*" className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary" />
+              <ImageFileInput name="before_photo" accept="image/*" className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary" />
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-body-sm font-medium text-text-secondary">After Photo</label>
-              <input name="after_photo" type="file" accept="image/*" className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary" />
+              <ImageFileInput name="after_photo" accept="image/*" className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary" />
             </div>
           </div>
 
