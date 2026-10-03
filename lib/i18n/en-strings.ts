@@ -6,6 +6,8 @@ export const EN_STRINGS: Record<string, string> = {
   "kalau otomatis dari Myfxbook, sisanya data manual admin.": "if automatic from Myfxbook, the rest is manual admin data.",
   "trade ditutup": "trades closed",
   "ditutup": "closed",
+  "Pengajuan sudah diproses atau tidak ditemukan.": "This request has already been processed or was not found.",
+  "Pembayaran sudah diproses atau tidak ditemukan.": "This payment has already been processed or was not found.",
   "Analisa": "Analysis",
   "Verifikasi email kamu": "Verify your email",
   "Kode baru sudah dikirim ulang.": "A new code has been sent.",
