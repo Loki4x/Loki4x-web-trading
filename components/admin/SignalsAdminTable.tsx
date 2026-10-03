@@ -41,7 +41,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
           <tr className="border-b border-border bg-surface text-left">
             {["Symbol", "Side", "Entry", "TP/SL", "Status", "Date", "Analisa", ""].map((h) => (
               <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
-                {h}
+                {t(h)}
               </th>
             ))}
           </tr>
@@ -80,7 +80,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
               </td>
               <td className="px-4 py-3">
                 <p className="text-body-sm text-text-secondary">{formatDate(s.posted_at)}</p>
-                {s.closed_at && <p className="text-caption text-text-muted">ditutup {formatDate(s.closed_at)}</p>}
+                {s.closed_at && <p className="text-caption text-text-muted">{t("ditutup")} {formatDate(s.closed_at)}</p>}
               </td>
               <td className="px-4 py-3">
                 {s.chart_image_url || s.notes ? (
