@@ -1,0 +1,40 @@
+name: Backup Database
+
+# Cadangan DATABASE gratis (alternatif kalau paket Supabase-mu tidak punya backup/PITR).
+# File dienkripsi (AES-256) sebelum diunggah, jadi aman walau repo ini publik.
+# TIDAK mencakup file di storage (foto trade/bukti transfer di R2).
+on:
+  schedule:
+    - cron: "0 20 * * 0" # Minggu 20:00 UTC = Senin 03:00 WIB
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pasang pg_dump 17 (klien baru bisa membackup server versi lama)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump & enkripsi
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL" && test -n "$BACKUP_PASSPHRASE"
+          STAMP=$(date -u +%Y%m%d-%H%M)
+          pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges --schema=public --schema=auth -Fc -f "backup-$STAMP.dump"
+          gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "backup-$STAMP.dump.gpg" "backup-$STAMP.dump"
+          rm "backup-$STAMP.dump"
+          ls -la
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: backup-*.dump.gpg
+          retention-days: 30
