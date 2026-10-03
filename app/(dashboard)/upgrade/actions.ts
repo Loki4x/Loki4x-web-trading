@@ -10,6 +10,7 @@ import { uploadToR2 } from "@/lib/r2";
 import { PLAN_PRICE_IDR, PAKASIR_METHODS, purchasablePlans, type Plan } from "@/lib/pakasir-constants";
 import { getMembershipStatus } from "@/lib/tier";
 import { getT } from "@/lib/i18n/server";
+import { rateLimit } from "@/lib/rate-limit";
 import { USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 
 export async function submitVipRequest(formData: FormData) {
@@ -20,6 +21,10 @@ export async function submitVipRequest(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  if (!(await rateLimit(`vip-request:${user.id}`, 3, 86400))) {
+    throw new Error(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
+  }
 
   const brokerEmail = String(formData.get("broker_email") ?? "");
   const tradingAccountId = String(formData.get("trading_account_id") ?? "");
@@ -51,6 +56,10 @@ export async function createInstantPayment({ plan, method }: { plan: Plan; metho
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  if (!(await rateLimit(`pay-create:${user.id}`, 10, 3600))) {
+    throw new Error(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
+  }
 
   // `plan` dan `method` datang dari client, jadi jangan dipercaya begitu saja.
   // Paket harus salah satu yang memang boleh dibeli akun ini (mencegah downgrade
@@ -121,6 +130,10 @@ export async function submitUsdtPayment(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  if (!(await rateLimit(`usdt-proof:${user.id}`, 3, 3600))) {
+    throw new Error(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
+  }
 
   const plan = String(formData.get("plan"));
   if (plan !== "VIP" && plan !== "MEMBERSHIP" && plan !== "MEMBERSHIP_LIFETIME") throw new Error(t("Paket tidak valid"));
