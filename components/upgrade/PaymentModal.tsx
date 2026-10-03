@@ -1,5 +1,6 @@
 "use client";
 
+import { compressImageFile } from "@/lib/compress-image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Copy, Check, Upload, Loader2 } from "lucide-react";
@@ -325,7 +326,11 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                           type="file"
                           accept="image/*,.pdf"
                           className="hidden"
-                          onChange={(e) => setSlip(e.target.files?.[0] ?? null)}
+                          onChange={async (e) => {
+                            const picked = e.target.files?.[0] ?? null;
+                            // Gambar dikompres di browser (PDF dibiarkan apa adanya).
+                            setSlip(picked ? await compressImageFile(picked).catch(() => picked) : null);
+                          }}
                         />
                       </label>
                     </div>
