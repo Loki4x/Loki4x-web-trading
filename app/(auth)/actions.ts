@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { logLoginActivity } from "@/lib/login-activity";
+import { rateLimit } from "@/lib/rate-limit";
+import { getT } from "@/lib/i18n/server";
 
 async function currentRequestInfo() {
   const h = await headers();
@@ -17,6 +19,15 @@ export async function login(formData: FormData) {
 
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+
+  const { ip: loginIp } = await currentRequestInfo();
+  const okLogin =
+    (await rateLimit(`login:ip:${loginIp ?? "unknown"}`, 20, 600)) &&
+    (await rateLimit(`login:email:${email.toLowerCase()}`, 8, 600));
+  if (!okLogin) {
+    const { t } = await getT();
+    redirect(`/login?error=${encodeURIComponent(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."))}`);
+  }
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -37,6 +48,12 @@ export async function signup(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const fullName = String(formData.get("fullName") ?? "");
+
+  const { ip: signupIp } = await currentRequestInfo();
+  if (!(await rateLimit(`signup:ip:${signupIp ?? "unknown"}`, 10, 3600))) {
+    const { t } = await getT();
+    redirect(`/signup?error=${encodeURIComponent(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."))}`);
+  }
 
   const { error } = await supabase.auth.signUp({
     email,
@@ -59,6 +76,17 @@ export async function verifyOtp(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const token = String(formData.get("token") ?? "");
 
+  const { ip: verifyIp } = await currentRequestInfo();
+  const okVerify =
+    (await rateLimit(`verify:ip:${verifyIp ?? "unknown"}`, 20, 600)) &&
+    (await rateLimit(`verify:email:${email.toLowerCase()}`, 8, 600));
+  if (!okVerify) {
+    const { t } = await getT();
+    redirect(
+      `/verify-otp?email=${encodeURIComponent(email)}&error=${encodeURIComponent(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."))}`
+    );
+  }
+
   const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
@@ -80,6 +108,17 @@ export async function resendOtp(formData: FormData) {
   const supabase = await createClient();
 
   const email = String(formData.get("email") ?? "");
+
+  const { ip: resendIp } = await currentRequestInfo();
+  const okResend =
+    (await rateLimit(`otp:email:${email.toLowerCase()}`, 3, 600)) &&
+    (await rateLimit(`otp:ip:${resendIp ?? "unknown"}`, 10, 600));
+  if (!okResend) {
+    const { t } = await getT();
+    redirect(
+      `/verify-otp?email=${encodeURIComponent(email)}&error=${encodeURIComponent(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."))}`
+    );
+  }
 
   const { error } = await supabase.auth.resend({
     type: "signup",
