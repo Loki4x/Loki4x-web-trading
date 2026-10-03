@@ -3,6 +3,7 @@ import { SignalsList } from "@/components/signals/SignalsList";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
 import { getT } from "@/lib/i18n/server";
+import type { SignalUpdate } from "@/lib/types";
 
 export default async function SignalsPage() {
   const { t } = await getT();
@@ -19,6 +20,16 @@ export default async function SignalsPage() {
     )
     .order("posted_at", { ascending: false });
 
+  // Timeline update per sinyal. Kalau tabel belum dibuat / error, tampil tanpa timeline (tidak crash).
+  const { data: updateRows } = await supabase
+    .from("signal_updates")
+    .select("id, signal_id, type, message, price, created_at")
+    .order("created_at", { ascending: true });
+  const updatesBySignal: Record<string, SignalUpdate[]> = {};
+  for (const u of (updateRows ?? []) as SignalUpdate[]) {
+    (updatesBySignal[u.signal_id] ??= []).push(u);
+  }
+
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
@@ -26,7 +37,7 @@ export default async function SignalsPage() {
         <p className="text-body-sm text-text-secondary">{t("signals.subtitle")}</p>
       </div>
 
-      <SignalsList signals={signals ?? []} />
+      <SignalsList signals={signals ?? []} updatesBySignal={updatesBySignal} />
     </main>
   );
 }
