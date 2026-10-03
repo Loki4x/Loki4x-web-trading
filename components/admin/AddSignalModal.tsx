@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageFileInput } from "@/components/ui/ImageFileInput";
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -186,9 +187,9 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
 
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">{t("Chart Screenshot / Analisa (optional)")}</label>
-            <input
+            <ImageFileInput
               name="chart_image"
-              type="file"
+             
               accept="image/*"
               className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
             />
