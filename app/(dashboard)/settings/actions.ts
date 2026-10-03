@@ -125,10 +125,11 @@ export async function updateNotificationPrefs(formData: FormData) {
 
   const notifyReceipts = formData.get("notify_receipts") === "true";
   const notifyExpiry = formData.get("notify_expiry") === "true";
+  const notifySignals = formData.get("notify_signals") === "true";
 
   const { error } = await supabase
     .from("profiles")
-    .update({ notify_receipts: notifyReceipts, notify_expiry: notifyExpiry })
+    .update({ notify_receipts: notifyReceipts, notify_expiry: notifyExpiry, notify_signals: notifySignals })
     .eq("id", user.id);
 
   if (error) {
