@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUser, notifyAllUsers } from "@/lib/notifications";
 import { simulatePakasirPayment } from "@/lib/pakasir";
-import { planToTier, isLifetimePlan, type Plan } from "@/lib/pakasir-constants";
+import { type Plan } from "@/lib/pakasir-constants";
+import { computeGrant } from "@/lib/membership-grant";
 import { uploadToR2 } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -366,17 +367,46 @@ export async function deleteNewsEvent(id: string) {
   revalidatePath("/news");
 }
 
-export async function approveVipRequest(requestId: string, userId: string) {
+// Parameter kedua sengaja diabaikan: user_id diambil dari baris pengajuan di database,
+// bukan dari client, supaya tidak bisa dimanipulasi.
+export async function approveVipRequest(requestId: string, _clientUserId?: string) {
+  const { t } = await getT();
   const supabase = await assertIsAdmin();
 
-  await supabase
+  // "Klaim" pengajuan secara atomik: hanya yang masih PENDING yang bisa di-approve,
+  // jadi klik ganda / dua admin sekaligus tidak memproses dua kali.
+  const { data: request } = await supabase
     .from("vip_ib_requests")
     .update({ status: "APPROVED", reviewed_at: new Date().toISOString() })
-    .eq("id", requestId);
+    .eq("id", requestId)
+    .eq("status", "PENDING")
+    .select("id, user_id")
+    .maybeSingle();
 
-  const { data: targetProfile } = await supabase.from("profiles").select("email").eq("id", userId).single();
+  if (!request) {
+    return { ok: false, message: t("Pengajuan sudah diproses atau tidak ditemukan.") };
+  }
+  const userId = request.user_id as string;
 
-  await supabase.from("profiles").update({ tier: "VIP" }).eq("id", userId);
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("email, tier, vip_expires_at")
+    .eq("id", userId)
+    .single();
+
+  // Persetujuan IB = VIP tanpa batas waktu, tapi jangan menurunkan user yang sedang
+  // Membership aktif.
+  const expiry = targetProfile?.vip_expires_at ? new Date(targetProfile.vip_expires_at) : null;
+  const hasActiveMembership = targetProfile?.tier === "MEMBERSHIP" && (expiry === null || expiry > new Date());
+
+  if (!hasActiveMembership) {
+    const { error } = await supabase.from("profiles").update({ tier: "VIP", vip_expires_at: null }).eq("id", userId);
+    if (error) {
+      // Gagal memberi akses -> kembalikan ke PENDING supaya bisa dicoba lagi.
+      await supabase.from("vip_ib_requests").update({ status: "PENDING", reviewed_at: null }).eq("id", requestId);
+      return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
+    }
+  }
 
   const { t: tu } = await getUserT(supabase, userId);
   await notifyUser({
@@ -389,6 +419,7 @@ export async function approveVipRequest(requestId: string, userId: string) {
 
   revalidatePath("/admin/vip-requests");
   revalidatePath("/upgrade");
+  return { ok: true };
 }
 
 export async function rejectVipRequest(requestId: string) {
@@ -397,7 +428,8 @@ export async function rejectVipRequest(requestId: string) {
   await supabase
     .from("vip_ib_requests")
     .update({ status: "REJECTED", reviewed_at: new Date().toISOString() })
-    .eq("id", requestId);
+    .eq("id", requestId)
+    .eq("status", "PENDING");
 
   revalidatePath("/admin/vip-requests");
 }
@@ -458,35 +490,53 @@ export async function simulateSandboxPayment(orderId: string, amount: number) {
   };
 }
 
-export async function approveUsdtPayment(paymentId: string, userId: string, plan: Plan) {
+// Parameter ke-2 dan ke-3 sengaja diabaikan: user_id dan plan diambil dari baris
+// pembayaran di database, bukan dari client.
+export async function approveUsdtPayment(paymentId: string, _clientUserId?: string, _clientPlan?: Plan) {
+  const { t } = await getT();
   const supabase = await assertIsAdmin();
 
-  await supabase
+  // Klaim atomik: hanya pembayaran USDT yang masih PENDING yang bisa di-approve.
+  // Klik ganda / dua admin sekaligus / approve pembayaran yang sudah ditolak -> ditolak di sini.
+  const { data: payment } = await supabase
     .from("payments")
     .update({ status: "COMPLETED", completed_at: new Date().toISOString() })
-    .eq("id", paymentId);
+    .eq("id", paymentId)
+    .eq("currency", "USDT")
+    .eq("status", "PENDING")
+    .select("id, user_id, plan")
+    .maybeSingle();
+
+  if (!payment) {
+    return { ok: false, message: t("Pembayaran sudah diproses atau tidak ditemukan.") };
+  }
+
+  const userId = payment.user_id as string;
+  const plan = payment.plan as Plan;
 
   const { data: targetProfile } = await supabase
     .from("profiles")
-    .select("email, vip_expires_at")
+    .select("email, tier, vip_expires_at")
     .eq("id", userId)
     .single();
 
-  const tier = planToTier(plan);
-  const lifetime = isLifetimePlan(plan);
+  const grant = computeGrant(
+    { tier: targetProfile?.tier ?? null, vip_expires_at: targetProfile?.vip_expires_at ?? null },
+    plan
+  );
+  const tier = grant.tier as string;
+  const newExpiry = grant.vip_expires_at ? new Date(grant.vip_expires_at) : null;
 
-  // Lifetime: nggak pernah kedaluwarsa (vip_expires_at = null). Bulanan:
-  // perpanjang 30 hari dari sekarang, atau dari tanggal expired saat ini
-  // kalau membership-nya masih aktif — sama seperti alur Pakasir otomatis.
-  const now = new Date();
-  const currentExpiry = targetProfile?.vip_expires_at ? new Date(targetProfile.vip_expires_at) : null;
-  const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
-  const newExpiry = lifetime ? null : new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-  await supabase
+  const { error: upgradeError } = await supabase
     .from("profiles")
-    .update({ tier, vip_expires_at: newExpiry ? newExpiry.toISOString() : null })
+    .update({ tier: grant.tier, vip_expires_at: grant.vip_expires_at })
     .eq("id", userId);
+
+  if (upgradeError) {
+    // Gagal memberi akses -> kembalikan ke PENDING supaya bisa diproses ulang.
+    await supabase.from("payments").update({ status: "PENDING", completed_at: null }).eq("id", paymentId);
+    return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: upgradeError.message }) };
+  }
 
   const { t: tu, locale: userLocale } = await getUserT(supabase, userId);
   const expiryLabel = newExpiry
@@ -505,10 +555,16 @@ export async function approveUsdtPayment(paymentId: string, userId: string, plan
 
   revalidatePath("/admin/usdt-payments");
   revalidatePath("/upgrade");
+  return { ok: true };
 }
 
 export async function rejectUsdtPayment(paymentId: string) {
   const supabase = await assertIsAdmin();
-  await supabase.from("payments").update({ status: "FAILED" }).eq("id", paymentId);
+  await supabase
+    .from("payments")
+    .update({ status: "FAILED" })
+    .eq("id", paymentId)
+    .eq("currency", "USDT")
+    .eq("status", "PENDING");
   revalidatePath("/admin/usdt-payments");
 }
