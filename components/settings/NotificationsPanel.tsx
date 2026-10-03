@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Receipt, BellRing } from "lucide-react";
+import { ShieldCheck, Receipt, BellRing, Radio } from "lucide-react";
 import { Switch } from "@/components/ui/Switch";
 import { updateNotificationPrefs } from "@/app/(dashboard)/settings/actions";
 import type { Profile } from "@/lib/types";
@@ -13,15 +13,17 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
   const router = useRouter();
   const [notifyReceipts, setNotifyReceipts] = useState(profile?.notify_receipts ?? true);
   const [notifyExpiry, setNotifyExpiry] = useState(profile?.notify_expiry ?? true);
+  const [notifySignals, setNotifySignals] = useState(profile?.notify_signals ?? true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  async function save(next: { notifyReceipts?: boolean; notifyExpiry?: boolean }) {
+  async function save(next: { notifyReceipts?: boolean; notifyExpiry?: boolean; notifySignals?: boolean }) {
     setSaving(true);
     setMessage(null);
     const formData = new FormData();
     formData.set("notify_receipts", String(next.notifyReceipts ?? notifyReceipts));
     formData.set("notify_expiry", String(next.notifyExpiry ?? notifyExpiry));
+    formData.set("notify_signals", String(next.notifySignals ?? notifySignals));
     const result = await updateNotificationPrefs(formData);
     setSaving(false);
     if (result.success) {
@@ -54,6 +56,26 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
             </div>
           </div>
           <Switch checked disabled label={t("notif.security")} />
+        </div>
+
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="flex gap-3">
+            <Radio className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div>
+              <p className="text-body-sm font-semibold text-text-primary">{t("Notifikasi sinyal trading")}</p>
+              <p className="text-caption text-text-muted">
+                {t("Email saat ada sinyal baru, update sinyal, dan sinyal ditutup. Khusus member VIP dan Membership.")}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={notifySignals}
+            onChange={(v) => {
+              setNotifySignals(v);
+              save({ notifySignals: v });
+            }}
+            label={t("Notifikasi sinyal trading")}
+          />
         </div>
 
         <div className="flex items-start justify-between gap-4 py-4">
