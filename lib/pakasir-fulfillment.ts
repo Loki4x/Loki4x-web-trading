@@ -3,7 +3,8 @@ import { dateLocale } from "@/lib/i18n/dictionary";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getPakasirTransactionDetail } from "@/lib/pakasir";
 import { notifyUser } from "@/lib/notifications";
-import { planToTier, isLifetimePlan, type Plan } from "@/lib/pakasir-constants";
+import { type Plan } from "@/lib/pakasir-constants";
+import { computeGrant } from "@/lib/membership-grant";
 
 /**
  * Verifikasi status transaksi ke Pakasir (Transaction Detail API, bukan
@@ -51,20 +52,16 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
     .single();
 
   const plan = payment.plan as Plan;
-  const tier = planToTier(plan);
-  const lifetime = isLifetimePlan(plan);
 
-  // Lifetime: nggak pernah kedaluwarsa (vip_expires_at = null). Bulanan:
-  // perpanjang 30 hari dari sekarang, atau dari tanggal expired saat ini
-  // kalau membership-nya masih aktif (biar nggak "hangus" sisa waktunya).
-  const now = new Date();
-  const currentExpiry = profile?.vip_expires_at ? new Date(profile.vip_expires_at) : null;
-  const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
-  const newExpiry = lifetime ? null : new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
+  // Tier & masa aktif baru dihitung lewat helper bersama (tidak menurunkan tier aktif,
+  // tidak menimpa Lifetime dengan paket bulanan).
+  const grant = computeGrant({ tier: profile?.tier ?? null, vip_expires_at: profile?.vip_expires_at ?? null }, plan);
+  const tier = grant.tier as string;
+  const newExpiry = grant.vip_expires_at ? new Date(grant.vip_expires_at) : null;
 
   const { error: upgradeError } = await service
     .from("profiles")
-    .update({ tier, vip_expires_at: newExpiry ? newExpiry.toISOString() : null })
+    .update({ tier: grant.tier, vip_expires_at: grant.vip_expires_at })
     .eq("id", payment.user_id);
 
   if (upgradeError) {
