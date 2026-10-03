@@ -20,7 +20,8 @@ const ALLOWED_TYPES: Record<string, string> = {
   "application/pdf": "pdf",
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// 2MB per file: Vercel membatasi body request ~4,5MB, dan form trade bisa mengirim 2 foto sekaligus.
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 /**
  * Uploads a File to Cloudflare R2 and returns its public URL.
