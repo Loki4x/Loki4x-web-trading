@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Receipt, BellRing, Radio } from "lucide-react";
+import { ShieldCheck, Receipt, BellRing, Radio, BarChart3, Newspaper } from "lucide-react";
 import { Switch } from "@/components/ui/Switch";
 import { updateNotificationPrefs } from "@/app/(dashboard)/settings/actions";
 import type { Profile } from "@/lib/types";
@@ -14,16 +14,20 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
   const [notifyReceipts, setNotifyReceipts] = useState(profile?.notify_receipts ?? true);
   const [notifyExpiry, setNotifyExpiry] = useState(profile?.notify_expiry ?? true);
   const [notifySignals, setNotifySignals] = useState(profile?.notify_signals ?? true);
+  const [notifyWeekly, setNotifyWeekly] = useState(profile?.notify_weekly ?? true);
+  const [notifyNews, setNotifyNews] = useState(profile?.notify_news ?? true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  async function save(next: { notifyReceipts?: boolean; notifyExpiry?: boolean; notifySignals?: boolean }) {
+  async function save(next: { notifyReceipts?: boolean; notifyExpiry?: boolean; notifySignals?: boolean; notifyWeekly?: boolean; notifyNews?: boolean }) {
     setSaving(true);
     setMessage(null);
     const formData = new FormData();
     formData.set("notify_receipts", String(next.notifyReceipts ?? notifyReceipts));
     formData.set("notify_expiry", String(next.notifyExpiry ?? notifyExpiry));
     formData.set("notify_signals", String(next.notifySignals ?? notifySignals));
+    formData.set("notify_weekly", String(next.notifyWeekly ?? notifyWeekly));
+    formData.set("notify_news", String(next.notifyNews ?? notifyNews));
     const result = await updateNotificationPrefs(formData);
     setSaving(false);
     if (result.success) {
@@ -75,6 +79,46 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
               save({ notifySignals: v });
             }}
             label={t("Notifikasi sinyal trading")}
+          />
+        </div>
+
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="flex gap-3">
+            <BarChart3 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div>
+              <p className="text-body-sm font-semibold text-text-primary">{t("Laporan mingguan")}</p>
+              <p className="text-caption text-text-muted">
+                {t("Ringkasan performa trading dan sinyal setiap Sabtu pagi lewat email.")}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={notifyWeekly}
+            onChange={(v) => {
+              setNotifyWeekly(v);
+              save({ notifyWeekly: v });
+            }}
+            label={t("Laporan mingguan")}
+          />
+        </div>
+
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="flex gap-3">
+            <Newspaper className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div>
+              <p className="text-body-sm font-semibold text-text-primary">{t("Pengingat berita high-impact")}</p>
+              <p className="text-caption text-text-muted">
+                {t("Notifikasi di web sebelum berita high-impact rilis. Khusus member Membership.")}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={notifyNews}
+            onChange={(v) => {
+              setNotifyNews(v);
+              save({ notifyNews: v });
+            }}
+            label={t("Pengingat berita high-impact")}
           />
         </div>
 
