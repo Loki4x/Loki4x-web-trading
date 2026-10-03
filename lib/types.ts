@@ -24,6 +24,7 @@ export interface Profile {
   language?: string;
   notify_receipts?: boolean;
   notify_expiry?: boolean;
+  notify_signals?: boolean;
   is_admin?: boolean;
   tier: "FREE" | "VIP" | "MEMBERSHIP";
   vip_expires_at: string | null;
@@ -102,6 +103,17 @@ export interface Signal {
   chart_image_url: string | null;
   posted_at: string;
   closed_at: string | null;
+}
+
+export type SignalUpdateType = "SL_TO_BE" | "PARTIAL_CLOSE" | "MOVE_SL" | "MOVE_TP" | "NOTE";
+
+export interface SignalUpdate {
+  id: string;
+  signal_id: string;
+  type: SignalUpdateType;
+  message: string | null;
+  price: number | null;
+  created_at: string;
 }
 
 export interface Positioning {
