@@ -1,0 +1,16 @@
+name: Weekly Report
+
+on:
+  schedule:
+    - cron: "0 2 * * 6" # Sabtu 02:00 UTC = 09:00 WIB
+  workflow_dispatch: {}
+
+jobs:
+  weekly-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kirim laporan mingguan
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/weekly-report"
