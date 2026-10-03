@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus, ImageIcon } from "lucide-react";
+import { Trash2, Plus, ImageIcon, MessageSquarePlus } from "lucide-react";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { AddSignalModal } from "@/components/admin/AddSignalModal";
+import { AddSignalUpdateModal } from "@/components/admin/AddSignalUpdateModal";
 import { UpdateSignalStatusModal } from "@/components/admin/UpdateSignalStatusModal";
 import { SignalAnalysisModal } from "@/components/signals/SignalAnalysisModal";
 import { cx, formatDate, formatPrice } from "@/lib/utils";
@@ -19,6 +20,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSignal, setEditingSignal] = useState<Signal | null>(null);
   const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
+  const [updateSignal, setUpdateSignal] = useState<Signal | null>(null);
 
   async function handleDelete(id: string) {
     if (!confirm(t("Hapus sinyal ini?"))) return;
@@ -96,9 +98,19 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
                 )}
               </td>
               <td className="px-4 py-3">
-                <button onClick={() => handleDelete(s.id)} className="text-text-muted hover:text-error">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setUpdateSignal(s)}
+                    className="text-text-muted hover:text-primary"
+                    aria-label={t("Update Sinyal")}
+                    title={t("Update Sinyal")}
+                  >
+                    <MessageSquarePlus className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => handleDelete(s.id)} className="text-text-muted hover:text-error">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -110,6 +122,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
       {editingSignal && (
         <UpdateSignalStatusModal signal={editingSignal} onClose={() => setEditingSignal(null)} />
       )}
+      {updateSignal && <AddSignalUpdateModal signal={updateSignal} onClose={() => setUpdateSignal(null)} />}
       {analysisSignal && (
         <SignalAnalysisModal signal={analysisSignal} onClose={() => setAnalysisSignal(null)} />
       )}
