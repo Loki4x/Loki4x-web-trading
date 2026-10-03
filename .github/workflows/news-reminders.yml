@@ -1,0 +1,20 @@
+name: News Reminders
+
+# CATATAN: jadwal GitHub Actions sering telat 5-15 menit dan bisa terlewat saat ramai.
+# Kalau repo PRIVATE, jadwal tiap 5 menit memakan kuota menit gratis (2000/bulan) dengan cepat.
+# Alternatif yang lebih tepat waktu & gratis: cron-job.org -> POST ke /api/cron/news-reminders
+# dengan header "Authorization: Bearer <CRON_SECRET>" (lihat panduan). Pakai SALAH SATU saja.
+on:
+  schedule:
+    - cron: "*/5 * * * 1-5" # tiap 5 menit, Senin-Jumat (UTC)
+  workflow_dispatch: {}
+
+jobs:
+  news-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kirim pengingat berita
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/news-reminders"
