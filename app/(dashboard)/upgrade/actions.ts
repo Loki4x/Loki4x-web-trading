@@ -12,6 +12,7 @@ import { getMembershipStatus } from "@/lib/tier";
 import { getT } from "@/lib/i18n/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
+import { quotePromo, type PromoError, type PromoQuote } from "@/lib/promo";
 
 export async function submitVipRequest(formData: FormData) {
   const { t } = await getT();
@@ -49,7 +50,52 @@ export async function submitVipRequest(formData: FormData) {
   revalidatePath("/upgrade");
 }
 
-export async function createInstantPayment({ plan, method }: { plan: Plan; method: PakasirMethod }) {
+const PROMO_MESSAGE: Record<PromoError, string> = {
+  INVALID: "Kode promo tidak valid atau sudah tidak berlaku.",
+  PLAN_NOT_ALLOWED: "Kode ini tidak berlaku untuk paket yang dipilih.",
+  ALREADY_USED: "Kamu sudah pernah memakai kode ini.",
+  TOO_LOW: "Kode ini tidak bisa dipakai untuk paket ini.",
+};
+
+export type PromoPreview =
+  | { ok: true; code: string; idr: PromoQuote["idr"]; usdt: PromoQuote["usdt"] }
+  | { ok: false; message: string };
+
+/** Cek kode promo untuk ditampilkan di modal pembayaran. Harga final selalu dihitung ulang saat order dibuat. */
+export async function previewPromoCode({ plan, code }: { plan: Plan; code: string }): Promise<PromoPreview> {
+  const { t } = await getT();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Batasi percobaan supaya kode tidak bisa ditebak-tebak.
+  if (!(await rateLimit(`promo-preview:${user.id}`, 20, 600))) {
+    return { ok: false, message: t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit.") };
+  }
+  if (plan !== "VIP" && plan !== "MEMBERSHIP" && plan !== "MEMBERSHIP_LIFETIME") {
+    return { ok: false, message: t("Paket tidak valid") };
+  }
+  const status = await getMembershipStatus();
+  if (!purchasablePlans(status).includes(plan)) {
+    return { ok: false, message: t("Paket ini tidak tersedia untuk akun kamu saat ini.") };
+  }
+
+  const result = await quotePromo(createServiceClient(), { code, plan, userId: user.id });
+  if (!result.ok) return { ok: false, message: t(PROMO_MESSAGE[result.error]) };
+  return { ok: true, code: result.quote.code, idr: result.quote.idr, usdt: result.quote.usdt };
+}
+
+export async function createInstantPayment({
+  plan,
+  method,
+  promoCode,
+}: {
+  plan: Plan;
+  method: PakasirMethod;
+  promoCode?: string | null;
+}) {
   const { t } = await getT();
   const supabase = await createClient();
   const {
@@ -73,7 +119,21 @@ export async function createInstantPayment({ plan, method }: { plan: Plan; metho
     throw new Error(t("Metode pembayaran tidak valid."));
   }
 
-  const amount = PLAN_PRICE_IDR[plan];
+  // Harga SELALU dihitung di server. Kalau ada kode promo, divalidasi ulang di sini
+  // (bukan percaya hasil preview dari browser).
+  let amount = PLAN_PRICE_IDR[plan];
+  let promo: { id: string; code: string; original: number; discount: number } | null = null;
+  if (promoCode && promoCode.trim()) {
+    const quoted = await quotePromo(createServiceClient(), { code: promoCode, plan, userId: user.id });
+    if (!quoted.ok) throw new Error(t(PROMO_MESSAGE[quoted.error]));
+    amount = quoted.quote.idr.final;
+    promo = {
+      id: quoted.quote.codeId,
+      code: quoted.quote.code,
+      original: quoted.quote.idr.original,
+      discount: quoted.quote.idr.discount,
+    };
+  }
   const orderId = `LOKI4X-${user.id.slice(0, 8)}-${Date.now()}`;
 
   const created = await createPakasirTransaction({ method, orderId, amount });
@@ -90,6 +150,10 @@ export async function createInstantPayment({ plan, method }: { plan: Plan; metho
     payment_number: created.payment_number,
     expired_at: created.expired_at,
     currency: "IDR",
+    promo_code_id: promo?.id ?? null,
+    promo_code: promo?.code ?? null,
+    original_amount: promo?.original ?? amount,
+    discount_amount: promo?.discount ?? 0,
   });
   if (error) throw new Error(t("Gagal menyimpan order pembayaran"));
 
@@ -154,7 +218,20 @@ export async function submitUsdtPayment(formData: FormData) {
   const slipUrl = await uploadToR2(slip, `usdt-slips/${user.id}`);
   if (!slipUrl) throw new Error(t("Gagal upload bukti transfer"));
 
-  const amount = USDT_PRICE[plan];
+  let amount: number = USDT_PRICE[plan];
+  let promo: { id: string; code: string; original: number; discount: number } | null = null;
+  const promoCode = String(formData.get("promo_code") ?? "").trim();
+  if (promoCode) {
+    const quoted = await quotePromo(createServiceClient(), { code: promoCode, plan, userId: user.id });
+    if (!quoted.ok) throw new Error(t(PROMO_MESSAGE[quoted.error]));
+    amount = quoted.quote.usdt.final;
+    promo = {
+      id: quoted.quote.codeId,
+      code: quoted.quote.code,
+      original: quoted.quote.usdt.original,
+      discount: quoted.quote.usdt.discount,
+    };
+  }
   const orderId = `USDT-${user.id.slice(0, 8)}-${Date.now()}`;
 
   const service = createServiceClient();
@@ -168,6 +245,10 @@ export async function submitUsdtPayment(formData: FormData) {
     payment_method: `usdt_${network.toLowerCase()}`,
     slip_url: slipUrl,
     note,
+    promo_code_id: promo?.id ?? null,
+    promo_code: promo?.code ?? null,
+    original_amount: promo?.original ?? amount,
+    discount_amount: promo?.discount ?? 0,
   });
   if (error) throw new Error(t("Gagal menyimpan pengajuan pembayaran"));
 
