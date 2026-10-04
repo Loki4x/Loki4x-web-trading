@@ -14,7 +14,10 @@ export type AuditAction =
   | "SIGNAL_UPDATE_POSTED"
   | "SIGNAL_DELETED"
   | "ANNOUNCEMENT_SENT"
-  | "CALENDAR_ACTUAL_SET";
+  | "CALENDAR_ACTUAL_SET"
+  | "REFERRAL_REWARDED"
+  | "PROMO_CREATED"
+  | "PROMO_TOGGLED";
 
 export interface AuditActor {
   id: string | null;
