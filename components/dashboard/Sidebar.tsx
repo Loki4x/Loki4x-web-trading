@@ -13,6 +13,7 @@ import {
   LogOut,
   ShieldCheck,
   Crown,
+  Gift,
   Menu,
   X,
   ChevronDown,
@@ -35,6 +36,7 @@ import type { DictKey } from "@/lib/i18n/dictionary";
 const topLinks: { href: string; key: DictKey; icon: typeof LayoutDashboard }[] = [
   { href: "/dashboard", key: "nav.dashboard", icon: LayoutDashboard },
   { href: "/upgrade", key: "nav.upgrade", icon: Crown },
+  { href: "/referral", key: "nav.referral", icon: Gift },
 ];
 
 const groups: {
