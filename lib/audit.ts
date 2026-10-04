@@ -13,7 +13,8 @@ export type AuditAction =
   | "SIGNAL_STATUS_CHANGED"
   | "SIGNAL_UPDATE_POSTED"
   | "SIGNAL_DELETED"
-  | "ANNOUNCEMENT_SENT";
+  | "ANNOUNCEMENT_SENT"
+  | "CALENDAR_ACTUAL_SET";
 
 export interface AuditActor {
   id: string | null;
