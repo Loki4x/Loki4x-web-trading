@@ -17,6 +17,8 @@ interface PaymentRow {
   slip_url: string | null;
   note: string | null;
   payment_method: string | null;
+  promo_code?: string | null;
+  discount_amount?: number | null;
   created_at: string;
   profiles: { full_name: string | null; email: string | null } | null;
 }
@@ -76,7 +78,15 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
             <tr key={p.id} className="border-b border-border last:border-0">
               <td className="px-4 py-3 text-text-primary">{p.profiles?.full_name || p.profiles?.email || p.user_id}</td>
               <td className="px-4 py-3">{t(planLabel[p.plan])}</td>
-              <td className="px-4 py-3">{p.amount} USDT</td>
+              <td className="px-4 py-3">
+                <p>{p.amount} USDT</p>
+                {p.promo_code && (
+                  <p className="text-caption text-text-muted">
+                    {t("Promo")} {p.promo_code}
+                    {p.discount_amount ? ` (−${p.discount_amount})` : ""}
+                  </p>
+                )}
+              </td>
               <td className="px-4 py-3 uppercase">{p.payment_method?.replace("usdt_", "")}</td>
               <td className="px-4 py-3">
                 {p.slip_url ? (
