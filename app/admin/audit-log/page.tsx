@@ -16,6 +16,7 @@ const ACTION_LABEL: Record<string, string> = {
   SIGNAL_UPDATE_POSTED: "Update sinyal diposting",
   SIGNAL_DELETED: "Sinyal dihapus",
   ANNOUNCEMENT_SENT: "Pengumuman dikirim",
+  CALENDAR_ACTUAL_SET: "Actual berita diisi",
 };
 
 interface AuditRow {
