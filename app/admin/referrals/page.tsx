@@ -12,11 +12,12 @@ interface Row {
   note: string | null;
   created_at: string;
   rewarded_at: string | null;
+  claimed_at: string | null;
 }
 
 const STATUS_LABEL: Record<Row["status"], string> = {
   PENDING: "Belum bergabung",
-  REWARDED: "Hadiah diterima",
+  REWARDED: "Hari terkumpul",
   REJECTED: "Tidak memenuhi syarat",
   CAPPED: "Batas hadiah tercapai",
 };
@@ -28,7 +29,7 @@ export default async function AdminReferralsPage() {
   // RLS: admin boleh melihat semua referral dan semua profil.
   const { data } = await supabase
     .from("referrals")
-    .select("id, referrer_id, referred_id, status, reward_days, note, created_at, rewarded_at")
+    .select("id, referrer_id, referred_id, status, reward_days, note, created_at, rewarded_at, claimed_at")
     .order("created_at", { ascending: false })
     .limit(300);
   const rows = (data ?? []) as Row[];
@@ -77,7 +78,7 @@ export default async function AdminReferralsPage() {
                 <td className="px-4 py-3 text-body-sm text-text-primary">{emails.get(r.referred_id) ?? r.referred_id}</td>
                 <td className="px-4 py-3 text-body-sm text-text-secondary">{fmt.format(new Date(r.created_at))}</td>
                 <td className={cx("px-4 py-3 text-body-sm font-semibold", r.status === "REWARDED" ? "text-success" : "text-text-secondary")}>
-                  {t(STATUS_LABEL[r.status])}
+                  {r.status === "REWARDED" && r.claimed_at ? t("Sudah diklaim") : t(STATUS_LABEL[r.status])}
                   {r.status === "REWARDED" && r.reward_days > 0 ? ` (+${r.reward_days} ${t("hari")})` : ""}
                 </td>
                 <td className="px-4 py-3 text-caption text-text-muted">{r.note ?? "—"}</td>
