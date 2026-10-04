@@ -10,6 +10,9 @@ import { type Plan } from "@/lib/pakasir-constants";
 import { computeGrant } from "@/lib/membership-grant";
 import { logAudit, getAuditActor } from "@/lib/audit";
 import { sendSignalEmails } from "@/lib/signal-emails";
+import { redeemPromoForPayment, normalizePromoCode, PROMO_CODE_PATTERN } from "@/lib/promo";
+import { grantReferralReward } from "@/lib/referral";
+import { createServiceClient } from "@/lib/supabase/service";
 import { uploadToR2 } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -396,6 +399,107 @@ export async function saveCalendarActual(eventKey: string, value: string): Promi
   return { ok: true };
 }
 
+// ---------------------------------------------------------------------------
+// Kode promo (khusus admin)
+// ---------------------------------------------------------------------------
+const PROMO_PLANS = ["VIP", "MEMBERSHIP", "MEMBERSHIP_LIFETIME"];
+
+function wibDate(value: FormDataEntryValue | null, endOfDay: boolean): Date | null {
+  const raw = String(value ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const d = new Date(`${raw}T${endOfDay ? "23:59:59" : "00:00:00"}+07:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+export async function createPromoCode(formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
+  const supabase = await assertIsAdmin();
+
+  const code = normalizePromoCode(formData.get("code"));
+  const type = String(formData.get("type") ?? "");
+  const value = Number(formData.get("value"));
+  const maxUsesRaw = String(formData.get("max_uses") ?? "").trim();
+  const maxUses = maxUsesRaw ? Number(maxUsesRaw) : null;
+  const validFrom = wibDate(formData.get("valid_from"), false);
+  const validUntil = wibDate(formData.get("valid_until"), true);
+  const note = String(formData.get("note") ?? "").trim().slice(0, 200) || null;
+
+  if (!PROMO_CODE_PATTERN.test(code)) {
+    return { ok: false, message: t("Kode harus 3–32 karakter: huruf besar, angka, - atau _.") };
+  }
+  if (type !== "PERCENT" && type !== "FIXED_IDR") return { ok: false, message: t("Jenis diskon tidak valid.") };
+  if (!Number.isFinite(value)) return { ok: false, message: t("Nilai diskon tidak valid.") };
+  if (type === "PERCENT" && (value < 1 || value > 95)) {
+    return { ok: false, message: t("Diskon persen harus antara 1 dan 95.") };
+  }
+  if (type === "FIXED_IDR" && (!Number.isInteger(value) || value < 1000 || value > 1_000_000)) {
+    return { ok: false, message: t("Potongan nominal harus bilangan bulat antara Rp1.000 dan Rp1.000.000.") };
+  }
+  if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) {
+    return { ok: false, message: t("Batas pemakaian harus bilangan bulat minimal 1.") };
+  }
+  if (validFrom && validUntil && validUntil < validFrom) {
+    return { ok: false, message: t("Tanggal berakhir tidak boleh sebelum tanggal mulai.") };
+  }
+
+  const chosen = formData.getAll("plans").map(String).filter((p) => PROMO_PLANS.includes(p));
+  const plans = chosen.length === 0 || chosen.length === PROMO_PLANS.length ? null : chosen;
+
+  const actor = await getAuditActor(supabase);
+  const { data: created, error } = await supabase
+    .from("promo_codes")
+    .insert({
+      code,
+      type,
+      value,
+      max_uses: maxUses,
+      valid_from: validFrom ? validFrom.toISOString() : null,
+      valid_until: validUntil ? validUntil.toISOString() : null,
+      plans,
+      note,
+      created_by: actor.id,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    if (error.code === "23505") return { ok: false, message: t("Kode ini sudah ada.") };
+    return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
+  }
+
+  await logAudit(supabase, {
+    actor,
+    action: "PROMO_CREATED",
+    targetId: created?.id ?? null,
+    details: { code, type, value, max_uses: maxUses, plans, valid_until: validUntil ? validUntil.toISOString() : null },
+  });
+
+  revalidatePath("/admin/promo-codes");
+  return { ok: true };
+}
+
+export async function setPromoActive(promoId: string, active: boolean): Promise<ActionResult> {
+  const { t } = await getT();
+  const supabase = await assertIsAdmin();
+
+  const { data, error } = await supabase
+    .from("promo_codes")
+    .update({ active: Boolean(active) })
+    .eq("id", promoId)
+    .select("code")
+    .maybeSingle();
+  if (error || !data) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error?.message ?? "-" }) };
+
+  await logAudit(supabase, {
+    actor: await getAuditActor(supabase),
+    action: "PROMO_TOGGLED",
+    targetId: promoId,
+    details: { code: data.code, active: Boolean(active) },
+  });
+
+  revalidatePath("/admin/promo-codes");
+  return { ok: true };
+}
+
 const SIGNAL_UPDATE_TYPES = ["SL_TO_BE", "PARTIAL_CLOSE", "MOVE_SL", "MOVE_TP", "NOTE"];
 
 export async function addSignalUpdate(formData: FormData): Promise<ActionResult> {
@@ -601,6 +705,8 @@ export async function approveVipRequest(requestId: string, _clientUserId?: strin
     },
   });
 
+  await grantReferralReward(userId);
+
   revalidatePath("/admin/vip-requests");
   revalidatePath("/upgrade");
   return { ok: true };
@@ -711,7 +817,7 @@ export async function approveUsdtPayment(paymentId: string, _clientUserId?: stri
     .eq("id", paymentId)
     .eq("currency", "USDT")
     .eq("status", "PENDING")
-    .select("id, user_id, plan")
+    .select("id, user_id, plan, promo_code")
     .maybeSingle();
 
   if (!payment) {
@@ -772,8 +878,13 @@ export async function approveUsdtPayment(paymentId: string, _clientUserId?: stri
       to_tier: grant.tier,
       from_expires_at: targetProfile?.vip_expires_at ?? null,
       to_expires_at: grant.vip_expires_at,
+      promo_code: (payment as { promo_code?: string | null }).promo_code ?? null,
     },
   });
+
+  // Catat pemakaian kode promo & beri hadiah ke pengundang (tidak pernah melempar error).
+  await redeemPromoForPayment(createServiceClient(), String(payment.id));
+  await grantReferralReward(userId);
 
   revalidatePath("/admin/usdt-payments");
   revalidatePath("/upgrade");
