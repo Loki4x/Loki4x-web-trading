@@ -6,6 +6,8 @@ import { notifyUser } from "@/lib/notifications";
 import { type Plan } from "@/lib/pakasir-constants";
 import { computeGrant } from "@/lib/membership-grant";
 import { logAudit } from "@/lib/audit";
+import { redeemPromoForPayment } from "@/lib/promo";
+import { grantReferralReward } from "@/lib/referral";
 
 /**
  * Verifikasi status transaksi ke Pakasir (Transaction Detail API, bukan
@@ -84,12 +86,19 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
     details: {
       target_email: profile?.email ?? null,
       plan,
+      promo_code: payment.promo_code ?? null,
+      discount_amount: payment.discount_amount ?? 0,
       from_tier: profile?.tier ?? null,
       to_tier: grant.tier,
       from_expires_at: profile?.vip_expires_at ?? null,
       to_expires_at: grant.vip_expires_at,
     },
   });
+
+  // Catat pemakaian kode promo & beri hadiah ke pengundang (kalau ada). Keduanya tidak
+  // pernah melempar error, jadi tidak bisa membatalkan upgrade yang sudah berhasil.
+  await redeemPromoForPayment(service, String(claimed.id));
+  await grantReferralReward(payment.user_id);
 
   const { t: tu, locale: userLocale } = await getUserT(service, payment.user_id);
   const expiryLabel = newExpiry
