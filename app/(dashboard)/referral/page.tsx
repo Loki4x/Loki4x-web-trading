@@ -1,9 +1,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { ensureReferralCode, maskEmail } from "@/lib/referral";
-import { REFERRAL_MAX_REWARDS_PER_REFERRER, REFERRAL_REWARD_DAYS } from "@/lib/referral-config";
+import { claimBlockReason, ensureReferralCode, maskEmail } from "@/lib/referral";
+import {
+  REFERRAL_CLAIM_THRESHOLD_DAYS,
+  REFERRAL_MAX_REWARDS_PER_REFERRER,
+  REFERRAL_REWARD_DAYS,
+} from "@/lib/referral-config";
 import { ReferralPanel } from "@/components/referral/ReferralPanel";
+import { ClaimCard } from "@/components/referral/ClaimCard";
 import { getT } from "@/lib/i18n/server";
 import { dateLocale } from "@/lib/i18n/dictionary";
 import { cx } from "@/lib/utils";
@@ -13,12 +18,13 @@ interface ReferralRow {
   referred_id: string;
   status: "PENDING" | "REWARDED" | "REJECTED" | "CAPPED";
   reward_days: number;
+  claimed_at: string | null;
   created_at: string;
 }
 
 const STATUS_LABEL: Record<ReferralRow["status"], string> = {
   PENDING: "Belum bergabung",
-  REWARDED: "Hadiah diterima",
+  REWARDED: "Hari terkumpul",
   REJECTED: "Tidak memenuhi syarat",
   CAPPED: "Batas hadiah tercapai",
 };
@@ -39,7 +45,7 @@ export default async function ReferralPage() {
   // RLS: user hanya bisa membaca referral miliknya sendiri.
   const { data } = await supabase
     .from("referrals")
-    .select("id, referred_id, status, reward_days, created_at")
+    .select("id, referred_id, status, reward_days, claimed_at, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
   const rows = (data ?? []) as ReferralRow[];
@@ -52,7 +58,11 @@ export default async function ReferralPage() {
   }
 
   const rewarded = rows.filter((r) => r.status === "REWARDED");
-  const totalDays = rewarded.reduce((sum, r) => sum + r.reward_days, 0);
+  const balance = rewarded.filter((r) => !r.claimed_at).reduce((sum, r) => sum + r.reward_days, 0);
+  const claimedDays = rewarded.filter((r) => r.claimed_at).reduce((sum, r) => sum + r.reward_days, 0);
+
+  const { data: me } = await supabase.from("profiles").select("tier, vip_expires_at").eq("id", user.id).single();
+  const blocked = me ? claimBlockReason(me) : null;
   const fmt = new Intl.DateTimeFormat(dateLocale(locale), { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" });
 
   return (
@@ -60,8 +70,9 @@ export default async function ReferralPage() {
       <div className="mb-6">
         <h1 className="text-h2 text-text-primary">{t("Referral")}</h1>
         <p className="text-body-sm text-text-secondary">
-          {t("Ajak teman, dapat hadiah. Kamu mendapat +{days} hari akses setiap temanmu bergabung sebagai VIP atau Membership.", {
+          {t("Ajak teman, dapat hari VIP. Tiap teman yang bergabung sebagai VIP atau Membership memberi +{days} hari VIP, dan bisa diklaim setelah terkumpul {threshold} hari.", {
             days: REFERRAL_REWARD_DAYS,
+            threshold: REFERRAL_CLAIM_THRESHOLD_DAYS,
           })}
         </p>
       </div>
@@ -71,6 +82,8 @@ export default async function ReferralPage() {
       ) : (
         <div className="card text-body-sm text-error">{t("Gagal membuat kode referral, coba muat ulang halaman.")}</div>
       )}
+
+      <ClaimCard balance={balance} threshold={REFERRAL_CLAIM_THRESHOLD_DAYS} blocked={blocked} />
 
       <div className="mt-4 grid grid-cols-3 gap-4">
         <div className="card !p-4">
@@ -82,8 +95,8 @@ export default async function ReferralPage() {
           <p className="text-h3 text-success">{rewarded.length}</p>
         </div>
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">{t("Total hari didapat")}</p>
-          <p className="text-h3 text-text-primary">+{totalDays}</p>
+          <p className="text-caption text-text-secondary">{t("Hari sudah diklaim")}</p>
+          <p className="text-h3 text-text-primary">+{claimedDays}</p>
         </div>
       </div>
 
@@ -93,8 +106,13 @@ export default async function ReferralPage() {
           <li>{t("Bagikan link undanganmu ke teman.")}</li>
           <li>{t("Temanmu mendaftar lewat link itu (akun baru).")}</li>
           <li>
-            {t("Saat temanmu berlangganan VIP/Membership atau pengajuan VIP IB-nya disetujui, kamu otomatis mendapat +{days} hari.", {
+            {t("Saat temanmu berlangganan VIP/Membership atau pengajuan VIP IB-nya disetujui, saldomu bertambah +{days} hari VIP.", {
               days: REFERRAL_REWARD_DAYS,
+            })}
+          </li>
+          <li>
+            {t("Setelah saldo mencapai {threshold} hari, klik Klaim: seluruh saldo ditambahkan sebagai VIP di akunmu.", {
+              threshold: REFERRAL_CLAIM_THRESHOLD_DAYS,
             })}
           </li>
         </ol>
@@ -129,7 +147,7 @@ export default async function ReferralPage() {
                 <td className="px-4 py-3 text-body-sm text-text-primary">{maskEmail(emails.get(r.referred_id))}</td>
                 <td className="px-4 py-3 text-body-sm text-text-secondary">{fmt.format(new Date(r.created_at))}</td>
                 <td className={cx("px-4 py-3 text-body-sm font-semibold", r.status === "REWARDED" ? "text-success" : "text-text-secondary")}>
-                  {t(STATUS_LABEL[r.status])}
+                  {r.status === "REWARDED" && r.claimed_at ? t("Sudah diklaim") : t(STATUS_LABEL[r.status])}
                   {r.status === "REWARDED" && r.reward_days > 0 ? ` (+${r.reward_days} ${t("hari")})` : ""}
                 </td>
               </tr>
