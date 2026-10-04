@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { logLoginActivity } from "@/lib/login-activity";
 import { rateLimit } from "@/lib/rate-limit";
+import { attachReferralFromCookie } from "@/lib/referral";
 import { getT } from "@/lib/i18n/server";
 
 async function currentRequestInfo() {
@@ -37,6 +38,8 @@ export async function login(formData: FormData) {
 
   if (data.user) {
     await logLoginActivity(supabase, data.user.id, await currentRequestInfo());
+    // Akun baru yang datang lewat link undangan (/r/KODE): hubungkan ke pengundang.
+    await attachReferralFromCookie({ id: data.user.id, created_at: data.user.created_at });
   }
 
   redirect("/dashboard");
