@@ -18,6 +18,7 @@ const ACTION_LABEL: Record<string, string> = {
   ANNOUNCEMENT_SENT: "Pengumuman dikirim",
   CALENDAR_ACTUAL_SET: "Actual berita diisi",
   REFERRAL_REWARDED: "Hadiah referral diberikan",
+  REFERRAL_CLAIMED: "Hadiah referral diklaim",
   PROMO_CREATED: "Kode promo dibuat",
   PROMO_TOGGLED: "Kode promo diaktifkan/dinonaktifkan",
 };
