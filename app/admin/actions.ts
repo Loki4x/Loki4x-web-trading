@@ -368,6 +368,34 @@ export async function updateSignalStatus(
   return { ok: true };
 }
 
+/**
+ * Simpan/hapus nilai Actual kalender ekonomi secara manual.
+ * value kosong = hapus. Dipanggil dari menu Admin -> Actual Berita.
+ */
+export async function saveCalendarActual(eventKey: string, value: string): Promise<ActionResult> {
+  const { t } = await getT();
+  const supabase = await assertIsAdmin();
+
+  const key = String(eventKey ?? "").trim();
+  const actual = String(value ?? "").trim();
+  if (!key || key.length > 250 || !/^\d{4}-\d{2}-\d{2}\|/.test(key)) return { ok: false, message: t("Terjadi kesalahan.") };
+  if (actual.length > 40) return { ok: false, message: t("Nilai Actual terlalu panjang (maks 40 karakter).") };
+
+  const actor = await getAuditActor(supabase);
+  const { error } = actual
+    ? await supabase
+        .from("calendar_actuals")
+        .upsert({ event_key: key, actual, updated_by: actor.id, updated_at: new Date().toISOString() })
+    : await supabase.from("calendar_actuals").delete().eq("event_key", key);
+  if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
+
+  await logAudit(supabase, { actor, action: "CALENDAR_ACTUAL_SET", targetId: key, details: { actual: actual || null } });
+
+  revalidatePath("/news");
+  revalidatePath("/admin/calendar-actuals");
+  return { ok: true };
+}
+
 const SIGNAL_UPDATE_TYPES = ["SL_TO_BE", "PARTIAL_CLOSE", "MOVE_SL", "MOVE_TP", "NOTE"];
 
 export async function addSignalUpdate(formData: FormData): Promise<ActionResult> {
