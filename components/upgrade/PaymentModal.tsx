@@ -9,12 +9,19 @@ import {
   createInstantPayment,
   checkInstantPaymentStatus,
   submitUsdtPayment,
+  previewPromoCode,
 } from "@/app/(dashboard)/upgrade/actions";
 import { BANK_VA_METHODS, PLAN_PRICE_IDR, type PakasirMethod, type Plan } from "@/lib/pakasir-constants";
 import { USDT_WALLETS, USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 import { useT } from "@/lib/i18n/client";
 
 type Tab = "QRIS" | "BANK" | "USDT";
+
+interface AppliedPromo {
+  code: string;
+  idr: { original: number; discount: number; final: number };
+  usdt: { original: number; discount: number; final: number };
+}
 
 interface InstantResult {
   orderId: string;
@@ -82,6 +89,13 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
   const [tab, setTab] = useState<Tab>("QRIS");
   const [completed, setCompleted] = useState(false);
 
+  // Langkah awal: kode promo (opsional). Order baru dibuat setelah "Lanjut ke pembayaran".
+  const [started, setStarted] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<AppliedPromo | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   // QRIS
   const [qris, setQris] = useState<InstantResult | null>(null);
   const [qrisLoading, setQrisLoading] = useState(false);
@@ -102,23 +116,52 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
   const [usdtSubmitted, setUsdtSubmitted] = useState(false);
   const [usdtError, setUsdtError] = useState<string | null>(null);
 
+  async function applyPromo(): Promise<boolean> {
+    setPromoError(null);
+    setPromoChecking(true);
+    try {
+      const result = await previewPromoCode({ plan, code: promoInput });
+      if (!result.ok) {
+        setPromo(null);
+        setPromoError(result.message);
+        return false;
+      }
+      setPromo({ code: result.code, idr: result.idr, usdt: result.usdt });
+      return true;
+    } catch (e) {
+      setPromo(null);
+      setPromoError(e instanceof Error ? e.message : t("Terjadi kesalahan."));
+      return false;
+    } finally {
+      setPromoChecking(false);
+    }
+  }
+
+  async function handleContinue() {
+    // Kode sudah diketik tapi belum diterapkan: terapkan dulu, lanjut hanya kalau valid.
+    if (promoInput.trim() && !promo) {
+      if (!(await applyPromo())) return;
+    }
+    setStarted(true);
+  }
+
   useEffect(() => {
-    if (tab === "QRIS" && !qrisRequested.current) {
+    if (started && tab === "QRIS" && !qrisRequested.current) {
       qrisRequested.current = true;
       setQrisLoading(true);
-      createInstantPayment({ plan, method: "qris" })
+      createInstantPayment({ plan, method: "qris", promoCode: promo?.code ?? null })
         .then(setQris)
         .catch((e) => setQrisError(e instanceof Error ? e.message : t("Gagal membuat QRIS")))
         .finally(() => setQrisLoading(false));
     }
-  }, [tab, plan]);
+  }, [started, tab, plan]);
 
   function selectBank(method: PakasirMethod) {
     setBank(method);
     setBankResult(null);
     setBankError(null);
     setBankLoading(true);
-    createInstantPayment({ plan, method })
+    createInstantPayment({ plan, method, promoCode: promo?.code ?? null })
       .then(setBankResult)
       .catch((e) => setBankError(e instanceof Error ? e.message : t("Gagal membuat Virtual Account")))
       .finally(() => setBankLoading(false));
@@ -137,6 +180,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
       fd.set("network", network);
       fd.set("slip", slip);
       fd.set("note", note);
+      fd.set("promo_code", promo?.code ?? "");
       await submitUsdtPayment(fd);
       setUsdtSubmitted(true);
     } catch (e) {
@@ -171,7 +215,15 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
           <div>
             <h2 className="text-h3 text-text-primary">Payment</h2>
             <p className="text-body-sm text-text-secondary">
-              {t(PLAN_LABEL[plan])} · {formatIDR(PLAN_PRICE_IDR[plan])}
+              {t(PLAN_LABEL[plan])} ·{" "}
+              {promo ? (
+                <>
+                  <span className="text-text-muted line-through">{formatIDR(promo.idr.original)}</span>{" "}
+                  <span className="font-semibold text-success">{formatIDR(promo.idr.final)}</span>
+                </>
+              ) : (
+                formatIDR(PLAN_PRICE_IDR[plan])
+              )}
             </p>
           </div>
           <button
@@ -194,6 +246,57 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
             </p>
             <button type="button" onClick={onClose} className="btn-primary mt-2">
               {t("Tutup")}
+            </button>
+          </div>
+        ) : !started ? (
+          <div className="mt-5">
+            <label className="text-body-sm font-medium text-text-secondary">{t("Kode promo (opsional)")}</label>
+            <div className="mt-2 flex gap-2">
+              <input
+                value={promoInput}
+                onChange={(e) => {
+                  setPromoInput(e.target.value.toUpperCase());
+                  setPromo(null);
+                  setPromoError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && promoInput.trim()) applyPromo();
+                }}
+                maxLength={32}
+                placeholder={t("Masukkan kode promo")}
+                className="input-field flex-1"
+                autoCapitalize="characters"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                onClick={applyPromo}
+                disabled={!promoInput.trim() || promoChecking}
+                className="shrink-0 rounded-lg border border-border px-4 text-body-sm font-semibold text-text-secondary hover:bg-surface-hover disabled:opacity-50"
+              >
+                {promoChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Terapkan")}
+              </button>
+            </div>
+
+            {promoError && <p className="mt-2 text-caption text-error">{promoError}</p>}
+            {promo && (
+              <div className="mt-3 rounded-lg border border-success/30 bg-success-subtle px-3 py-2 text-body-sm text-success">
+                <p className="font-semibold">
+                  {t("Kode {code} diterapkan", { code: promo.code })} · {t("hemat {amount}", { amount: formatIDR(promo.idr.discount) })}
+                </p>
+                <p className="text-caption">
+                  {formatIDR(promo.idr.final)} · {t("atau")} {promo.usdt.final} USDT
+                </p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={promoChecking}
+              className="btn-primary mt-5 flex w-full items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {t("Lanjut ke pembayaran")}
             </button>
           </div>
         ) : (
@@ -312,7 +415,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
                         <CopyButton text={USDT_WALLETS[network].address} />
                       </div>
                       <p className="mt-3 text-caption text-text-muted">{t("Jumlah")}</p>
-                      <p className="text-body font-semibold text-text-primary">{USDT_PRICE[plan]} USDT</p>
+                      <p className="text-body font-semibold text-text-primary">{promo ? promo.usdt.final : USDT_PRICE[plan]} USDT</p>
                     </div>
 
                     <div className="mt-4">
