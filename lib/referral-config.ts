@@ -1,8 +1,12 @@
 // Pengaturan program referral. Ubah angka di sini, lalu deploy ulang.
 
-// Hadiah untuk pengundang saat orang yang diundang berhasil BERGABUNG (bayar VIP / Membership,
-// atau pengajuan VIP IB disetujui): tambahan hari akses.
-export const REFERRAL_REWARD_DAYS = 30;
+// Hadiah untuk pengundang tiap kali orang yang diundang BERGABUNG (bayar VIP ATAU Membership,
+// atau pengajuan VIP IB disetujui): hari VIP yang masuk ke SALDO (belum langsung aktif).
+export const REFERRAL_REWARD_DAYS = 3;
+
+// Saldo baru bisa DIKLAIM jadi hari VIP setelah terkumpul minimal sekian hari.
+// Saat diklaim, seluruh saldo (bukan hanya 14 hari) ditambahkan sebagai VIP.
+export const REFERRAL_CLAIM_THRESHOLD_DAYS = 14;
 
 // Batas jumlah hadiah per pengundang (seumur hidup), untuk menahan penyalahgunaan.
 export const REFERRAL_MAX_REWARDS_PER_REFERRER = 20;
