@@ -44,7 +44,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/calculator") ||
     request.nextUrl.pathname.startsWith("/positioning") ||
     request.nextUrl.pathname.startsWith("/signals") ||
-    request.nextUrl.pathname.startsWith("/academy");
+    request.nextUrl.pathname.startsWith("/academy") ||
+    request.nextUrl.pathname.startsWith("/referral");
 
   if (!user && isDashboardRoute) {
     const url = request.nextUrl.clone();
