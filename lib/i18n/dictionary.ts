@@ -13,6 +13,7 @@ const id = {
   // Sidebar
   "nav.dashboard": "Dashboard",
   "nav.upgrade": "Upgrade",
+  "nav.referral": "Referral",
   "nav.group.market": "Analisa Market",
   "nav.group.tools": "Trading Tools",
   "nav.group.academy": "Academy",
@@ -183,6 +184,7 @@ export type DictKey = keyof typeof id;
 const en: Record<DictKey, string> = {
   "nav.dashboard": "Dashboard",
   "nav.upgrade": "Upgrade",
+  "nav.referral": "Referral",
   "nav.group.market": "Market Analysis",
   "nav.group.tools": "Trading Tools",
   "nav.group.academy": "Academy",
