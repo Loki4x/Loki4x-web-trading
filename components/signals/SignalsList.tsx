@@ -10,7 +10,7 @@ import { categorizeSymbol, CATEGORY_LABEL, type AssetCategory } from "@/lib/asse
 import {
   buildGrowthSeries,
   computeSignalStats,
-  livePercent,
+  signalResultPips,
   signalStatusClass,
   SIGNAL_STATUS_LABEL,
   isTerminalStatus,
@@ -209,7 +209,7 @@ export function SignalsList({
             </thead>
             <tbody>
               {sortedVisible.map((s) => {
-                const pnl = livePercent(s);
+                const pnl = signalResultPips(s);
                 return (
                   <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
                     <td className="px-4 py-3">
@@ -226,7 +226,7 @@ export function SignalsList({
                       {pnl !== null ? (
                         <span className={cx("text-body-sm font-semibold", pnl >= 0 ? "text-success" : "text-error")}>
                           {pnl >= 0 ? "+" : ""}
-                          {pnl.toFixed(2)}%
+                          {pnl.toFixed(1)} pips
                         </span>
                       ) : (
                         <span className="text-body-sm text-text-muted">—</span>
