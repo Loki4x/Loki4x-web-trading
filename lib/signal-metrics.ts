@@ -1,4 +1,5 @@
 import type { Signal, SignalStatus } from "@/lib/types";
+import { categorizeSymbol } from "@/lib/asset-category";
 
 export const TERMINAL_STATUSES: SignalStatus[] = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"];
 
@@ -62,6 +63,50 @@ export function livePercent(signal: Signal): number | null {
   if (signal.current_price === null) return null;
   const raw = ((signal.current_price - signal.entry_price) / signal.entry_price) * 100;
   return signal.side === "BUY" ? raw : -raw;
+}
+
+/**
+ * Ukuran 1 pip (dalam harga) per simbol. Disamakan dengan kalkulator lot
+ * (components/calculator/LotCalculator.tsx): XAUUSD 0.1, XAGUSD 0.001,
+ * pair JPY 0.01, forex lain 0.0001, indeks & crypto 1.
+ */
+export function pipSizeFor(symbol: string): number {
+  const s = symbol.toUpperCase();
+  if (s === "XAUUSD" || s === "GOLD") return 0.1;
+  if (s === "XAGUSD" || s === "SILVER") return 0.001;
+  switch (categorizeSymbol(s)) {
+    case "INDEX":
+    case "CRYPTO":
+      return 1;
+    case "COMMODITY":
+      return 0.01; // minyak, tembaga, dll.
+    default:
+      return s.includes("JPY") ? 0.01 : 0.0001;
+  }
+}
+
+/** P/L dalam pips dari pergerakan harga (current_price vs entry_price). */
+export function livePips(signal: Signal): number | null {
+  if (signal.current_price === null) return null;
+  const move =
+    signal.side === "BUY"
+      ? signal.current_price - signal.entry_price
+      : signal.entry_price - signal.current_price;
+  return move / pipSizeFor(signal.symbol);
+}
+
+/**
+ * Nilai kolom Hasil di tabel posisi, dalam pips.
+ * - TP/SL/PARTIAL: pakai result_pips yang diisi admin. Kalau kosong/0
+ *   (admin tidak mengisi, tersimpan sebagai 0), hitung dari harga penutupan.
+ * - Posisi aktif: pips berjalan dari current_price.
+ */
+export function signalResultPips(signal: Signal): number | null {
+  const hasResult = signal.status === "TP" || signal.status === "SL" || signal.status === "PARTIAL";
+  if (hasResult && signal.result_pips !== null && signal.result_pips !== 0) {
+    return signal.result_pips;
+  }
+  return livePips(signal);
 }
 
 export interface GrowthPoint {
