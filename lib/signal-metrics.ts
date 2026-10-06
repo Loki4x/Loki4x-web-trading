@@ -162,7 +162,9 @@ export function computeSignalStats(signals: Signal[]): SignalStats {
   const beforeMonth = growthSeries.filter((p) => new Date(p.date) < monthCutoff);
   const throughNow = growthSeries;
   const baseGrowth = beforeMonth.length > 0 ? beforeMonth[beforeMonth.length - 1].growthPercent : 0;
-  const monthGrowthPercent = throughNow.length > 0 ? totalGrowthPercent - baseGrowth : 0;
+  // Growth bersifat majemuk, jadi return bulan ini = rasio, bukan selisih persen kumulatif.
+  const monthGrowthPercent =
+    throughNow.length > 0 ? ((1 + totalGrowthPercent / 100) / (1 + baseGrowth / 100) - 1) * 100 : 0;
 
   let peakMultiplier = 1;
   let maxDrawdownPercent = 0;
