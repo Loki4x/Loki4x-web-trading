@@ -19,11 +19,17 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
   const t = useT();
   const [range, setRange] = useState<RangeFilter>("ALL");
 
-  const filtered = useMemo(() => {
+  const { filtered, baseGrowth } = useMemo(() => {
     const option = RANGE_OPTIONS.find((r) => r.key === range);
-    if (!option || option.days === null) return points;
+    if (!option || option.days === null) return { filtered: points, baseGrowth: 0 };
     const cutoff = Date.now() - option.days * 24 * 60 * 60 * 1000;
-    return points.filter((p) => new Date(p.date).getTime() >= cutoff);
+    const inRange = points.filter((p) => new Date(p.date).getTime() >= cutoff);
+    const before = points.filter((p) => new Date(p.date).getTime() < cutoff);
+    // Titik awal rentang = growth kumulatif terakhir sebelum rentang dimulai (0 kalau belum ada).
+    return {
+      filtered: inRange,
+      baseGrowth: before.length > 0 ? before[before.length - 1].growthPercent : 0,
+    };
   }, [points, range]);
 
   const chartData = filtered.map((p) => ({
@@ -32,8 +38,9 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
   }));
 
   const latest = filtered.length > 0 ? filtered[filtered.length - 1].growthPercent : 0;
+  // Growth majemuk: perubahan dalam rentang = rasio terhadap titik awal, bukan selisih persen.
   const rangeChange =
-    filtered.length > 0 ? filtered[filtered.length - 1].growthPercent - filtered[0].growthPercent : 0;
+    filtered.length > 0 ? ((1 + latest / 100) / (1 + baseGrowth / 100) - 1) * 100 : 0;
   const isPositive = latest >= 0;
 
   return (
