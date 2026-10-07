@@ -182,7 +182,7 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
     const entryPrice = optionalNumber(formData.get("entry_price"));
     let takeProfit = optionalNumber(formData.get("take_profit"));
     const stopLoss = optionalNumber(formData.get("stop_loss"));
-    const riskPercent = optionalNumber(formData.get("risk_percent")) ?? 2;
+    const riskPercent = optionalNumber(formData.get("risk_percent")) ?? 0.5;
 
     if (!symbol) return { ok: false, message: t("Symbol wajib diisi.") };
     if (side !== "BUY" && side !== "SELL") return { ok: false, message: t("Side harus BUY atau SELL.") };
