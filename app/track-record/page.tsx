@@ -60,9 +60,10 @@ export default async function TrackRecordPage() {
           <>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
               <Stat
-                label={t("signals.totalGrowth")}
-                value={`${signed(record.stats.totalGrowthPercent)}%`}
-                tone={record.stats.totalGrowthPercent >= 0 ? "pos" : "neg"}
+                label={t("signals.totalR")}
+                value={`${signed(record.stats.totalR)}R`}
+                tone={record.stats.totalR >= 0 ? "pos" : "neg"}
+                hint={`${t("signals.rTrades", { count: record.stats.rTradeCount })} · ${t("signals.simGrowth")} ${signed(record.stats.totalGrowthPercent)}%`}
               />
               <Stat
                 label={t("signals.winRate")}
