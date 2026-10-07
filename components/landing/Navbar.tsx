@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 const links = [
   { href: "#features", label: "Features" },
   { href: "#pricing", label: "Pricing" },
-  { href: "/track-record", label: "Track Record" },
+  { href: "/#track-record", label: "Track Record" },
   { href: "/news", label: "News" },
 ];
 
