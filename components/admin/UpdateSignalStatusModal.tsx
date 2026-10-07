@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { updateSignalStatus } from "@/app/admin/actions";
 import { nowWibInputValue } from "@/lib/utils";
 import { SIGNAL_STATUS_LABEL } from "@/lib/signal-metrics";
+import { SignalResultFields } from "@/components/admin/SignalResultFields";
 import type { Signal, SignalStatus } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
 
@@ -32,6 +33,7 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
   const router = useRouter();
   const [status, setStatus] = useState<SignalStatus>(signal.status);
   const [pending, setPending] = useState(false);
+  const [pipsBlocked, setPipsBlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Tanggal ditutup: kalau sinyal sudah pernah ditutup, pakai tanggal itu (supaya
@@ -47,6 +49,11 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+
+    if (needsResult && pipsBlocked) {
+      setError("Hasil pips berbeda jauh dari hitungan harga. Perbaiki angkanya, atau centang konfirmasi di bawah kolom pips.");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
 
     let closingPrice: number | null = null;
@@ -103,26 +110,21 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
           </div>
 
           {needsResult && (
-            <>
-              <Input
-                key={`${status}-price`}
-                name="closing_price"
-                type="number"
-                step="0.00001"
-                label={t("Harga Penutupan")}
-                defaultValue={autoPrice ?? signal.entry_price}
-                required
-              />
-              <Input
-                key={`${status}-pips`}
-                name="result_pips"
-                type="number"
-                step="0.1"
-                label={t("Hasil (pips, boleh minus untuk loss)")}
-                placeholder={t("e.g. 25 atau -10")}
-                defaultValue={signal.result_pips ?? ""}
-              />
-            </>
+            <SignalResultFields
+              key={status}
+              symbol={signal.symbol}
+              side={signal.side}
+              entry={signal.entry_price}
+              takeProfit={signal.take_profit}
+              stopLoss={signal.stop_loss}
+              status={status}
+              closingLabel={t("Harga Penutupan")}
+              closingRequired
+              defaultClosing={String(autoPrice ?? signal.entry_price)}
+              // Pips lama hanya dipertahankan untuk status yang sama; ganti status = hitung ulang dari harga.
+              defaultPips={status === signal.status && signal.result_pips !== null ? String(signal.result_pips) : ""}
+              onBlockedChange={setPipsBlocked}
+            />
           )}
 
           {isTerminal && (
