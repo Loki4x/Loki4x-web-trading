@@ -29,6 +29,8 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
   // kosong lagi; tanggal sinyal sengaja dipertahankan biar input beruntun lebih cepat.
   const [formKey, setFormKey] = useState(0);
   const [status, setStatus] = useState<SignalStatus>("OPEN");
+  // Sengaja tidak di-reset oleh "Simpan & Tambah Lagi" supaya input beruntun satu jenis lebih cepat.
+  const [signalType, setSignalType] = useState<"REGULAR" | "NEWS">("REGULAR");
   const [postedAt, setPostedAt] = useState(() => nowWibInputValue());
   const [pending, setPending] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +90,20 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
           <Input name="symbol" label="Symbol" placeholder="XAUUSD" required />
 
           <div className="flex flex-col gap-2">
+            <label className="text-body-sm font-medium text-text-secondary">{t("signals.type.label")}</label>
+            <select
+              name="signal_type"
+              className="input-field"
+              value={signalType}
+              onChange={(e) => setSignalType(e.target.value === "NEWS" ? "NEWS" : "REGULAR")}
+            >
+              <option value="REGULAR">{t("signals.type.regularOption")}</option>
+              <option value="NEWS">{t("signals.type.newsOption")}</option>
+            </select>
+            {signalType === "NEWS" && <p className="text-caption text-text-muted">{t("signals.newsAdminHint")}</p>}
+          </div>
+
+          <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Side</label>
             <select name="side" required className="input-field" defaultValue="BUY">
               <option value="BUY">BUY</option>
@@ -116,9 +132,11 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
               <Input name="take_profit" type="number" step="0.00001" label="Take Profit (optional)" />
               <Input name="stop_loss" type="number" step="0.00001" label="Stop Loss (optional)" />
             </div>
-            <p className="mt-1.5 text-caption text-text-muted">
-              {t("Isi Stop Loss supaya sinyal ini ikut dihitung di grafik pertumbuhan & drawdown.")}
-            </p>
+            {signalType === "REGULAR" && (
+              <p className="mt-1.5 text-caption text-text-muted">
+                {t("Isi Stop Loss supaya sinyal ini ikut dihitung di grafik pertumbuhan & drawdown.")}
+              </p>
+            )}
           </div>
 
           <Input
