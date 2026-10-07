@@ -1,130 +1,345 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { cx, formatDate } from "@/lib/utils";
-import type { GrowthPoint } from "@/lib/signal-metrics";
+import { ImageIcon } from "lucide-react";
+import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
+import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
+import { SignalAnalysisModal } from "@/components/signals/SignalAnalysisModal";
+import { cx, formatDate, formatPrice } from "@/lib/utils";
+import { categorizeSymbol, CATEGORY_LABEL, type AssetCategory } from "@/lib/asset-category";
+import {
+  buildGrowthSeries,
+  computeSignalStats,
+  signalResultPips,
+  signalStatusClass,
+  SIGNAL_STATUS_LABEL,
+  isTerminalStatus,
+} from "@/lib/signal-metrics";
+import type { Signal, SignalUpdate } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
 import type { DictKey } from "@/lib/i18n/dictionary";
 
-type RangeFilter = "7D" | "30D" | "ALL";
+type CategoryFilter = "ALL" | AssetCategory;
+type PositionTab = "ACTIVE" | "DONE";
+type SignalTypeTab = "REGULAR" | "NEWS";
 
-const RANGE_OPTIONS: { key: RangeFilter; label: DictKey; days: number | null }[] = [
-  { key: "7D", label: "signals.chart.7d", days: 7 },
-  { key: "30D", label: "signals.chart.30d", days: 30 },
-  { key: "ALL", label: "signals.chart.all", days: null },
+const CATEGORY_FILTERS: { key: CategoryFilter; label: DictKey | null; raw?: string }[] = [
+  { key: "ALL", label: "signals.filter.all" },
+  { key: "CURRENCY", label: null, raw: "Currency" },
+  { key: "COMMODITY", label: null, raw: "Commodity" },
+  { key: "INDEX", label: null, raw: "Index" },
+  { key: "CRYPTO", label: null, raw: "Crypto" },
 ];
 
-export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
+function daysAgoLabel(dateString: string, t: (k: DictKey, v?: Record<string, string | number>) => string): string {
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  if (days <= 0) return t("common.today");
+  return t("common.daysAgo", { n: days });
+}
+
+function priceDistancePercent(
+  reference: number,
+  target: number,
+  t: (k: DictKey, v?: Record<string, string | number>) => string
+): string {
+  const pct = (Math.abs(target - reference) / reference) * 100;
+  return t("signals.fromPrice", { pct: pct.toFixed(2) });
+}
+
+export function SignalsList({
+  signals,
+  updatesBySignal = {},
+}: {
+  signals: Signal[];
+  updatesBySignal?: Record<string, SignalUpdate[]>;
+}) {
   const t = useT();
-  const [range, setRange] = useState<RangeFilter>("ALL");
+  const [category, setCategory] = useState<CategoryFilter>("ALL");
+  const [positionTab, setPositionTab] = useState<PositionTab>("ACTIVE");
+  const [signalType, setSignalType] = useState<SignalTypeTab>("REGULAR");
+  const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
 
-  const { filtered, baseGrowth } = useMemo(() => {
-    const option = RANGE_OPTIONS.find((r) => r.key === range);
-    if (!option || option.days === null) return { filtered: points, baseGrowth: 0 };
-    const cutoff = Date.now() - option.days * 24 * 60 * 60 * 1000;
-    const inRange = points.filter((p) => new Date(p.date).getTime() >= cutoff);
-    const before = points.filter((p) => new Date(p.date).getTime() < cutoff);
-    // Titik awal rentang = growth kumulatif terakhir sebelum rentang dimulai (0 kalau belum ada).
-    return {
-      filtered: inRange,
-      baseGrowth: before.length > 0 ? before[before.length - 1].growthPercent : 0,
-    };
-  }, [points, range]);
+  const typeCounts = useMemo(() => {
+    const news = signals.filter((s) => s.signal_type === "NEWS").length;
+    return { REGULAR: signals.length - news, NEWS: news };
+  }, [signals]);
 
-  const chartData = filtered.map((p) => ({
-    date: formatDate(p.date),
-    growth: Number(p.growthPercent.toFixed(2)),
-  }));
+  const typed = useMemo(
+    () => signals.filter((s) => (s.signal_type ?? "REGULAR") === signalType),
+    [signals, signalType]
+  );
 
-  const latest = filtered.length > 0 ? filtered[filtered.length - 1].growthPercent : 0;
-  // Growth majemuk: perubahan dalam rentang = rasio terhadap titik awal, bukan selisih persen.
-  const rangeChange =
-    filtered.length > 0 ? ((1 + latest / 100) / (1 + baseGrowth / 100) - 1) * 100 : 0;
-  const isPositive = latest >= 0;
+  const filtered = useMemo(() => {
+    if (category === "ALL") return typed;
+    return typed.filter((s) => categorizeSymbol(s.symbol) === category);
+  }, [typed, category]);
+
+  const stats = useMemo(() => computeSignalStats(filtered), [filtered]);
+  const growthSeries = useMemo(() => buildGrowthSeries(filtered), [filtered]);
+
+  const activeSignals = filtered.filter((s) => !isTerminalStatus(s.status));
+  const doneSignals = filtered.filter((s) => isTerminalStatus(s.status));
+  const visibleSignals = positionTab === "ACTIVE" ? activeSignals : doneSignals;
+
+  const sortedVisible = [...visibleSignals].sort(
+    (a, b) => new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime()
+  );
 
   return (
-    <div className="card">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-h3 text-text-primary">{t("signals.chart.title")}</h3>
-          <p className="text-caption text-text-secondary">{t("signals.chart.subtitle")}</p>
+    <div>
+      {/* Jenis sinyal: signals biasa vs trade news (dihitung terpisah) */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(["REGULAR", "NEWS"] as const).map((key) => (
+          <button
+            key={key}
+            onClick={() => setSignalType(key)}
+            className={cx(
+              "rounded-full px-3 py-1.5 text-body-sm font-semibold transition-colors",
+              signalType === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
+            )}
+          >
+            {t(key === "REGULAR" ? "signals.type.regular" : "signals.type.news")} ({typeCounts[key]})
+          </button>
+        ))}
+      </div>
+      {signalType === "NEWS" && (
+        <p className="mb-6 rounded-lg border border-border bg-surface-2 px-3 py-2 text-caption text-text-secondary">
+          {t("signals.newsNote")}
+        </p>
+      )}
+
+      {/* Filter jenis pasar */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {CATEGORY_FILTERS.map(({ key, label, raw }) => (
+          <button
+            key={key}
+            onClick={() => setCategory(key)}
+            className={cx(
+              "rounded-full px-2 py-1 text-caption font-semibold transition-colors",
+              category === key ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
+            )}
+          >
+            {label ? t(label) : raw}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats cards */}
+      <div className={cx("mb-6 grid grid-cols-2 gap-4", signalType === "REGULAR" && "lg:grid-cols-4")}>
+        {signalType === "REGULAR" && (
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">{t("signals.totalR")}</p>
+          <p className={cx("text-h3", stats.totalR >= 0 ? "text-success" : "text-error")}>
+            {stats.totalR >= 0 ? "+" : ""}
+            {stats.totalR.toFixed(1)}R
+          </p>
+          <p className="text-caption text-text-muted">{t("signals.rTrades", { count: stats.rTradeCount })}</p>
+          <p className="text-caption text-text-muted">
+            {`${t("signals.simGrowth")} ${stats.totalGrowthPercent >= 0 ? "+" : ""}${stats.totalGrowthPercent.toFixed(1)}% (${stats.monthGrowthPercent >= 0 ? "+" : ""}${stats.monthGrowthPercent.toFixed(1)}% ${t("signals.thisMonth")})`}
+          </p>
         </div>
-        <div className="flex gap-1 rounded-full bg-surface-2 p-1">
-          {RANGE_OPTIONS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setRange(key)}
-              className={cx(
-                "rounded-full px-2 py-1 text-caption font-semibold transition-colors",
-                range === key ? "bg-primary text-text-on-primary" : "text-text-secondary hover:text-text-primary"
-              )}
-            >
-              {t(label)}
-            </button>
-          ))}
+        )}
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">{t("signals.winRate")}</p>
+          <p className="text-h3 text-text-primary">{stats.winRate.toFixed(0)}%</p>
+          <p className="text-caption text-text-muted">
+            {t("signals.profitLoss", { wins: stats.wins, losses: stats.losses })}
+          </p>
+        </div>
+        {signalType === "REGULAR" && (
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">{t("signals.maxDrawdown")}</p>
+          <p className="text-h3 text-error">{stats.maxDrawdownPercent.toFixed(1)}%</p>
+          <p className="text-caption text-text-muted">{t("signals.maxDrawdownDesc")}</p>
+        </div>
+        )}
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">{t("signals.active")}</p>
+          <p className="text-h3 text-text-primary">{stats.activeCount}</p>
+          <p className="text-caption text-text-muted">{t("signals.activeDesc")}</p>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-baseline gap-6">
-        <div>
-          <p className="text-caption text-text-muted">{t("signals.chart.growth")}</p>
-          <p className={cx("text-h3", isPositive ? "text-success" : "text-error")}>
-            {isPositive ? "+" : ""}
-            {latest.toFixed(1)}%
+      {/* Ringkasan pips, ditampilkan terpisah karena satuannya beda (pips, bukan %) */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">{t("signals.pipsEarned")}</p>
+          <p className={cx("text-h3", stats.totalPips >= 0 ? "text-success" : "text-error")}>
+            {stats.totalPips >= 0 ? "+" : ""}
+            {stats.totalPips.toFixed(1)} pips
           </p>
+          <p className="text-caption text-text-muted">{t("signals.pipsEarnedDesc")}</p>
         </div>
-        <div>
-          <p className="text-caption text-text-muted">{t("signals.chart.rangeChange")}</p>
-          <p className={cx("text-body-sm font-semibold", rangeChange >= 0 ? "text-success" : "text-error")}>
-            {rangeChange >= 0 ? "+" : ""}
-            {rangeChange.toFixed(1)}%
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">{t("signals.pipsProfit")}</p>
+          <p className="text-h3 text-success">
+            +{stats.profitPips.toFixed(1)} pips
+          </p>
+          <p className="text-caption text-text-muted">{t("signals.pipsProfitDesc")}</p>
+        </div>
+        <div className="card !p-4">
+          <p className="text-caption text-text-secondary">{t("signals.pipsLoss")}</p>
+          <p className="text-h3 text-error">
+            {stats.lossPips > 0 ? "-" : ""}
+            {stats.lossPips.toFixed(1)} pips
           </p>
         </div>
       </div>
 
-      {chartData.length === 0 ? (
-        <div className="flex h-[220px] items-center justify-center text-body-sm text-text-muted">
-          {t("signals.chart.empty")}
+      {/* Chart pertumbuhan portofolio */}
+      {signalType === "REGULAR" && (
+        <div className="mb-6">
+          <PortfolioGrowthChart points={growthSeries} />
+        </div>
+      )}
+
+      {/* Tabel posisi */}
+      <div className="mb-4 flex items-center gap-2">
+        <button
+          onClick={() => setPositionTab("ACTIVE")}
+          className={cx(
+            "rounded-full px-2 py-1 text-caption font-semibold transition-colors",
+            positionTab === "ACTIVE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
+          )}
+        >
+          {t("signals.tabActive")} ({activeSignals.length})
+        </button>
+        <button
+          onClick={() => setPositionTab("DONE")}
+          className={cx(
+            "rounded-full px-2 py-1 text-caption font-semibold transition-colors",
+            positionTab === "DONE" ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-secondary hover:bg-surface-hover"
+          )}
+        >
+          {t("signals.tabDone")} ({doneSignals.length})
+        </button>
+      </div>
+
+      {sortedVisible.length === 0 ? (
+        <div className="card py-12 text-center text-body-sm text-text-muted">
+          {positionTab === "ACTIVE" ? t("signals.emptyActive") : t("signals.emptyDone")}
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#494B51" vertical={false} />
-            <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis
-              stroke="#64748b"
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => `${v}%`}
-              width={48}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "#2D3137",
-                border: "1px solid #494B51",
-                borderRadius: "0.75rem",
-                color: "#f8fafc",
-              }}
-              labelStyle={{ color: "#94a3b8" }}
-              formatter={(value: number) => [`${value >= 0 ? "+" : ""}${value}%`, t("signals.chart.tooltip")]}
-            />
-            <Area
-              type="monotone"
-              dataKey="growth"
-              stroke={isPositive ? "#10b981" : "#ef4444"}
-              strokeWidth={2}
-              fill="url(#growthFill)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <div className="card overflow-x-auto !p-0">
+          <table className="w-full min-w-[920px] border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-surface text-left">
+                {(
+                  [
+                    "signals.col.asset",
+                    "signals.col.side",
+                    "signals.col.entry",
+                    "signals.col.result",
+                    "signals.col.sl",
+                    "signals.col.tp",
+                    "signals.col.status",
+                    "signals.col.opened",
+                    "signals.col.analysis",
+                  ] as DictKey[]
+                ).map(
+                  (h) => (
+                    <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
+                      {t(h)}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedVisible.map((s) => {
+                const pnl = signalResultPips(s);
+                return (
+                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
+                    <td className="px-4 py-3">
+                      <p className="text-body-sm font-semibold text-text-primary">{s.symbol}</p>
+                      <p className="text-caption text-text-muted">{CATEGORY_LABEL[categorizeSymbol(s.symbol)]}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <TradeSideBadge side={s.side} />
+                    </td>
+                    <td className="tabular-nums px-4 py-3 text-body-sm text-text-secondary">
+                      {formatPrice(s.entry_price, s.symbol)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {pnl !== null ? (
+                        <span className={cx("text-body-sm font-semibold", pnl >= 0 ? "text-success" : "text-error")}>
+                          {pnl >= 0 ? "+" : ""}
+                          {pnl.toFixed(1)} pips
+                        </span>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.stop_loss !== null ? (
+                        <>
+                          <p className="tabular-nums text-body-sm text-error">{formatPrice(s.stop_loss, s.symbol)}</p>
+                          <p className="text-caption text-text-muted">
+                            {priceDistancePercent(s.entry_price, s.stop_loss, t)}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.take_profit !== null ? (
+                        <>
+                          <p className="tabular-nums text-body-sm text-success">{formatPrice(s.take_profit, s.symbol)}</p>
+                          <p className="text-caption text-text-muted">
+                            {priceDistancePercent(s.entry_price, s.take_profit, t)}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={cx("inline-flex rounded-md px-1.5 py-0.5 text-badge font-bold leading-none", signalStatusClass(s.status))}>
+                        {SIGNAL_STATUS_LABEL[s.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-body-sm text-text-secondary">{formatDate(s.posted_at)}</p>
+                      <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at, t)}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.chart_image_url || s.notes || (updatesBySignal[s.id]?.length ?? 0) > 0 ? (
+                        <button
+                          onClick={() => setAnalysisSignal(s)}
+                          className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                          {t("signals.view")}
+                          {(updatesBySignal[s.id]?.length ?? 0) > 0 && (
+                            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary">
+                              {updatesBySignal[s.id].length}
+                            </span>
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="mt-4 text-caption text-text-muted">
+        {t("signals.disclaimer")}
+      </p>
+
+      {analysisSignal && (
+        <SignalAnalysisModal
+          signal={analysisSignal}
+          updates={updatesBySignal[analysisSignal.id] ?? []}
+          onClose={() => setAnalysisSignal(null)}
+        />
       )}
     </div>
   );
