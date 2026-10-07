@@ -132,7 +132,7 @@ export function buildGrowthSeries(signals: Signal[]): GrowthPoint[] {
   for (const s of closedTrades) {
     const r = rMultiple(s);
     if (r === null) continue;
-    const riskPercent = s.risk_percent ?? 2;
+    const riskPercent = s.risk_percent ?? 0.5;
     multiplier *= 1 + (r * riskPercent) / 100;
     points.push({ date: s.closed_at, growthPercent: (multiplier - 1) * 100 });
   }
@@ -143,6 +143,8 @@ export function buildGrowthSeries(signals: Signal[]): GrowthPoint[] {
 export interface SignalStats {
   totalGrowthPercent: number;
   monthGrowthPercent: number;
+  totalR: number; // jumlah R-multiple sinyal tertutup yang punya SL (tidak tergantung ukuran lot/risiko)
+  rTradeCount: number; // jumlah sinyal yang masuk hitungan totalR
   winRate: number;
   wins: number;
   losses: number;
@@ -155,6 +157,14 @@ export interface SignalStats {
 
 export function computeSignalStats(signals: Signal[]): SignalStats {
   const growthSeries = buildGrowthSeries(signals);
+  const rValues = signals
+    .filter(
+      (s) => (s.status === "TP" || s.status === "SL" || s.status === "PARTIAL") && s.closed_at !== null
+    )
+    .map((s) => rMultiple(s))
+    .filter((r): r is number => r !== null);
+  const totalR = rValues.reduce((sum, r) => sum + r, 0);
+  const rTradeCount = rValues.length;
   const totalGrowthPercent = growthSeries.length > 0 ? growthSeries[growthSeries.length - 1].growthPercent : 0;
 
   const now = new Date();
@@ -201,6 +211,8 @@ export function computeSignalStats(signals: Signal[]): SignalStats {
   return {
     totalGrowthPercent,
     monthGrowthPercent,
+    totalR,
+    rTradeCount,
     winRate,
     wins,
     losses,
