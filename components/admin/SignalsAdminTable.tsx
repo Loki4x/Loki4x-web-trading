@@ -58,7 +58,12 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
           )}
           {signals.map((s) => (
             <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
-              <td className="px-4 py-3 text-body-sm font-semibold text-text-primary">{s.symbol}</td>
+              <td className="px-4 py-3 text-body-sm font-semibold text-text-primary">
+                {s.symbol}
+                {s.signal_type === "NEWS" && (
+                  <span className="ml-2 rounded-full bg-surface-2 px-2 py-0.5 text-caption font-semibold text-text-secondary">NEWS</span>
+                )}
+              </td>
               <td className="px-4 py-3">
                 <TradeSideBadge side={s.side} />
               </td>
