@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { addSignal } from "@/app/admin/actions";
 import { nowWibInputValue } from "@/lib/utils";
 import { SIGNAL_STATUS_LABEL } from "@/lib/signal-metrics";
+import { levelIssues, type Side } from "@/lib/signal-pips";
+import { SignalResultFields } from "@/components/admin/SignalResultFields";
 import type { SignalStatus } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
 
@@ -18,6 +20,34 @@ const TERMINAL: SignalStatus[] = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"];
 const NEEDS_RESULT: SignalStatus[] = ["TP", "SL", "PARTIAL"];
 
 type Intent = "close" | "again";
+
+// Salinan nilai form yang dibutuhkan untuk hitung otomatis & validasi pips.
+interface FormSnap {
+  symbol: string;
+  side: Side;
+  entry: number | null;
+  tp: number | null;
+  sl: number | null;
+}
+const EMPTY_SNAP: FormSnap = { symbol: "", side: "BUY", entry: null, tp: null, sl: null };
+
+const num = (v: FormDataEntryValue | null): number | null => {
+  const s = String(v ?? "").trim();
+  if (s === "") return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+};
+
+function readSnap(form: HTMLFormElement): FormSnap {
+  const fd = new FormData(form);
+  return {
+    symbol: String(fd.get("symbol") ?? "").trim().toUpperCase(),
+    side: fd.get("side") === "SELL" ? "SELL" : "BUY",
+    entry: num(fd.get("entry_price")),
+    tp: num(fd.get("take_profit")),
+    sl: num(fd.get("stop_loss")),
+  };
+}
 
 export function AddSignalModal({ onClose }: { onClose: () => void }) {
   const t = useT();
@@ -33,15 +63,23 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
   const [signalType, setSignalType] = useState<"REGULAR" | "NEWS">("REGULAR");
   const [postedAt, setPostedAt] = useState(() => nowWibInputValue());
   const [pending, setPending] = useState<Intent | null>(null);
+  const [snap, setSnap] = useState<FormSnap>(EMPTY_SNAP);
+  const [pipsBlocked, setPipsBlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
   const isTerminal = TERMINAL.includes(status);
   const needsResult = NEEDS_RESULT.includes(status);
+  const levelMsgs = levelIssues(snap.side, snap.entry, snap.tp, snap.sl);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+
+    if (needsResult && pipsBlocked) {
+      setError("Hasil pips berbeda jauh dari hitungan harga. Perbaiki angkanya, atau centang konfirmasi di bawah kolom pips.");
+      return;
+    }
 
     const intent = intentRef.current;
     const formData = new FormData(e.currentTarget);
@@ -62,6 +100,7 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
     router.refresh();
     if (intent === "again") {
       setFormKey((k) => k + 1);
+      setSnap(EMPTY_SNAP);
       setStatus("OPEN");
       setSaved(`Tersimpan: ${label}`);
       scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -86,7 +125,12 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
           </p>
         )}
 
-        <form key={formKey} onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          key={formKey}
+          onSubmit={handleSubmit}
+          onChange={(e) => setSnap(readSnap(e.currentTarget))}
+          className="flex flex-col gap-4"
+        >
           <Input name="symbol" label="Symbol" placeholder="XAUUSD" required />
 
           <div className="flex flex-col gap-2">
@@ -132,6 +176,11 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
               <Input name="take_profit" type="number" step="0.00001" label="Take Profit (optional)" />
               <Input name="stop_loss" type="number" step="0.00001" label="Stop Loss (optional)" />
             </div>
+            {levelMsgs.map((msg) => (
+              <p key={msg} className="mt-1.5 text-caption text-warning">
+                {msg}
+              </p>
+            ))}
             {signalType === "REGULAR" && (
               <p className="mt-1.5 text-caption text-text-muted">
                 {t("Isi Stop Loss supaya sinyal ini ikut dihitung di grafik pertumbuhan & drawdown.")}
@@ -172,29 +221,24 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
           {isTerminal && (
             <>
               {needsResult && (
-                <>
-                  <Input
-                    name="closing_price"
-                    type="number"
-                    step="0.00001"
-                    label={status === "PARTIAL" ? t("Harga Penutupan") : t("Harga Penutupan (opsional)")}
-                    placeholder={
-                      status === "TP"
-                        ? t("Kosong = pakai Take Profit")
-                        : status === "SL"
-                          ? t("Kosong = pakai Stop Loss")
-                          : ""
-                    }
-                    required={status === "PARTIAL"}
-                  />
-                  <Input
-                    name="result_pips"
-                    type="number"
-                    step="0.1"
-                    label={t("Hasil (pips, boleh minus untuk loss)")}
-                    placeholder={t("e.g. 25 atau -10")}
-                  />
-                </>
+                <SignalResultFields
+                  symbol={snap.symbol}
+                  side={snap.side}
+                  entry={snap.entry}
+                  takeProfit={snap.tp}
+                  stopLoss={snap.sl}
+                  status={status}
+                  closingLabel={status === "PARTIAL" ? t("Harga Penutupan") : t("Harga Penutupan (opsional)")}
+                  closingPlaceholder={
+                    status === "TP"
+                      ? t("Kosong = pakai Take Profit")
+                      : status === "SL"
+                        ? t("Kosong = pakai Stop Loss")
+                        : ""
+                  }
+                  closingRequired={status === "PARTIAL"}
+                  onBlockedChange={setPipsBlocked}
+                />
               )}
               <div>
                 <Input name="closed_at" type="datetime-local" label={t("Tanggal & jam ditutup (WIB)")} />
