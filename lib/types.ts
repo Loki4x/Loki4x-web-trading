@@ -89,6 +89,9 @@ export type SignalSide = "BUY" | "SELL";
  */
 export type SignalStatus = "OPEN" | "HIT_ENTRY" | "TP" | "SL" | "PARTIAL" | "CANCEL" | "MISS";
 
+/** REGULAR = sinyal biasa (ber-SL, masuk Total R/growth/drawdown). NEWS = trade news tanpa SL, dihitung terpisah. */
+export type SignalType = "REGULAR" | "NEWS";
+
 export interface Signal {
   id: string;
   symbol: string;
@@ -101,6 +104,7 @@ export interface Signal {
   status: SignalStatus;
   result_pips: number | null;
   risk_percent: number;
+  signal_type: SignalType;
   notes: string | null;
   chart_image_url: string | null;
   posted_at: string;
