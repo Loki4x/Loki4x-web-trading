@@ -1,8 +1,8 @@
 import { Reveal } from "@/components/ui/Reveal";
 import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
 import { getPublicTrackRecord } from "@/lib/public-track-record";
-import { getT } from "@/lib/i18n/server";
-import { dateLocale } from "@/lib/i18n/dictionary";
+import { LocaleProvider } from "@/lib/i18n/client";
+import { dateLocale, translate, type TKey } from "@/lib/i18n/dictionary";
 import { cx } from "@/lib/utils";
 
 function Stat({ label, value, tone, hint }: { label: string; value: string; tone?: "pos" | "neg"; hint?: string }) {
@@ -19,7 +19,9 @@ const signed = (n: number, digits = 1) => `${n > 0 ? "+" : ""}${n.toFixed(digits
 
 /** Track record publik, ditampilkan langsung di landing page (di bawah Hero). */
 export async function TrackRecord() {
-  const { t, locale } = await getT();
+  // Landing page berbahasa Inggris, jadi section ini dipaksa Inggris (tidak ikut cookie bahasa).
+  const locale = "en" as const;
+  const t = (key: TKey, vars?: Record<string, string | number>) => translate(locale, key, vars);
 
   let record: Awaited<ReturnType<typeof getPublicTrackRecord>> | null = null;
   try {
@@ -73,7 +75,9 @@ export async function TrackRecord() {
                 </div>
 
                 <div className="mt-6">
-                  <PortfolioGrowthChart points={record.growth} />
+                  <LocaleProvider locale={locale}>
+                    <PortfolioGrowthChart points={record.growth} />
+                  </LocaleProvider>
                 </div>
 
                 {record.monthly.length > 0 && (
