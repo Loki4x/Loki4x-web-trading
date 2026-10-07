@@ -126,8 +126,8 @@ export function AddSignalModal({ onClose }: { onClose: () => void }) {
             type="number"
             step="0.1"
             label="Risk % per trade"
-            placeholder="2"
-            defaultValue={2}
+            placeholder="0.5"
+            defaultValue={0.5}
           />
 
           <div>
