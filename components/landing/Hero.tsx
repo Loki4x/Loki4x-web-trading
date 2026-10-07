@@ -54,6 +54,7 @@ export function Hero() {
               <span className="h-2.5 w-2.5 rounded-full bg-error/60" />
               <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
               <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
+              <span className="ml-auto text-caption text-text-muted">Sample data</span>
             </div>
             <div className="rounded-xl border border-border bg-background p-4 sm:p-6">
               <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
