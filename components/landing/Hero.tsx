@@ -11,8 +11,8 @@ export function Hero() {
     <section className="relative overflow-hidden bg-grid">
       <div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[900px] -translate-x-1/2 rounded-full bg-primary/20 blur-[120px]" />
 
-      <div className="relative mx-auto max-w-content px-6 pb-20 pt-16 md:pt-24">
-        <div className="mx-auto max-w-2xl text-center">
+      <div className="relative mx-auto grid max-w-content items-center gap-14 px-6 pb-20 pt-16 md:pt-24 lg:grid-cols-[1.05fr_1fr]">
+        <div className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
           <span
             className="animate-enter inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-badge font-semibold tracking-wide text-text-secondary"
             style={enter(0)}
@@ -22,11 +22,14 @@ export function Hero() {
           </span>
 
           <h1 className="animate-enter mt-6 text-display text-text-primary" style={enter(100)}>
-            Log every trade. Read every market move.
+            Log every trade.{" "}
+            <span className="bg-gradient-to-r from-primary to-[#A78BFA] bg-clip-text text-transparent">
+              Read every market move.
+            </span>
           </h1>
 
           <p
-            className="animate-enter mx-auto mt-5 max-w-lg text-body-lg text-text-secondary"
+            className="animate-enter mx-auto mt-5 max-w-lg text-body-lg text-text-secondary lg:mx-0"
             style={enter(200)}
           >
             Loki4x Academy keeps your entries, exits and reasoning in one disciplined
@@ -34,7 +37,7 @@ export function Hero() {
           </p>
 
           <div
-            className="animate-enter mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
+            className="animate-enter mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start"
             style={enter(300)}
           >
             <Link href="/signup" className="btn-primary">
@@ -45,10 +48,24 @@ export function Hero() {
               See how it works
             </Link>
           </div>
+
+          <div
+            className="animate-enter mt-8 flex flex-wrap items-center justify-center gap-2 lg:justify-start"
+            style={enter(380)}
+          >
+            {["XAUUSD", "Forex", "Indices", "Crypto"].map((m) => (
+              <span
+                key={m}
+                className="rounded-full border border-border bg-surface px-3 py-1 text-caption font-medium text-text-secondary"
+              >
+                {m}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Preview frame: stylised dashboard mockup, not a literal screenshot */}
-        <div className="animate-enter relative mx-auto mt-16 max-w-4xl" style={enter(450)}>
+        <div className="animate-enter relative mx-auto w-full max-w-xl" style={enter(450)}>
           <div className="rounded-2xl border border-border bg-surface p-3 shadow-md glow-border sm:p-4">
             <div className="mb-3 flex items-center gap-1.5 px-2">
               <span className="h-2.5 w-2.5 rounded-full bg-error/60" />
@@ -57,7 +74,7 @@ export function Hero() {
               <span className="ml-auto text-caption text-text-muted">Sample data</span>
             </div>
             <div className="rounded-xl border border-border bg-background p-4 sm:p-6">
-              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mb-4 grid grid-cols-2 gap-3">
                 {[
                   { label: "Today's P&L", value: "+$4,142.00", tone: "text-success" },
                   { label: "Total Balance", value: "$19,398.24", tone: "text-text-primary" },
