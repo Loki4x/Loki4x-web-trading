@@ -18,7 +18,7 @@ function parseDateParts(dateStr: string) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: { account?: string };
+  searchParams: { account?: string; month?: string };
 }) {
   const { t } = await getT();
   const tier = await getCurrentUserTier();
@@ -59,15 +59,43 @@ export default async function ReportsPage({
     .map(([symbol, pnl]) => ({ symbol, pnl }))
     .sort((a, b) => b.pnl - a.pnl);
 
-  // Daily P&L Heatmap — bulan berjalan
+  // Daily P&L Heatmap — bulan dipilih lewat ?month=YYYY-MM (default: bulan berjalan).
+  // Navigasi dibatasi dari bulan trade paling awal sampai bulan berjalan.
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const monthKey = (y: number, m0: number) => `${y}-${String(m0 + 1).padStart(2, "0")}`;
+  const maxKey = monthKey(now.getFullYear(), now.getMonth());
+  const minKey = closed.reduce((min, tr) => {
+    const { year, month } = parseDateParts(tr.trade_date);
+    const key = monthKey(year, month);
+    return key < min ? key : min;
+  }, maxKey);
+
+  const requested = /^\d{4}-(0[1-9]|1[0-2])$/.test(searchParams.month ?? "") ? (searchParams.month as string) : maxKey;
+  const selectedKey = requested > maxKey ? maxKey : requested < minKey ? minKey : requested;
+  const [selYear, selMonth1] = selectedKey.split("-").map(Number);
+  const selectedYear = selYear;
+  const selectedMonth = selMonth1 - 1; // 0-indexed
+
+  const shiftKey = (delta: number) => {
+    const d = new Date(selectedYear, selectedMonth + delta, 1);
+    return monthKey(d.getFullYear(), d.getMonth());
+  };
+  const monthHref = (key: string) => {
+    const qs = new URLSearchParams();
+    if (searchParams.account) qs.set("account", searchParams.account);
+    if (key !== maxKey) qs.set("month", key); // bulan berjalan = URL bersih
+    const q = qs.toString();
+    return q ? `/reports?${q}` : "/reports";
+  };
+  const prevKey = shiftKey(-1);
+  const nextKey = shiftKey(1);
+  const prevHref = prevKey >= minKey ? monthHref(prevKey) : null;
+  const nextHref = nextKey <= maxKey ? monthHref(nextKey) : null;
 
   const byDay = new Map<number, number>();
   for (const t of closed) {
     const { year, month, day } = parseDateParts(t.trade_date);
-    if (year === currentYear && month === currentMonth) {
+    if (year === selectedYear && month === selectedMonth) {
       byDay.set(day, (byDay.get(day) ?? 0) + (t.pnl ?? 0));
     }
   }
@@ -104,7 +132,14 @@ export default async function ReportsPage({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <DailyPnlHeatmap year={currentYear} month={currentMonth} days={dailyPnl} currency={activeAccount.currency} />
+          <DailyPnlHeatmap
+            year={selectedYear}
+            month={selectedMonth}
+            days={dailyPnl}
+            currency={activeAccount.currency}
+            prevHref={prevHref}
+            nextHref={nextHref}
+          />
         </div>
         <div className="flex flex-col gap-6">
           <TopPairsList pairs={pairs} currency={activeAccount.currency} />
