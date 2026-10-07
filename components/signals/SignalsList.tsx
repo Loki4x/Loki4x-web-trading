@@ -95,14 +95,14 @@ export function SignalsList({
       {/* Stats cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="card !p-4">
-          <p className="text-caption text-text-secondary">{t("signals.totalGrowth")}</p>
-          <p className={cx("text-h3", stats.totalGrowthPercent >= 0 ? "text-success" : "text-error")}>
-            {stats.totalGrowthPercent >= 0 ? "+" : ""}
-            {stats.totalGrowthPercent.toFixed(1)}%
+          <p className="text-caption text-text-secondary">{t("signals.totalR")}</p>
+          <p className={cx("text-h3", stats.totalR >= 0 ? "text-success" : "text-error")}>
+            {stats.totalR >= 0 ? "+" : ""}
+            {stats.totalR.toFixed(1)}R
           </p>
+          <p className="text-caption text-text-muted">{t("signals.rTrades", { count: stats.rTradeCount })}</p>
           <p className="text-caption text-text-muted">
-            {stats.monthGrowthPercent >= 0 ? "+" : ""}
-            {stats.monthGrowthPercent.toFixed(1)}% {t("signals.thisMonth")}
+            {`${t("signals.simGrowth")} ${stats.totalGrowthPercent >= 0 ? "+" : ""}${stats.totalGrowthPercent.toFixed(1)}% (${stats.monthGrowthPercent >= 0 ? "+" : ""}${stats.monthGrowthPercent.toFixed(1)}% ${t("signals.thisMonth")})`}
           </p>
         </div>
         <div className="card !p-4">
