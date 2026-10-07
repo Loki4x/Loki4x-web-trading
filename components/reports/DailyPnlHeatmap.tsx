@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getT } from "@/lib/i18n/server";
 import { dateLocale } from "@/lib/i18n/dictionary";
 import type { AccountCurrency } from "@/lib/types";
@@ -23,18 +25,47 @@ function formatCompactAmount(value: number, currency: AccountCurrency) {
   return `${prefix}${scaled.toLocaleString(locale)}k`;
 }
 
+function MonthNavButton({
+  href,
+  label,
+  children,
+}: {
+  href: string | null;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const base = "flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-secondary";
+  if (!href) {
+    return (
+      <span aria-label={label} aria-disabled="true" className={`${base} cursor-not-allowed opacity-40`}>
+        {children}
+      </span>
+    );
+  }
+  return (
+    <Link href={href} scroll={false} aria-label={label} className={`${base} transition-colors hover:bg-surface-hover hover:text-text-primary`}>
+      {children}
+    </Link>
+  );
+}
+
 export async function DailyPnlHeatmap({
   year,
   month,
   days,
   currency = "USD",
+  prevHref = null,
+  nextHref = null,
 }: {
   year: number;
   month: number;
   days: DayPnl[];
   currency?: AccountCurrency;
+  /** Link ke bulan sebelumnya / berikutnya; null = tombol dinonaktifkan. */
+  prevHref?: string | null;
+  nextHref?: string | null;
 }) {
-  const { locale } = await getT();
+  const { t, locale } = await getT();
   const dateLoc = dateLocale(locale);
   // 1 Jan 2024 adalah hari Senin -> label hari Senin..Minggu mengikuti bahasa
   const DAY_LABELS = Array.from({ length: 7 }, (_, i) =>
@@ -66,7 +97,15 @@ export async function DailyPnlHeatmap({
     <div className="card">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-h3 text-text-primary">Daily P&amp;L Heatmap</h3>
-        <span className="text-body-sm font-medium text-text-secondary">{monthLabel}</span>
+        <div className="flex items-center gap-1">
+          <MonthNavButton href={prevHref} label={t("reports.prevMonth")}>
+            <ChevronLeft className="h-4 w-4" />
+          </MonthNavButton>
+          <span className="min-w-[8.5rem] text-center text-body-sm font-medium text-text-secondary">{monthLabel}</span>
+          <MonthNavButton href={nextHref} label={t("reports.nextMonth")}>
+            <ChevronRight className="h-4 w-4" />
+          </MonthNavButton>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 gap-2">
