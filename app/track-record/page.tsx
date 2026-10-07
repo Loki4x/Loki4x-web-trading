@@ -125,6 +125,27 @@ export default async function TrackRecordPage() {
                 </table>
               </div>
             )}
+
+            {record.news.closedCount > 0 && (
+              <div className="mt-6">
+                <h2 className="text-h3 text-text-primary">{t("signals.type.news")}</h2>
+                <p className="mb-4 mt-1 max-w-3xl text-caption text-text-muted">{t("signals.newsNote")}</p>
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                  <Stat label={t("Total sinyal ditutup")} value={String(record.news.closedCount)} />
+                  <Stat
+                    label={t("signals.winRate")}
+                    value={`${record.news.winRate.toFixed(0)}%`}
+                    hint={t("signals.profitLoss", { wins: record.news.wins, losses: record.news.losses })}
+                  />
+                  <Stat
+                    label={t("signals.pipsEarned")}
+                    value={`${signed(record.news.totalPips)} pips`}
+                    tone={record.news.totalPips >= 0 ? "pos" : "neg"}
+                    hint={t("signals.pipsEarnedDesc")}
+                  />
+                </div>
+              </div>
+            )}
           </>
         )}
 
