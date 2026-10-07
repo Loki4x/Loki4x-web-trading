@@ -32,6 +32,26 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
     };
   }, [points, range]);
 
+  // Sumbu Y mulai dari 0% (atau titik terendah kalau growth sempat negatif), dengan tick bulat,
+  // supaya tidak muncul label aneh seperti -95% di bawah.
+  const { yDomain, yTicks } = useMemo(() => {
+    const values = filtered.map((p) => p.growthPercent);
+    const lower = Math.min(0, ...(values.length ? values : [0]));
+    const upper = Math.max(1, ...(values.length ? values : [0]));
+    const raw = (upper - lower) / 4;
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const frac = raw / pow;
+    const step = (frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10) * pow;
+    const ticks: number[] = [];
+    let v = Math.ceil(lower / step) * step;
+    for (;;) {
+      ticks.push(Number(v.toFixed(6)));
+      if (v >= upper) break;
+      v += step;
+    }
+    return { yDomain: [lower, ticks[ticks.length - 1]] as [number, number], yTicks: ticks };
+  }, [filtered]);
+
   const chartData = filtered.map((p) => ({
     date: formatDate(p.date),
     growth: Number(p.growthPercent.toFixed(2)),
@@ -103,7 +123,10 @@ export function PortfolioGrowthChart({ points }: { points: GrowthPoint[] }) {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `${v}%`}
+              type="number"
+              domain={yDomain}
+              ticks={yTicks}
+              tickFormatter={(v) => `${Number(Number(v).toFixed(2))}%`}
               width={48}
             />
             <Tooltip
