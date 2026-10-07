@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
+import { TrackRecord } from "@/components/landing/TrackRecord";
 import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
 import { CtaBanner } from "@/components/landing/CtaBanner";
@@ -11,6 +12,7 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
+        <TrackRecord />
         <Features />
         <Pricing />
         <CtaBanner />
