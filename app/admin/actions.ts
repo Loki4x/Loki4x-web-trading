@@ -183,6 +183,7 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
     let takeProfit = optionalNumber(formData.get("take_profit"));
     const stopLoss = optionalNumber(formData.get("stop_loss"));
     const riskPercent = optionalNumber(formData.get("risk_percent")) ?? 0.5;
+    const signalType = String(formData.get("signal_type") ?? "REGULAR") === "NEWS" ? "NEWS" : "REGULAR";
 
     if (!symbol) return { ok: false, message: t("Symbol wajib diisi.") };
     if (side !== "BUY" && side !== "SELL") return { ok: false, message: t("Side harus BUY atau SELL.") };
@@ -246,6 +247,7 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
       current_price_at: currentPrice !== null && closedAt ? closedAt.toISOString() : null,
       result_pips: resultPips,
       risk_percent: riskPercent,
+      signal_type: signalType,
       notes: String(formData.get("notes") ?? "") || null,
       chart_image_url: chartImageUrl,
       posted_at: postedAt.toISOString(),
@@ -259,7 +261,7 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
       actor: await getAuditActor(supabase),
       action: "SIGNAL_CREATED",
       targetId: created?.id ?? null,
-      details: { symbol, side, status, entry_price: entryPrice, take_profit: takeProfit, stop_loss: stopLoss },
+      details: { symbol, side, status, signal_type: signalType, entry_price: entryPrice, take_profit: takeProfit, stop_loss: stopLoss },
     });
 
     // Email hanya untuk sinyal BARU yang masih berjalan (diposting dalam 30 menit terakhir).
