@@ -37,5 +37,6 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=Could not authenticate`);
+  const failPath = next.startsWith("/reset-password") ? "/forgot-password?error=reset_expired" : "/login?error=generic";
+  return NextResponse.redirect(`${origin}${failPath}`);
 }
