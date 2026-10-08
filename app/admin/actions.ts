@@ -1,5 +1,7 @@
 "use server";
 
+import { SYMBOL_RE } from "@/lib/validation";
+
 import { getT, getUserT } from "@/lib/i18n/server";
 import { dateLocale } from "@/lib/i18n/dictionary";
 import { revalidatePath } from "next/cache";
@@ -177,6 +179,9 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
 
   try {
     const symbol = String(formData.get("symbol") ?? "").trim().toUpperCase();
+    if (!SYMBOL_RE.test(symbol)) {
+      throw new Error("Symbol tidak valid (huruf/angka, maksimal 20 karakter)");
+    }
     const side = String(formData.get("side") ?? "");
     const status = String(formData.get("status") ?? "OPEN");
     const entryPrice = optionalNumber(formData.get("entry_price"));
