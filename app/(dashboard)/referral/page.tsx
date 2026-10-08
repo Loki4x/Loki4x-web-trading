@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site-url";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -29,7 +30,6 @@ const STATUS_LABEL: Record<ReferralRow["status"], string> = {
   CAPPED: "Batas hadiah tercapai",
 };
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://4xcomunity.my.id").replace(/\/$/, "");
 
 export default async function ReferralPage() {
   const { t, locale } = await getT();
