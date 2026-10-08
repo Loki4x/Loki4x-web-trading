@@ -4,12 +4,16 @@ import { GoogleButton } from "@/components/auth/GoogleButton";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { signup } from "@/app/(auth)/actions";
+import { getT } from "@/lib/i18n/server";
+import { authErrorKey } from "@/lib/auth-errors";
 
-export default function SignupPage({
+export default async function SignupPage({
   searchParams,
 }: {
   searchParams: { error?: string };
 }) {
+  const { t: tAuth } = await getT();
+  const errorKey = authErrorKey(searchParams.error);
   return (
     <AuthCard title="Create your account" subtitle="Start logging trades and tracking market news today.">
       <GoogleButton />
@@ -20,16 +24,16 @@ export default function SignupPage({
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      {searchParams.error && (
+      {errorKey && (
         <p className="mb-4 rounded-lg bg-error-subtle px-4 py-3 text-body-sm text-error">
-          {searchParams.error}
+          {tAuth(errorKey)}
         </p>
       )}
 
       <form action={signup} className="flex flex-col gap-4">
         <Input id="fullName" name="fullName" type="text" label="Full Name" placeholder="Jane Trader" required />
         <Input id="email" name="email" type="email" label="Email" placeholder="you@example.com" required />
-        <Input id="password" name="password" type="password" label="Password" placeholder="••••••••" required minLength={6} />
+        <Input id="password" name="password" type="password" label="Password" placeholder="••••••••" required minLength={8} />
         <Button type="submit" withArrow className="mt-2 w-full justify-center">
           Create account
         </Button>
