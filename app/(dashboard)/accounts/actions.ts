@@ -37,13 +37,17 @@ export async function createAccount(formData: FormData) {
     return { success: false as const, message: t("Maksimal 5 akun journaling per user.") };
   }
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 60);
   const initialBalance = Number(formData.get("initial_balance") ?? 0);
   const currencyInput = String(formData.get("currency") ?? "USD").toUpperCase();
   const currency = currencyInput === "IDR" ? "IDR" : "USD";
 
   if (!name) {
     return { success: false as const, message: t("Nama akun tidak boleh kosong.") };
+  }
+
+  if (!Number.isFinite(initialBalance) || Math.abs(initialBalance) > 1_000_000_000) {
+    return { success: false as const, message: t("Saldo awal tidak valid.") };
   }
 
   const { error } = await supabase.from("trading_accounts").insert({
