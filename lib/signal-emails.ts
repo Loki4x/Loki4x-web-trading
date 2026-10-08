@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site-url";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmailBatch } from "@/lib/email";
 import { translate, type Locale } from "@/lib/i18n/dictionary";
@@ -20,7 +21,6 @@ export type SignalEmailEvent =
   | { kind: "CLOSED"; signal: SignalEmailData }
   | { kind: "UPDATE"; signal: SignalEmailData; updateType: string; message: string | null; price: number | null };
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://4xcomunity.my.id").replace(/\/$/, "");
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
