@@ -1,17 +1,34 @@
 import { Reveal } from "@/components/ui/Reveal";
+import { CountUp } from "@/components/ui/CountUp";
 import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
 import { getPublicTrackRecord } from "@/lib/public-track-record";
 import { LocaleProvider } from "@/lib/i18n/client";
 import { dateLocale, translate, type TKey } from "@/lib/i18n/dictionary";
 import { cx } from "@/lib/utils";
 
-function Stat({ label, value, tone, hint }: { label: string; value: string; tone?: "pos" | "neg"; hint?: string }) {
+function Stat({
+  label,
+  value,
+  tone,
+  hint,
+  delay = 0,
+}: {
+  label: string;
+  value: string;
+  tone?: "pos" | "neg";
+  hint?: string;
+  delay?: number;
+}) {
   return (
-    <div className="card !p-4">
-      <p className="text-caption text-text-secondary">{label}</p>
-      <p className={cx("text-h3", tone === "pos" && "text-success", tone === "neg" && "text-error")}>{value}</p>
-      {hint && <p className="text-caption text-text-muted">{hint}</p>}
-    </div>
+    <Reveal delay={delay} className="h-full">
+      <div className="card h-full !p-4">
+        <p className="text-caption text-text-secondary">{label}</p>
+        <p className={cx("text-h3", tone === "pos" && "text-success", tone === "neg" && "text-error")}>
+          <CountUp value={value} />
+        </p>
+        {hint && <p className="text-caption text-text-muted">{hint}</p>}
+      </div>
+    </Reveal>
   );
 }
 
@@ -48,40 +65,41 @@ export async function TrackRecord() {
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-                  <Stat
+                  <Stat delay={0}
                     label={t("signals.totalR")}
                     value={`${signed(record.stats.totalR)}R`}
                     tone={record.stats.totalR >= 0 ? "pos" : "neg"}
                     hint={`${t("signals.rTrades", { count: record.stats.rTradeCount })} · ${t("signals.simGrowth")} ${signed(record.stats.totalGrowthPercent)}%`}
                   />
-                  <Stat
+                  <Stat delay={90}
                     label={t("signals.winRate")}
                     value={`${record.stats.winRate.toFixed(0)}%`}
                     hint={t("signals.profitLoss", { wins: record.stats.wins, losses: record.stats.losses })}
                   />
-                  <Stat
+                  <Stat delay={180}
                     label={t("signals.maxDrawdown")}
                     value={`${record.stats.maxDrawdownPercent.toFixed(1)}%`}
                     tone="neg"
                     hint={t("signals.maxDrawdownDesc")}
                   />
-                  <Stat
+                  <Stat delay={270}
                     label={t("signals.pipsEarned")}
                     value={`${signed(record.stats.totalPips)} pips`}
                     tone={record.stats.totalPips >= 0 ? "pos" : "neg"}
                     hint={t("signals.pipsEarnedDesc")}
                   />
-                  <Stat label={t("Total sinyal ditutup")} value={String(record.closedCount)} />
+                  <Stat delay={360} label={t("Total sinyal ditutup")} value={String(record.closedCount)} />
                 </div>
 
-                <div className="mt-6">
+                <Reveal className="mt-6" from="zoom">
                   <LocaleProvider locale={locale}>
                     <PortfolioGrowthChart points={record.growth} />
                   </LocaleProvider>
-                </div>
+                </Reveal>
 
                 {record.monthly.length > 0 && (
-                  <div className="card mt-6 overflow-x-auto !p-0">
+                  <Reveal className="mt-6">
+                  <div className="card overflow-x-auto !p-0">
                     <div className="px-5 pt-5">
                       <h2 className="text-h3 text-text-primary">{t("Performa per Bulan")}</h2>
                     </div>
@@ -115,27 +133,28 @@ export async function TrackRecord() {
                       </tbody>
                     </table>
                   </div>
+                  </Reveal>
                 )}
 
                 {record.news.closedCount > 0 && (
-                  <div className="mt-6">
+                  <Reveal className="mt-6">
                     <h3 className="text-h3 text-text-primary">{t("signals.type.news")}</h3>
                     <p className="mb-4 mt-1 max-w-3xl text-caption text-text-muted">{t("signals.newsNote")}</p>
                     <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-                      <Stat label={t("Total sinyal ditutup")} value={String(record.news.closedCount)} />
-                      <Stat
+                      <Stat delay={0} label={t("Total sinyal ditutup")} value={String(record.news.closedCount)} />
+                      <Stat delay={90}
                         label={t("signals.winRate")}
                         value={`${record.news.winRate.toFixed(0)}%`}
                         hint={t("signals.profitLoss", { wins: record.news.wins, losses: record.news.losses })}
                       />
-                      <Stat
+                      <Stat delay={180}
                         label={t("signals.pipsEarned")}
                         value={`${signed(record.news.totalPips)} pips`}
                         tone={record.news.totalPips >= 0 ? "pos" : "neg"}
                         hint={t("signals.pipsEarnedDesc")}
                       />
                     </div>
-                  </div>
+                  </Reveal>
                 )}
               </>
             )}
