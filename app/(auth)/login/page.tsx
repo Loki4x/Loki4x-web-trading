@@ -4,12 +4,16 @@ import { GoogleButton } from "@/components/auth/GoogleButton";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { login } from "@/app/(auth)/actions";
+import { getT } from "@/lib/i18n/server";
+import { authErrorKey } from "@/lib/auth-errors";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams: { error?: string; confirmEmail?: string };
 }) {
+  const { t } = await getT();
+  const errorKey = authErrorKey(searchParams.error);
   return (
     <AuthCard title="Welcome back" subtitle="Sign in to keep your trading journal up to date.">
       <GoogleButton />
@@ -25,15 +29,20 @@ export default function LoginPage({
           Check your inbox to confirm your email before signing in.
         </p>
       )}
-      {searchParams.error && (
+      {errorKey && (
         <p className="mb-4 rounded-lg bg-error-subtle px-4 py-3 text-body-sm text-error">
-          {searchParams.error}
+          {t(errorKey)}
         </p>
       )}
 
       <form action={login} className="flex flex-col gap-4">
         <Input id="email" name="email" type="email" label="Email" placeholder="you@example.com" required />
         <Input id="password" name="password" type="password" label="Password" placeholder="••••••••" required />
+        <div className="-mt-2 text-right">
+          <Link href="/forgot-password" className="text-body-sm font-medium text-primary hover:text-primary-hover">
+            Forgot password?
+          </Link>
+        </div>
         <Button type="submit" withArrow className="mt-2 w-full justify-center">
           Sign in
         </Button>
