@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { uploadToR2 } from "@/lib/r2";
+import { SYMBOL_RE, cleanText, isUuid, isValidDate, ownedPhotoUrl } from "@/lib/validation";
 
 export async function addTrade(formData: FormData) {
   const supabase = await createClient();
@@ -22,6 +23,32 @@ export async function addTrade(formData: FormData) {
   const status = exitPrice !== null || pnlManual !== null ? "CLOSED" : "OPEN";
   const sessionRaw = String(formData.get("session") ?? "");
   const session = sessionRaw.length > 0 ? sessionRaw : null;
+  const symbol = String(formData.get("symbol") ?? "").trim().toUpperCase();
+  const tradeDate = String(formData.get("trade_date") ?? "");
+  const notes = cleanText(formData.get("notes"), 5000);
+  const confluence = cleanText(formData.get("confluence"), 2000);
+  const numbersOk =
+    Number.isFinite(entryPrice) && entryPrice > 0 && [exitPrice, pips, pnlManual].every((n) => n === null || Number.isFinite(n));
+  const accountId = String(formData.get("account_id") ?? "");
+  if (
+    !SYMBOL_RE.test(symbol) ||
+    (side !== "BUY" && side !== "SELL") ||
+    !isUuid(accountId) ||
+    !isValidDate(tradeDate) ||
+    !numbersOk ||
+    (session !== null && session.length > 20)
+  ) {
+    console.warn("[trades] addTrade ditolak: input tidak valid");
+    return;
+  }
+  // account_id dari form tidak boleh dipercaya begitu saja: harus akun milik user ini.
+  const { data: ownedAccount } = await supabase
+    .from("trading_accounts")
+    .select("id")
+    .eq("id", accountId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!ownedAccount) return;
 
   let pnl: number | null = null;
   if (pnlManual !== null) {
@@ -40,18 +67,18 @@ export async function addTrade(formData: FormData) {
 
   await supabase.from("trades").insert({
     user_id: user.id,
-    account_id: String(formData.get("account_id")),
-    symbol: String(formData.get("symbol")).toUpperCase(),
+    account_id: accountId,
+    symbol,
     side,
     entry_price: entryPrice,
     exit_price: exitPrice,
     pips,
     pnl,
-    trade_date: String(formData.get("trade_date")),
+    trade_date: tradeDate,
     status,
     session,
-    notes: String(formData.get("notes") ?? ""),
-    confluence: String(formData.get("confluence") ?? ""),
+    notes,
+    confluence,
     before_photo_url: beforePhotoUrl,
     after_photo_url: afterPhotoUrl,
   });
@@ -78,6 +105,23 @@ export async function updateTrade(tradeId: string, formData: FormData) {
   const status = exitPrice !== null || pnlManual !== null ? "CLOSED" : "OPEN";
   const sessionRaw = String(formData.get("session") ?? "");
   const session = sessionRaw.length > 0 ? sessionRaw : null;
+  const symbol = String(formData.get("symbol") ?? "").trim().toUpperCase();
+  const tradeDate = String(formData.get("trade_date") ?? "");
+  const notes = cleanText(formData.get("notes"), 5000);
+  const confluence = cleanText(formData.get("confluence"), 2000);
+  const numbersOk =
+    Number.isFinite(entryPrice) && entryPrice > 0 && [exitPrice, pips, pnlManual].every((n) => n === null || Number.isFinite(n));
+  if (
+    !isUuid(tradeId) ||
+    !SYMBOL_RE.test(symbol) ||
+    (side !== "BUY" && side !== "SELL") ||
+    !isValidDate(tradeDate) ||
+    !numbersOk ||
+    (session !== null && session.length > 20)
+  ) {
+    console.warn("[trades] updateTrade ditolak: input tidak valid");
+    return;
+  }
 
   let pnl: number | null = null;
   if (pnlManual !== null) {
@@ -95,28 +139,28 @@ export async function updateTrade(tradeId: string, formData: FormData) {
   const beforePhotoUrl = await uploadPhotoIfProvided(
     "before_photo",
     "before",
-    String(formData.get("existing_before_photo_url") ?? "") || null
+    ownedPhotoUrl(String(formData.get("existing_before_photo_url") ?? "") || null, user.id)
   );
   const afterPhotoUrl = await uploadPhotoIfProvided(
     "after_photo",
     "after",
-    String(formData.get("existing_after_photo_url") ?? "") || null
+    ownedPhotoUrl(String(formData.get("existing_after_photo_url") ?? "") || null, user.id)
   );
 
   await supabase
     .from("trades")
     .update({
-      symbol: String(formData.get("symbol")).toUpperCase(),
+      symbol,
       side,
       entry_price: entryPrice,
       exit_price: exitPrice,
       pips,
       pnl,
-      trade_date: String(formData.get("trade_date")),
+      trade_date: tradeDate,
       status,
       session,
-      notes: String(formData.get("notes") ?? ""),
-      confluence: String(formData.get("confluence") ?? ""),
+      notes,
+      confluence,
       before_photo_url: beforePhotoUrl,
       after_photo_url: afterPhotoUrl,
     })
