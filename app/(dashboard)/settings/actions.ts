@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { safeTimezone } from "@/lib/validation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
@@ -14,9 +15,9 @@ export async function updateProfile(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, message: "Not authenticated" };
 
-  const fullName = String(formData.get("full_name") ?? "").trim();
+  const fullName = String(formData.get("full_name") ?? "").trim().slice(0, 80);
   const usernameRaw = String(formData.get("username") ?? "").trim();
-  const username = usernameRaw.toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const username = usernameRaw.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24);
   const bio = String(formData.get("bio") ?? "").slice(0, 160);
 
   if (!username) {
@@ -48,7 +49,7 @@ export async function updateAccountPrefs(formData: FormData) {
 
   const languageRaw = String(formData.get("language") ?? "id");
   const language = isLocale(languageRaw) ? languageRaw : "id";
-  const timezone = String(formData.get("timezone") ?? "Asia/Jakarta");
+  const timezone = safeTimezone(String(formData.get("timezone") ?? "Asia/Jakarta"));
 
   const { error } = await supabase
     .from("profiles")
