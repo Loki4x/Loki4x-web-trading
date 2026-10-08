@@ -6,7 +6,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createPakasirTransaction, type PakasirMethod } from "@/lib/pakasir";
 import { finalizePakasirPayment } from "@/lib/pakasir-fulfillment";
 import { generateQrDataUrl } from "@/lib/qrcode";
-import { uploadToR2 } from "@/lib/r2";
+import { uploadPrivateToR2 } from "@/lib/r2";
+import { isEmail } from "@/lib/validation";
 import { PLAN_PRICE_IDR, PAKASIR_METHODS, purchasablePlans, type Plan } from "@/lib/pakasir-constants";
 import { getMembershipStatus } from "@/lib/tier";
 import { getT } from "@/lib/i18n/server";
@@ -27,8 +28,8 @@ export async function submitVipRequest(formData: FormData) {
     throw new Error(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
   }
 
-  const brokerEmail = String(formData.get("broker_email") ?? "");
-  const tradingAccountId = String(formData.get("trading_account_id") ?? "");
+  const brokerEmail = String(formData.get("broker_email") ?? "").trim().slice(0, 254);
+  const tradingAccountId = String(formData.get("trading_account_id") ?? "").trim().slice(0, 64);
   const firstDeposit = Number(formData.get("first_deposit"));
 
   if (!brokerEmail || !tradingAccountId || !firstDeposit) {
@@ -37,6 +38,10 @@ export async function submitVipRequest(formData: FormData) {
 
   if (firstDeposit < 15) {
     throw new Error(t("Deposit pertama minimal $15"));
+  }
+
+  if (!isEmail(brokerEmail) || !/^[A-Za-z0-9._-]{3,64}$/.test(tradingAccountId) || !Number.isFinite(firstDeposit) || firstDeposit > 10_000_000) {
+    throw new Error(t("Semua kolom wajib diisi"));
   }
 
   await supabase.from("vip_ib_requests").insert({
@@ -213,9 +218,9 @@ export async function submitUsdtPayment(formData: FormData) {
   const slip = formData.get("slip") as File | null;
   if (!slip || slip.size === 0) throw new Error(t("Bukti transfer wajib diupload"));
 
-  const note = String(formData.get("note") ?? "").trim() || null;
+  const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
 
-  const slipUrl = await uploadToR2(slip, `usdt-slips/${user.id}`);
+  const slipUrl = await uploadPrivateToR2(slip, `usdt-slips/${user.id}`);
   if (!slipUrl) throw new Error(t("Gagal upload bukti transfer"));
 
   let amount: number = USDT_PRICE[plan];
