@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site-url";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmailBatch } from "@/lib/email";
 import { claimMarker } from "@/lib/cron-marker";
@@ -8,7 +9,6 @@ import type { Signal } from "@/lib/types";
 
 type Vars = Record<string, string | number>;
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://4xcomunity.my.id").replace(/\/$/, "");
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
