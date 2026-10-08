@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
 const r2Client = new S3Client({
   region: "auto",
@@ -61,4 +61,45 @@ export async function uploadToR2(file: File | null, keyPrefix: string): Promise<
     console.error("R2 upload failed:", err);
     return null;
   }
+}
+
+// ---- Bucket PRIVAT (bukti transfer) ----
+// Berkas di bucket ini tidak punya URL publik. Yang disimpan di database hanya kunci objek,
+// diawali PRIVATE_SLIP_PREFIX, dan hanya admin yang bisa membukanya lewat /api/admin/slip.
+export const PRIVATE_SLIP_PREFIX = "r2private:";
+
+export async function uploadPrivateToR2(file: File | null, keyPrefix: string): Promise<string | null> {
+  if (!file || file.size === 0) return null;
+
+  const bucket = process.env.R2_PRIVATE_BUCKET_NAME;
+  if (!bucket) {
+    console.error("R2_PRIVATE_BUCKET_NAME belum diisi: upload bukti transfer ditolak (sengaja tidak jatuh ke bucket publik)");
+    return null;
+  }
+
+  const ext = ALLOWED_TYPES[file.type];
+  if (!ext) {
+    console.error(`R2 upload ditolak: tipe file "${file.type}" nggak diizinkan`);
+    return null;
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    console.error(`R2 upload ditolak: ukuran file melebihi batas ${MAX_FILE_SIZE} bytes`);
+    return null;
+  }
+
+  try {
+    const key = `${keyPrefix}-${Date.now()}.${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await r2Client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: buffer, ContentType: file.type }));
+    return `${PRIVATE_SLIP_PREFIX}${key}`;
+  } catch (err) {
+    console.error("R2 private upload failed:", err);
+    return null;
+  }
+}
+
+export async function getPrivateR2Object(key: string) {
+  const bucket = process.env.R2_PRIVATE_BUCKET_NAME;
+  if (!bucket) throw new Error("R2_PRIVATE_BUCKET_NAME belum diisi");
+  return r2Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
 }
