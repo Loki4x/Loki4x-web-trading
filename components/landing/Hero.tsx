@@ -11,7 +11,7 @@ export function Hero() {
     <section className="relative overflow-hidden bg-grid">
       <div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[900px] -translate-x-1/2 rounded-full bg-primary/20 blur-[120px]" />
 
-      <div className="relative mx-auto grid max-w-content items-center gap-14 px-6 pb-20 pt-16 md:pt-24 lg:grid-cols-[1.05fr_1fr]">
+      <div className="relative mx-auto grid max-w-content items-center gap-14 px-6 py-16 md:py-20 lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1.05fr_1fr]">
         <div className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
           <span
             className="animate-enter inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-badge font-semibold tracking-wide text-text-secondary"
@@ -23,7 +23,7 @@ export function Hero() {
 
           <h1 className="animate-enter mt-6 text-display text-text-primary" style={enter(100)}>
             Log every trade.{" "}
-            <span className="bg-gradient-to-r from-primary to-[#A78BFA] bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-primary to-[#8B9DFF] bg-clip-text pb-1 text-transparent">
               Read every market move.
             </span>
           </h1>
