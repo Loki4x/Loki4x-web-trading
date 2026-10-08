@@ -35,6 +35,12 @@ const statusClass: Record<PaymentRow["status"], string> = {
   FAILED: "text-error",
 };
 
+// Bukti transfer baru disimpan privat ("r2private:<kunci>") dan dibuka lewat endpoint admin.
+// Data lama berupa URL publik biasa tetap dibuka langsung.
+function slipHref(url: string): string {
+  return url.startsWith("r2private:") ? `/api/admin/slip?key=${encodeURIComponent(url.slice("r2private:".length))}` : url;
+}
+
 export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
   const t = useT();
   const router = useRouter();
@@ -91,7 +97,7 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
               <td className="px-4 py-3">
                 {p.slip_url ? (
                   <a
-                    href={p.slip_url}
+                    href={slipHref(p.slip_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-primary hover:underline"
