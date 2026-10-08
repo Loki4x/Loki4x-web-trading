@@ -45,12 +45,28 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/positioning") ||
     request.nextUrl.pathname.startsWith("/signals") ||
     request.nextUrl.pathname.startsWith("/academy") ||
-    request.nextUrl.pathname.startsWith("/referral");
+    request.nextUrl.pathname.startsWith("/referral") ||
+    request.nextUrl.pathname.startsWith("/reset-password");
 
   if (!user && isDashboardRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+
+  // Penangguhan ditegakkan di setiap request halaman dan server action, bukan hanya di layout:
+  // sesi lama yang masih hidup tidak bisa lagi memanggil aksi (bayar, tambah trade, dll).
+  if (user && isDashboardRoute) {
+    const { data: profile } = await supabase.from("profiles").select("is_suspended").eq("id", user.id).maybeSingle();
+    if (profile?.is_suspended) {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return new NextResponse("Account suspended", { status: 403 });
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/suspended";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   if (user && isAuthRoute) {
