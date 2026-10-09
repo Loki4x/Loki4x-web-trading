@@ -103,3 +103,6 @@ export async function getPrivateR2Object(key: string) {
   if (!bucket) throw new Error("R2_PRIVATE_BUCKET_NAME belum diisi");
   return r2Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
 }
+
+export const UPLOAD_MAX_BYTES = MAX_FILE_SIZE;
+export const isAllowedUploadType = (type: string) => Object.prototype.hasOwnProperty.call(ALLOWED_TYPES, type);
