@@ -114,7 +114,8 @@ export function VipRequestForm({
     setError(null);
     setSubmitting(true);
     try {
-      await submitVipRequest(formData);
+      const res = await submitVipRequest(formData);
+      if (!res.ok) setError(res.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("Gagal mengirim pengajuan"));
     } finally {
