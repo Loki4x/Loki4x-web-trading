@@ -150,7 +150,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
       qrisRequested.current = true;
       setQrisLoading(true);
       createInstantPayment({ plan, method: "qris", promoCode: promo?.code ?? null })
-        .then(setQris)
+        .then((r) => (r.ok ? setQris(r) : setQrisError(r.message)))
         .catch((e) => setQrisError(e instanceof Error ? e.message : t("Gagal membuat QRIS")))
         .finally(() => setQrisLoading(false));
     }
@@ -162,7 +162,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
     setBankError(null);
     setBankLoading(true);
     createInstantPayment({ plan, method, promoCode: promo?.code ?? null })
-      .then(setBankResult)
+      .then((r) => (r.ok ? setBankResult(r) : setBankError(r.message)))
       .catch((e) => setBankError(e instanceof Error ? e.message : t("Gagal membuat Virtual Account")))
       .finally(() => setBankLoading(false));
   }
@@ -181,7 +181,11 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
       fd.set("slip", slip);
       fd.set("note", note);
       fd.set("promo_code", promo?.code ?? "");
-      await submitUsdtPayment(fd);
+      const res = await submitUsdtPayment(fd);
+      if (!res.ok) {
+        setUsdtError(res.message);
+        return;
+      }
       setUsdtSubmitted(true);
     } catch (e) {
       setUsdtError(e instanceof Error ? e.message : t("Gagal mengirim bukti transfer"));
