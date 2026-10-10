@@ -1,4 +1,5 @@
 import { Users, Crown, UserCheck, NotebookText, DollarSign } from "lucide-react";
+import { membershipState } from "@/lib/membership";
 import { createClient } from "@/lib/supabase/server";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { UserGrowthChart } from "@/components/admin/UserGrowthChart";
@@ -25,7 +26,7 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
   const [{ data: profiles }, { data: trades }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email, tier, created_at").order("created_at", { ascending: false }),
+    supabase.from("profiles").select("id, full_name, email, tier, vip_expires_at, created_at").order("created_at", { ascending: false }),
     supabase.from("trades").select("id, user_id, symbol, created_at").order("created_at", { ascending: false }),
   ]);
 
@@ -33,7 +34,9 @@ export default async function AdminDashboardPage() {
   const allTrades = trades ?? [];
 
   const totalUsers = allProfiles.length;
-  const totalVip = allProfiles.filter((p) => p.tier === "VIP").length;
+  // Hitung VIP berdasarkan tier yang BERLAKU: yang masa aktifnya sudah habis tidak dihitung.
+  const isVipNow = (p: { tier: string | null; vip_expires_at: string | null }) => membershipState(p).effectiveTier === "VIP";
+  const totalVip = allProfiles.filter((p) => isVipNow(p)).length;
   const totalFree = totalUsers - totalVip;
   const totalJournalEntries = allTrades.length;
   const monthlyRevenue = totalVip * VIP_MONTHLY_PRICE;
@@ -48,8 +51,8 @@ export default async function AdminDashboardPage() {
     const upToDate = allProfiles.filter((p) => new Date(p.created_at) <= refDate);
     return {
       month: refDate.toLocaleDateString("en-US", { month: "short" }),
-      free: upToDate.filter((p) => p.tier !== "VIP").length,
-      vip: upToDate.filter((p) => p.tier === "VIP").length,
+      free: upToDate.filter((p) => !isVipNow(p)).length,
+      vip: upToDate.filter((p) => isVipNow(p)).length,
     };
   });
 
