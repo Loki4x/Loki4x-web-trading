@@ -12,8 +12,8 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
-        <TrackRecord />
         <Features />
+        <TrackRecord />
         <Pricing />
         <CtaBanner />
       </main>
