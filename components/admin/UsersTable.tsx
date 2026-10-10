@@ -7,9 +7,10 @@ import { cx, formatDate } from "@/lib/utils";
 import { toggleSuspend } from "@/app/admin/actions";
 import { ChangeTierModal } from "@/components/admin/ChangeTierModal";
 import { UserDetailModal } from "@/components/admin/UserDetailModal";
+import { membershipState } from "@/lib/membership";
 import type { Profile } from "@/lib/types";
 
-type RoleFilter = "ALL" | "FREE" | "VIP" | "ADMIN";
+type RoleFilter = "ALL" | "FREE" | "VIP" | "MEMBERSHIP" | "ADMIN";
 const PAGE_SIZE = 10;
 
 export function UsersTable({ users }: { users: Profile[] }) {
@@ -24,9 +25,12 @@ export function UsersTable({ users }: { users: Profile[] }) {
     return users.filter((u) => {
       const q = search.toLowerCase();
       if (q && !(u.full_name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))) return false;
+      // Filter memakai tier yang BERLAKU sekarang: yang masa aktifnya habis dihitung FREE.
+      const tier = membershipState(u).effectiveTier;
       if (role === "ADMIN" && !u.is_admin) return false;
-      if (role === "FREE" && (u.tier !== "FREE" || u.is_admin)) return false;
-      if (role === "VIP" && u.tier !== "VIP") return false;
+      if (role === "FREE" && (tier !== "FREE" || u.is_admin)) return false;
+      if (role === "VIP" && tier !== "VIP") return false;
+      if (role === "MEMBERSHIP" && tier !== "MEMBERSHIP") return false;
       return true;
     });
   }, [users, search, role]);
@@ -71,15 +75,16 @@ export function UsersTable({ users }: { users: Profile[] }) {
           <option value="ALL">All Roles</option>
           <option value="FREE">Free</option>
           <option value="VIP">VIP</option>
+          <option value="MEMBERSHIP">Membership</option>
           <option value="ADMIN">Admin</option>
         </select>
       </div>
 
       <div className="card overflow-x-auto !p-0">
-        <table className="w-full min-w-[720px] border-collapse">
+        <table className="w-full min-w-[860px] border-collapse">
           <thead>
             <tr className="border-b border-border bg-surface text-left">
-              {["User", "Role", "Status", "Joined", ""].map((h) => (
+              {["User", "Role", "Status", "Joined", "Expires", ""].map((h) => (
                 <th key={h} className="px-4 py-3 text-caption font-semibold uppercase tracking-wide text-text-secondary">
                   {h}
                 </th>
@@ -89,12 +94,14 @@ export function UsersTable({ users }: { users: Profile[] }) {
           <tbody>
             {paginated.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-body-sm text-text-muted">
+                <td colSpan={6} className="px-4 py-10 text-center text-body-sm text-text-muted">
                   No users match your filters.
                 </td>
               </tr>
             )}
-            {paginated.map((u) => (
+            {paginated.map((u) => {
+              const m = membershipState(u);
+              return (
               <tr key={u.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
                 <td className="px-4 py-3">
                   <p className="text-body-sm font-semibold text-text-primary">{u.full_name || "—"}</p>
@@ -106,14 +113,19 @@ export function UsersTable({ users }: { users: Profile[] }) {
                       "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-badge font-bold leading-none",
                       u.is_admin
                         ? "bg-warning-subtle text-warning"
-                        : u.tier === "VIP"
+                        : m.effectiveTier === "VIP"
                         ? "bg-primary/15 text-primary"
                         : "bg-surface-2 text-text-secondary"
                     )}
                   >
-                    {u.tier === "VIP" && !u.is_admin && <Crown className="h-3 w-3" />}
-                    {u.is_admin ? "ADMIN" : u.tier}
+                    {m.effectiveTier === "VIP" && !u.is_admin && <Crown className="h-3 w-3" />}
+                    {u.is_admin ? "ADMIN" : m.effectiveTier}
                   </span>
+                  {m.expired && !u.is_admin && (
+                    <span className="ml-2 rounded-md bg-error-subtle px-1.5 py-0.5 text-badge font-semibold leading-none text-error">
+                      Expired
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -127,6 +139,25 @@ export function UsersTable({ users }: { users: Profile[] }) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-body-sm text-text-secondary">{formatDate(u.created_at)}</td>
+                <td className="px-4 py-3 text-body-sm">
+                  {m.storedTier === "FREE" ? (
+                    <span className="text-text-muted">—</span>
+                  ) : m.expired ? (
+                    <span className="text-error">
+                      {formatDate(m.expiresAt as string)}
+                      <span className="block text-caption">Expired</span>
+                    </span>
+                  ) : m.permanent ? (
+                    <span className="text-text-secondary">Lifetime</span>
+                  ) : (
+                    <span className="text-text-secondary">
+                      {formatDate(m.expiresAt as string)}
+                      <span className={cx("block text-caption", (m.daysLeft ?? 0) <= 7 ? "text-warning" : "text-text-muted")}>
+                        {m.daysLeft} days left
+                      </span>
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-3">
                     <button
@@ -155,7 +186,8 @@ export function UsersTable({ users }: { users: Profile[] }) {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
