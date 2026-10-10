@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site-url";
 export type MarketNewsCategory = "FOREX" | "CRYPTO" | "STOCKS" | "COMMODITIES" | "GOLD";
 
 export interface MarketNewsItem {
@@ -55,7 +56,7 @@ async function fetchRssFeed(url: string): Promise<RawFeedItem[]> {
   try {
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; Loki4xBot/1.0; +https://4xcomunity.my.id)",
+        "User-Agent": `Mozilla/5.0 (compatible; Loki4xBot/1.0; +${SITE_URL})`,
         Accept: "application/rss+xml, application/xml, text/xml",
       },
       next: { revalidate: 300 }, // cache 5 menit, cukup buat "auto-update tiap ada berita baru"
