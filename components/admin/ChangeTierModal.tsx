@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { membershipState } from "@/lib/membership";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -9,8 +10,10 @@ import type { Profile } from "@/lib/types";
 
 export function ChangeTierModal({ user, onClose }: { user: Profile; onClose: () => void }) {
   const router = useRouter();
-  const [tier, setTier] = useState<"FREE" | "VIP" | "MEMBERSHIP">(user.tier);
-  const [expiresAt, setExpiresAt] = useState(user.vip_expires_at?.slice(0, 10) ?? "");
+  // Mulai dari tier yang berlaku sekarang (masa aktif habis = FREE), supaya admin tidak mengira masih aktif.
+  const current = membershipState(user);
+  const [tier, setTier] = useState<"FREE" | "VIP" | "MEMBERSHIP">(current.effectiveTier);
+  const [expiresAt, setExpiresAt] = useState(current.expired ? "" : (user.vip_expires_at?.slice(0, 10) ?? ""));
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
