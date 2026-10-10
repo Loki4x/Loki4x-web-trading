@@ -10,7 +10,7 @@ background-image:linear-gradient(rgba(95,133,219,.42) 1.5px,transparent 1.5px),l
 
 export function CtaBanner() {
   return (
-    <section className="relative isolate overflow-hidden border-t border-border">
+    <section className="relative isolate flex min-h-[100svh] items-center overflow-hidden border-t border-border">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div
         aria-hidden
@@ -24,9 +24,9 @@ export function CtaBanner() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_100%,rgba(95,133,219,0.35),transparent_65%)]" />
       </div>
 
-      <div className="mx-auto max-w-content px-6 py-28 text-center">
+      <div className="mx-auto w-full max-w-content px-6 py-28 text-center">
         <Reveal from="zoom">
-          <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-text-primary md:text-5xl">
+          <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-text-primary md:text-6xl">
             Start Trading <Accent>Smarter</Accent> Today
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-body-lg text-text-secondary">
