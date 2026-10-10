@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site-url";
 export type CalendarImpact = "HIGH" | "MEDIUM" | "LOW" | "HOLIDAY";
 
 export interface CalendarEvent {
@@ -32,7 +33,7 @@ async function fetchWeek(period: WeekPeriod): Promise<CalendarEvent[]> {
       next: { revalidate: 300 }, // 5 minutes — keeps us well under FF's rate limit
       headers: {
         Accept: "application/json",
-        "User-Agent": "Mozilla/5.0 (compatible; Loki4xAcademy/1.0; +https://4xcomunity.my.id)",
+        "User-Agent": `Mozilla/5.0 (compatible; Loki4xAcademy/1.0; +${SITE_URL})`,
       },
     });
 
