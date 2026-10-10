@@ -4,7 +4,7 @@
 // Setup needed in Vercel → Project Settings → Environment Variables:
 //   PAKASIR_PROJECT_SLUG   — "Slug" dari halaman detail proyek Pakasir kamu
 //   PAKASIR_API_KEY        — "Api Key" dari halaman detail proyek Pakasir kamu
-//   NEXT_PUBLIC_SITE_URL   — domain kamu, contoh: https://4xcomunity.my.id
+//   NEXT_PUBLIC_SITE_URL   — domain kamu, contoh: https://www.loki4xacademy.web.id
 //
 // Lalu di dashboard Pakasir, isi "Webhook URL" proyekmu dengan:
 //   https://<domain-kamu>/api/pakasir/webhook
