@@ -1,3 +1,4 @@
+import { SUPPORT_EMAIL } from "@/lib/site-url";
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-12">
@@ -68,7 +69,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="mb-2 text-h3 text-text-primary">8. Contact Us</h2>
-          <p>Questions about this policy? Reach us at support@4xcomunity.my.id.</p>
+          <p>Questions about this policy? Reach us at {SUPPORT_EMAIL}.</p>
         </section>
       </div>
     </main>
