@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/ui/Reveal";
+import { Accent, SectionHeading } from "@/components/landing/SectionHeading";
 import { CountUp } from "@/components/ui/CountUp";
 import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
 import { getPublicTrackRecord } from "@/lib/public-track-record";
@@ -52,12 +53,12 @@ export async function TrackRecord() {
   return (
     <section id="track-record" className="scroll-mt-24 border-t border-border py-20">
       <div className="mx-auto max-w-content px-6">
-        <Reveal className="mx-auto max-w-xl text-center">
-          <h2 className="text-h1 text-text-primary">{t("Track Record Sinyal")}</h2>
-          <p className="mt-4 text-body-lg text-text-secondary">
-            {t("Ringkasan performa semua sinyal yang sudah ditutup. Angka dihitung otomatis dari data sinyal kami.")}
-          </p>
-        </Reveal>
+        <SectionHeading
+          badge="Track Record"
+          description={t("Ringkasan performa semua sinyal yang sudah ditutup. Angka dihitung otomatis dari data sinyal kami.")}
+        >
+          Every Signal, <Accent>Fully Transparent</Accent>
+        </SectionHeading>
 
         <div className="mt-14">
             {!record || record.closedCount === 0 ? (
