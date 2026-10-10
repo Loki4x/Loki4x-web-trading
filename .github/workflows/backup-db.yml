@@ -21,14 +21,20 @@ jobs:
           sudo apt-get install -y postgresql-client-17
 
       - name: Dump & enkripsi
+        timeout-minutes: 20
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
-          test -n "$SUPABASE_DB_URL" && test -n "$BACKUP_PASSPHRASE"
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Secret SUPABASE_DB_URL dan/atau BACKUP_PASSPHRASE belum diisi (Settings > Secrets and variables > Actions > Secrets)."
+            exit 1
+          fi
           STAMP=$(date -u +%Y%m%d-%H%M)
           pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges --schema=public --schema=auth -Fc -f "backup-$STAMP.dump"
+          # Pastikan arsip valid dan bisa dibaca sebelum dienkripsi (cadangan yang rusak tidak berguna).
+          pg_restore --list "backup-$STAMP.dump" > /dev/null
           gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "backup-$STAMP.dump.gpg" "backup-$STAMP.dump"
           rm "backup-$STAMP.dump"
           ls -la
