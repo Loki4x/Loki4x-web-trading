@@ -1,3 +1,4 @@
+import { SUPPORT_EMAIL } from "@/lib/site-url";
 export default function TermsPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-12">
@@ -76,7 +77,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="mb-2 text-h3 text-text-primary">10. Contact Us</h2>
-          <p>Questions about these Terms? Reach us at support@4xcomunity.my.id.</p>
+          <p>Questions about these Terms? Reach us at {SUPPORT_EMAIL}.</p>
         </section>
       </div>
     </main>
