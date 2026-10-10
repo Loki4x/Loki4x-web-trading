@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LocaleProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
+import { SITE_URL } from "@/lib/site-url";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -22,10 +23,16 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const TITLE = "Loki4x Academy — Trading Journal & Market News";
+const DESCRIPTION =
+  "Log your trades with discipline and stay ahead of high-impact market news, all in one focused dark workspace.";
+
 export const metadata: Metadata = {
-  title: "Loki4x Academy — Trading Journal & Market News",
-  description:
-    "Log your trades with discipline and stay ahead of high-impact market news, all in one focused dark workspace.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: { title: TITLE, description: DESCRIPTION, siteName: "Loki4x Academy", type: "website", url: "/" },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 export default async function RootLayout({
