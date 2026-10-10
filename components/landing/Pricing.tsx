@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Reveal } from "@/components/ui/Reveal";
+import { Accent, SectionHeading } from "@/components/landing/SectionHeading";
 
 const plans = [
   {
@@ -49,20 +50,18 @@ const plans = [
 
 export function Pricing() {
   return (
-    <section id="pricing" className="mx-auto max-w-content px-6 py-20">
-      <Reveal className="mx-auto max-w-2xl text-center">
-        <h2 className="text-h2 text-text-primary">Simple pricing, no surprises</h2>
-        <p className="mt-3 text-body text-text-secondary">
-          Start free. Upgrade when your journal outgrows the basics.
-        </p>
-      </Reveal>
+    <section id="pricing" className="scroll-mt-24 border-t border-border">
+      <div className="mx-auto max-w-content px-6 py-24">
+      <SectionHeading badge="Pricing" description="Start free. Upgrade when your journal outgrows the basics.">
+        Simple pricing, <Accent>no surprises</Accent>
+      </SectionHeading>
 
       <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
         {plans.map((plan, i) => (
           <Reveal key={plan.name} delay={i * 120} className="h-full">
             <div
               className={`relative h-full rounded-2xl border p-8 ${
-                plan.featured ? "border-primary bg-primary-subtle/40" : "border-border bg-surface"
+                plan.featured ? "border-primary bg-primary-subtle/40 shadow-[0_0_60px_rgba(95,133,219,0.2)]" : "border-border bg-surface/60 backdrop-blur"
               }`}
             >
               {plan.featured && (
@@ -107,6 +106,7 @@ export function Pricing() {
             </div>
           </Reveal>
         ))}
+      </div>
       </div>
     </section>
   );
