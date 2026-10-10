@@ -2,18 +2,20 @@ name: Check Membership Expiry
 
 on:
   schedule:
-    - cron: "0 1 * * *"
+    - cron: "0 1 * * *" # tiap hari 01:00 UTC = 08:00 WIB
   workflow_dispatch: {}
 
 jobs:
   check-expiry:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install @supabase/supabase-js resend
+      - run: npm install --no-audit --no-fund @supabase/supabase-js resend
+      # Skrip akan berhenti dengan pesan jelas kalau salah satu secret di bawah ini belum diisi.
       - run: node scripts/check-expiry.js
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
