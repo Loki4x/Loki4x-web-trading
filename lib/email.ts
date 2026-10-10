@@ -2,7 +2,8 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM = "4x Comunity <noreply@4xcomunity.my.id>";
+// Domain pengirim harus sudah berstatus Verified di Resend. Bisa diganti lewat env EMAIL_FROM tanpa ubah kode.
+const FROM = process.env.EMAIL_FROM ?? "Loki4x Academy <noreply@loki4xacademy.web.id>";
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
   try {
