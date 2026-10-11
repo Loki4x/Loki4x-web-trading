@@ -1,5 +1,10 @@
-import { PageSkeleton } from "@/components/ui/Skeleton";
+import { SkeletonPage, SkeletonKpiRow, SkeletonChart } from "@/components/ui/Skeleton";
 
 export default function Loading() {
-  return <PageSkeleton />;
+  return (
+    <SkeletonPage>
+      <SkeletonKpiRow />
+      <SkeletonChart />
+    </SkeletonPage>
+  );
 }
