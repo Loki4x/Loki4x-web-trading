@@ -1,7 +1,7 @@
 import { getUserT } from "@/lib/i18n/server";
 import { dateLocale } from "@/lib/i18n/dictionary";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getPakasirTransactionDetail } from "@/lib/pakasir";
+import { getPakasirTransactionStatus } from "@/lib/pakasir";
 import { notifyUser } from "@/lib/notifications";
 import { type Plan } from "@/lib/pakasir-constants";
 import { computeGrant } from "@/lib/membership-grant";
@@ -16,7 +16,10 @@ import { grantReferralReward } from "@/lib/referral";
  * order_id yang sama (dari webhook maupun dari tombol "Cek Status" user),
  * termasuk kalau dipanggil bersamaan.
  */
-export async function finalizePakasirPayment(orderId: string): Promise<{ status: "COMPLETED" | "PENDING" | "NOT_FOUND" }> {
+export async function finalizePakasirPayment(
+  orderId: string,
+  txnIdHint?: string | null
+): Promise<{ status: "COMPLETED" | "PENDING" | "NOT_FOUND" }> {
   const service = createServiceClient();
 
   const { data: payment } = await service.from("payments").select("*").eq("order_id", orderId).single();
@@ -24,8 +27,18 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
 
   if (payment.status === "COMPLETED") return { status: "COMPLETED" };
 
-  const transaction = await getPakasirTransactionDetail({ orderId, amount: payment.amount });
-  if (!transaction || transaction.status !== "completed" || transaction.amount !== payment.amount) {
+  // API v2 mengecek status lewat txn_id. Utamakan yang tersimpan saat order dibuat;
+  // txn_id dari webhook hanya cadangan, dan tetap aman karena hasilnya dicocokkan ke order_id kita.
+  const txnId: string | null = payment.pakasir_txn_id ?? txnIdHint ?? null;
+  if (!txnId) return { status: "PENDING" };
+
+  const transaction = await getPakasirTransactionStatus({ txnId });
+  if (
+    !transaction ||
+    transaction.status !== "completed" ||
+    transaction.order_id !== orderId ||
+    transaction.amount < payment.amount
+  ) {
     return { status: "PENDING" };
   }
 
@@ -38,7 +51,6 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
     .from("payments")
     .update({
       status: "COMPLETED",
-      payment_method: transaction.payment_method,
       completed_at: transaction.completed_at ?? new Date().toISOString(),
     })
     .eq("order_id", orderId)
@@ -86,6 +98,7 @@ export async function finalizePakasirPayment(orderId: string): Promise<{ status:
     details: {
       target_email: profile?.email ?? null,
       plan,
+      sandbox: transaction.is_sandbox,
       promo_code: payment.promo_code ?? null,
       discount_amount: payment.discount_amount ?? 0,
       from_tier: profile?.tier ?? null,
