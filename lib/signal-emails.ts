@@ -79,7 +79,7 @@ function build(event: SignalEmailEvent, locale: Locale): { subject: string; html
   const html = `
     <div style="background-color:#0d0f14; padding:40px 20px; font-family:Arial, sans-serif;">
       <div style="max-width:480px; margin:0 auto; background-color:#161920; border-radius:12px; padding:32px; border:1px solid #2a2e38;">
-        <p style="font-size:20px; font-weight:800; color:#ffffff;">4X COMUNITY</p>
+        <p style="font-size:20px; font-weight:800; color:#ffffff;">Loki4x Academy</p>
         <h2 style="color:#ffffff; font-size:18px;">${escapeHtml(heading)}</h2>
         <table style="width:100%; border-collapse:collapse; margin:12px 0;">${rows}</table>
         ${extra}
