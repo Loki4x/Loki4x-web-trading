@@ -93,6 +93,11 @@ export async function createPakasirTransaction({
     return null;
   }
 
+  if (!p.expired_at) {
+    // Jangan diteruskan sebagai "" (ditolak kolom timestamp di database). Catat nama field-nya supaya mudah dilacak.
+    console.warn(`[pakasir] respons tanpa expired_at untuk order ${orderId}; field yang ada: ${Object.keys(p).join(", ")}`);
+  }
+
   return {
     txn_id: p.txn_id,
     payment_number: paymentNumber,
