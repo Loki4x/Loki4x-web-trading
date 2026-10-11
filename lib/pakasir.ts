@@ -1,10 +1,11 @@
-// Server-only helpers for the Pakasir payment gateway.
-// Docs: https://pakasir.com/p/docs
+// Server-only helpers for the Pakasir payment gateway (API v2).
+// Docs: https://pakasir.com/p/create-transaction  (v1 dihentikan 20 Oktober 2026)
 //
 // Setup needed in Vercel → Project Settings → Environment Variables:
-//   PAKASIR_PROJECT_SLUG   — "Slug" dari halaman detail proyek Pakasir kamu
-//   PAKASIR_API_KEY        — "Api Key" dari halaman detail proyek Pakasir kamu
-//   NEXT_PUBLIC_SITE_URL   — domain kamu, contoh: https://www.loki4xacademy.web.id
+//   PAKASIR_PROJECT_SLUG    — "Slug" dari halaman detail proyek Pakasir kamu
+//   PAKASIR_API_KEY         — "Api Key" dari halaman detail proyek Pakasir kamu
+//   PAKASIR_WEBHOOK_SECRET  — "Secret" webhook dari halaman detail proyek Pakasir (dikirim sebagai header X-Secret)
+//   NEXT_PUBLIC_SITE_URL    — domain kamu, contoh: https://www.loki4xacademy.web.id
 //
 // Lalu di dashboard Pakasir, isi "Webhook URL" proyekmu dengan:
 //   https://<domain-kamu>/api/pakasir/webhook
@@ -23,33 +24,31 @@ function getCredentials() {
   return { slug, apiKey };
 }
 
-/** Bangun URL hosted-checkout Pakasir buat di-redirect user ke sana. */
-export function buildPakasirCheckoutUrl({
-  amount,
-  orderId,
-  redirectUrl,
-}: {
-  amount: number;
-  orderId: string;
-  redirectUrl: string;
-}) {
-  const { slug } = getCredentials();
-  const url = new URL(`${PAKASIR_BASE_URL}/pay/${slug}/${amount}`);
-  url.searchParams.set("order_id", orderId);
-  url.searchParams.set("redirect", redirectUrl);
-  return url.toString();
+/** Beberapa API membungkus hasilnya (mis. { payment: {...} }); terima bentuk polos maupun terbungkus. */
+function unwrap<T>(raw: unknown, keys: string[]): T {
+  if (raw && typeof raw === "object") {
+    for (const k of keys) {
+      const inner = (raw as Record<string, unknown>)[k];
+      if (inner && typeof inner === "object") return inner as T;
+    }
+  }
+  return raw as T;
 }
 
 export interface PakasirCreatedPayment {
+  txn_id: string; // ID transaksi Pakasir (dibutuhkan API v2 untuk cek status)
   payment_number: string; // QRIS string, atau nomor VA
   fee: number;
   total_payment: number;
   expired_at: string;
+  is_sandbox: boolean;
 }
 
 /**
- * Bikin transaksi via API — dapat balik QR string / nomor VA langsung,
+ * Bikin transaksi via API v2 — dapat balik QR string / nomor VA langsung,
  * buat ditampilkan sendiri di halaman kita (bukan redirect ke Pakasir).
+ * Endpoint ini "find or create": panggilan ulang dengan order_id & body yang sama
+ * mengembalikan transaksi yang sama.
  */
 export async function createPakasirTransaction({
   method,
@@ -61,55 +60,92 @@ export async function createPakasirTransaction({
   amount: number;
 }): Promise<PakasirCreatedPayment | null> {
   const { slug, apiKey } = getCredentials();
-  const res = await fetch(`${PAKASIR_BASE_URL}/api/transactioncreate/${method}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ project: slug, order_id: orderId, amount, api_key: apiKey }),
-  });
+  const res = await fetch(
+    `${PAKASIR_BASE_URL}/api/v2/create-transaction/${encodeURIComponent(slug)}/${encodeURIComponent(orderId)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
+      body: JSON.stringify({ method, amount }),
+      cache: "no-store",
+    }
+  );
 
-  if (!res.ok) return null;
-  const data = (await res.json()) as { payment?: PakasirCreatedPayment };
-  return data.payment ?? null;
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error(`[pakasir] create-transaction gagal (${res.status}) untuk order ${orderId}: ${detail.slice(0, 300)}`);
+    return null;
+  }
+
+  const raw = await res.json().catch(() => null);
+  const p = unwrap<{
+    txn_id?: string;
+    qr_string?: string;
+    va_number?: string;
+    fee?: number;
+    total_payment?: number;
+    expired_at?: string;
+    is_sandbox?: boolean;
+  }>(raw, ["payment", "data", "transaction"]);
+
+  const paymentNumber = p?.qr_string ?? p?.va_number;
+  if (!p?.txn_id || !paymentNumber) {
+    console.error(`[pakasir] respons create-transaction tidak lengkap untuk order ${orderId}`);
+    return null;
+  }
+
+  return {
+    txn_id: p.txn_id,
+    payment_number: paymentNumber,
+    fee: p.fee ?? 0,
+    total_payment: p.total_payment ?? amount,
+    expired_at: p.expired_at ?? "",
+    is_sandbox: Boolean(p.is_sandbox),
+  };
 }
 
 export interface PakasirTransaction {
-  amount: number;
+  txn_id: string;
   order_id: string;
-  project: string;
-  status: string; // "pending" | "completed" | "failed" (belum didokumentasikan lengkap statusnya)
-  payment_method: string;
+  amount: number;
+  is_sandbox: boolean;
+  status: string; // "pending" | "completed" | "canceled"
   completed_at: string | null;
 }
 
 /**
  * Cek status transaksi langsung ke Pakasir (bukan cuma percaya body webhook).
- * Dipakai webhook buat verifikasi sebelum upgrade tier user.
+ * Dipakai webhook & tombol "Cek Status" untuk verifikasi sebelum upgrade tier user.
+ * Batas Pakasir: 1 request per transaksi per 4 detik — kalau kena batas, hasilnya null (dianggap masih pending).
  */
-export async function getPakasirTransactionDetail({
-  orderId,
-  amount,
-}: {
-  orderId: string;
-  amount: number;
-}): Promise<PakasirTransaction | null> {
+export async function getPakasirTransactionStatus({ txnId }: { txnId: string }): Promise<PakasirTransaction | null> {
   const { slug, apiKey } = getCredentials();
-  const url = new URL(`${PAKASIR_BASE_URL}/api/transactiondetail`);
-  url.searchParams.set("project", slug);
-  url.searchParams.set("amount", String(amount));
-  url.searchParams.set("order_id", orderId);
-  url.searchParams.set("api_key", apiKey);
+  const res = await fetch(
+    `${PAKASIR_BASE_URL}/api/v2/transaction-status/${encodeURIComponent(slug)}/${encodeURIComponent(txnId)}`,
+    { headers: { "X-Api-Key": apiKey }, cache: "no-store" }
+  );
+  if (!res.ok) {
+    if (res.status !== 429) console.error(`[pakasir] transaction-status gagal (${res.status}) untuk txn ${txnId}`);
+    return null;
+  }
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) return null;
+  const raw = await res.json().catch(() => null);
+  const t = unwrap<Partial<PakasirTransaction>>(raw, ["transaction", "data"]);
+  if (!t || typeof t.status !== "string" || typeof t.order_id !== "string" || typeof t.amount !== "number") return null;
 
-  const data = (await res.json()) as { transaction?: PakasirTransaction };
-  return data.transaction ?? null;
+  return {
+    txn_id: t.txn_id ?? txnId,
+    order_id: t.order_id,
+    amount: t.amount,
+    is_sandbox: Boolean(t.is_sandbox),
+    status: t.status,
+    completed_at: t.completed_at ?? null,
+  };
 }
 
 /**
- * Cuma jalan kalau proyek Pakasir masih mode Sandbox — memicu Pakasir
- * langsung menganggap sebuah order "lunas" dan mengirim webhook asli ke
- * kita, tanpa perlu transfer uang beneran. Dipakai admin buat testing.
+ * Simulasi pembayaran (hanya proyek Sandbox). CATATAN: ini masih endpoint API v1
+ * (/api/paymentsimulation) karena dokumentasi v2 belum mencantumkan endpoint simulasi.
+ * Endpoint v1 ikut dihentikan 20 Oktober 2026 — setelah itu simulasi lewat dashboard Pakasir.
  */
 export async function simulatePakasirPayment({ orderId, amount }: { orderId: string; amount: number }) {
   const { slug, apiKey } = getCredentials();
