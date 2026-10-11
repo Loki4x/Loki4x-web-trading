@@ -81,6 +81,7 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
+    console.error("[signup] gagal:", error.code, error.status, error.message);
     redirect(`/signup?error=${classifyAuthError(error, "signup")}`);
   }
 
