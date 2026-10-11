@@ -187,7 +187,10 @@ async function createInstantPaymentImpl({
     original_amount: promo?.original ?? amount,
     discount_amount: promo?.discount ?? 0,
   });
-  if (error) return fail(t("Gagal menyimpan order pembayaran"));
+  if (error) {
+    console.error("[upgrade/createInstantPayment] gagal menyimpan order:", error.message);
+    return fail(t("Gagal menyimpan order pembayaran"));
+  }
 
   const qrImage = method === "qris" ? await generateQrDataUrl(created.payment_number) : null;
 
