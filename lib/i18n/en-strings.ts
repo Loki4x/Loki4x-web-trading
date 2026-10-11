@@ -11,6 +11,7 @@ export const EN_STRINGS: Record<string, string> = {
   "Kode baru sudah dikirim ulang.": "A new code has been sent.",
   "Verifikasi": "Verify",
   "Kirim ulang kode": "Resend code",
+  "Email belum terlihat? Coba cek folder Spam atau Promosi. Kalau ada di sana, tandai sebagai “Bukan spam”.": "Can't see the email? Check your Spam or Promotions folder. If it's there, mark it as “Not spam”.",
   "Belajar Teknikal": "Learn Technical",
   "Analisa chart, indikator, dan strategi teknikal.": "Chart analysis, indicators, and technical strategies.",
   "Fundamental Forex": "Forex Fundamentals",
