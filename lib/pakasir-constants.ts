@@ -29,7 +29,6 @@ export type PakasirMethod =
   | "bnc_va"
   | "maybank_va"
   | "permata_va"
-  | "atm_bersama_va"
   | "artha_graha_va"
   | "sampoerna_va";
 
@@ -40,7 +39,6 @@ export const BANK_VA_METHODS: { method: PakasirMethod; label: string }[] = [
   { method: "permata_va", label: "Permata" },
   { method: "maybank_va", label: "Maybank" },
   { method: "bnc_va", label: "BNC" },
-  { method: "atm_bersama_va", label: "ATM Bersama" },
   { method: "artha_graha_va", label: "Artha Graha" },
   { method: "sampoerna_va", label: "Sampoerna" },
 ];
