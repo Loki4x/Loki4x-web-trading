@@ -179,6 +179,7 @@ async function createInstantPaymentImpl({
     status: "PENDING",
     payment_method: method,
     payment_number: created.payment_number,
+    pakasir_txn_id: created.txn_id,
     expired_at: created.expired_at,
     currency: "IDR",
     promo_code_id: promo?.id ?? null,
