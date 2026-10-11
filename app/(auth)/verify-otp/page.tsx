@@ -46,6 +46,10 @@ export default async function VerifyOtpPage({
           {t("Kirim ulang kode")}
         </button>
       </form>
+
+      <p className="mt-6 rounded-lg bg-primary-subtle px-4 py-3 text-body-sm text-text-muted">
+        {t("Email belum terlihat? Coba cek folder Spam atau Promosi. Kalau ada di sana, tandai sebagai “Bukan spam”.")}
+      </p>
     </AuthCard>
   );
 }
