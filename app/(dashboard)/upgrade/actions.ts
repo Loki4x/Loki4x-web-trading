@@ -180,7 +180,7 @@ async function createInstantPaymentImpl({
     payment_method: method,
     payment_number: created.payment_number,
     pakasir_txn_id: created.txn_id,
-    expired_at: created.expired_at,
+    expired_at: created.expired_at || null,
     currency: "IDR",
     promo_code_id: promo?.id ?? null,
     promo_code: promo?.code ?? null,
