@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 import { cx } from "@/lib/utils";
 
 interface NotificationItem {
@@ -57,6 +58,7 @@ export function DashboardShell({
       >
         {children}
       </div>
+      <ChatWidget />
     </div>
   );
 }
