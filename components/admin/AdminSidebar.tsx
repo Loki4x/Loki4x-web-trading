@@ -1,17 +1,19 @@
 "use client";
 
 import { useT } from "@/lib/i18n/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound, Newspaper, GraduationCap, LogOut, BadgeCheck, Bell, Coins, ScrollText, PenLine, Ticket, Gift } from "lucide-react";
+import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound, Newspaper, GraduationCap, LogOut, BadgeCheck, Bell, Coins, ScrollText, PenLine, Ticket, Gift, MessagesSquare } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/chat", label: "Live Chat", icon: MessagesSquare },
   { href: "/admin/vip-requests", label: "VIP Requests", icon: BadgeCheck },
   { href: "/admin/usdt-payments", label: "Pembayaran USDT", icon: Coins },
   { href: "/admin/signals", label: "Signals", icon: LineChart },
@@ -30,6 +32,27 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+
+  // Jumlah percakapan chat yang belum dibaca admin (dicek berkala).
+  useEffect(() => {
+    const supabase = createClient();
+    let alive = true;
+    async function load() {
+      if (document.visibilityState !== "visible") return;
+      const { count } = await supabase
+        .from("chat_threads")
+        .select("id", { count: "exact", head: true })
+        .eq("admin_unread", true);
+      if (alive) setChatUnread(count ?? 0);
+    }
+    load();
+    const timer = setInterval(load, 30_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [pathname]);
 
   function linkClass(active: boolean) {
     return cx(
@@ -128,6 +151,11 @@ export function AdminSidebar() {
             >
               <Icon className="h-4 w-4" />
               {t(label)}
+              {href === "/admin/chat" && chatUnread > 0 && (
+                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-badge font-bold leading-none text-text-on-primary">
+                  {chatUnread}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
