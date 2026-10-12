@@ -10,7 +10,7 @@ const nextTierCopy: Record<Exclude<Tier, "MEMBERSHIP">, { title: string; desc: s
   },
   VIP: {
     title: "Kamu VIP — upgrade ke Membership buat akses penuh",
-    desc: "Buka Trade Journal, Reports, Lot Calculator, Economic Calendar, dan Academy.",
+    desc: "Buka Trade Journal, Reports, Lot Calculator, dan Academy.",
   },
 };
 
