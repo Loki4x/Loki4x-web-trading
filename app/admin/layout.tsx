@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminChatNotifier } from "@/components/admin/AdminChatNotifier";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -25,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-background">
       <AdminSidebar />
+      <AdminChatNotifier />
       <div className="pt-topbar lg:pl-sidebar">{children}</div>
     </div>
   );
