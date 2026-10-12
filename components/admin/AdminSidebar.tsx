@@ -48,9 +48,11 @@ export function AdminSidebar() {
     }
     load();
     const timer = setInterval(load, 30_000);
+    window.addEventListener("admin-chat-new", load);
     return () => {
       alive = false;
       clearInterval(timer);
+      window.removeEventListener("admin-chat-new", load);
     };
   }, [pathname]);
 
