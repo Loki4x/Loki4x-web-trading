@@ -38,7 +38,7 @@ const paidPlans = [
     name: "Membership",
     price: "$35",
     period: "/ bulan",
-    features: ["Semua fitur VIP", "Journal, Reports, Calculator", "Economic Calendar & Academy"],
+    features: ["Semua fitur VIP", "Journal, Reports, Calculator", "Akses penuh Academy"],
     featured: true,
   },
   {
