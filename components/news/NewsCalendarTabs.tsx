@@ -7,17 +7,17 @@ import { useT } from "@/lib/i18n/client";
 type TabKey = "widget" | "schedule";
 
 /**
- * Dua tampilan kalender: widget Myfxbook (ada Actual) dan jadwal bawaan (WIB, filter).
+ * Dua tampilan kalender: jadwal bawaan (WIB, filter) sebagai tampilan utama, dan widget Myfxbook (ada Actual).
  * Keduanya tetap terpasang (hanya disembunyikan) supaya filter tidak reset saat pindah tab,
  * dan iframe widget baru dimuat saat tab-nya dibuka (loading="lazy").
  */
 export function NewsCalendarTabs({ widget, schedule }: { widget: ReactNode; schedule: ReactNode }) {
   const t = useT();
-  const [tab, setTab] = useState<TabKey>("widget");
+  const [tab, setTab] = useState<TabKey>("schedule");
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "widget", label: t("Kalender & Hasil Rilis") },
     { key: "schedule", label: t("Jadwal (WIB)") },
+    { key: "widget", label: t("Kalender & Hasil Rilis") },
   ];
 
   return (
@@ -37,8 +37,8 @@ export function NewsCalendarTabs({ widget, schedule }: { widget: ReactNode; sche
         ))}
       </div>
 
-      <div hidden={tab !== "widget"}>{widget}</div>
       <div hidden={tab !== "schedule"}>{schedule}</div>
+      <div hidden={tab !== "widget"}>{widget}</div>
     </div>
   );
 }
