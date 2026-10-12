@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { AdminChatNotifier } from "@/components/admin/AdminChatNotifier";
 import { cx } from "@/lib/utils";
 
 interface NotificationItem {
@@ -59,6 +60,7 @@ export function DashboardShell({
         {children}
       </div>
       <ChatWidget />
+      {isAdmin && <AdminChatNotifier />}
     </div>
   );
 }
