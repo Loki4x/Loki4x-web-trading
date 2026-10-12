@@ -2,19 +2,12 @@ import { EconomicCalendarTable } from "@/components/news/EconomicCalendarTable";
 import { MyfxbookCalendarWidget } from "@/components/news/MyfxbookCalendarWidget";
 import { NewsCalendarTabs } from "@/components/news/NewsCalendarTabs";
 import { getEconomicCalendarRange } from "@/lib/economic-calendar";
-import { getCurrentUserTier, hasAccess } from "@/lib/tier";
-import { AccessDenied } from "@/components/ui/AccessDenied";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { applyManualActuals, getManualActuals } from "@/lib/calendar-actuals";
 
 export default async function NewsPage() {
   const { t } = await getT();
-  const tier = await getCurrentUserTier();
-  if (!hasAccess(tier, "MEMBERSHIP")) {
-    return <AccessDenied requiredTier="MEMBERSHIP" />;
-  }
-
   const supabase = await createClient();
   const [feedEvents, manualActuals] = await Promise.all([getEconomicCalendarRange(), getManualActuals(supabase)]);
   const events = applyManualActuals(feedEvents, manualActuals);
