@@ -2,6 +2,7 @@
 
 import { compressImageFile } from "@/lib/compress-image";
 import { useEffect, useRef, useState } from "react";
+import { TermsCheckbox } from "@/components/upgrade/TermsCheckbox";
 import { useRouter } from "next/navigation";
 import { X, Copy, Check, Upload, Loader2 } from "lucide-react";
 import { cx } from "@/lib/utils";
@@ -91,6 +92,7 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
 
   // Langkah awal: kode promo (opsional). Order baru dibuat setelah "Lanjut ke pembayaran".
   const [started, setStarted] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
@@ -294,11 +296,15 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
               </div>
             )}
 
+            <div className="mt-5">
+              <TermsCheckbox anchor="paket-berbayar" checked={agreed} onChange={setAgreed} />
+            </div>
+
             <button
               type="button"
               onClick={handleContinue}
-              disabled={promoChecking}
-              className="btn-primary mt-5 flex w-full items-center justify-center gap-2 disabled:opacity-60"
+              disabled={promoChecking || !agreed}
+              className="btn-primary mt-4 flex w-full items-center justify-center gap-2 disabled:opacity-60"
             >
               {t("Lanjut ke pembayaran")}
             </button>
