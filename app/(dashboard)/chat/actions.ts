@@ -3,10 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { rateLimit } from "@/lib/rate-limit";
-import { CHAT_MAX_LEN, chatPreview, type ChatMessage, type SendResult } from "@/lib/chat";
+import { CHAT_MAX_LEN, CHAT_MESSAGE_COLUMNS, chatPreview, type ChatMessage, type SendResult } from "@/lib/chat";
+import { uploadChatImage } from "@/lib/chat-upload";
 
-/** User mengirim pesan ke tim support. Thread dibuat otomatis pada pesan pertama. */
-export async function sendChatMessage(rawBody: string): Promise<SendResult> {
+/** User mengirim pesan (dan/atau foto) ke tim support. Thread dibuat otomatis pada pesan pertama. */
+async function deliver(rawBody: unknown, file: File | null): Promise<SendResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,13 +15,14 @@ export async function sendChatMessage(rawBody: string): Promise<SendResult> {
   if (!user) return { ok: false, error: "auth" };
 
   const body = typeof rawBody === "string" ? rawBody.trim() : "";
-  if (!body) return { ok: false, error: "empty" };
+  if (!body && !file) return { ok: false, error: "empty" };
   if (body.length > CHAT_MAX_LEN) return { ok: false, error: "too_long" };
 
   const { data: profile } = await supabase.from("profiles").select("is_suspended").eq("id", user.id).maybeSingle();
   if (profile?.is_suspended) return { ok: false, error: "suspended" };
 
   if (!(await rateLimit(`chat:${user.id}`, 20, 600))) return { ok: false, error: "rate_limited" };
+  if (file && !(await rateLimit(`chat-img:${user.id}`, 8, 600))) return { ok: false, error: "rate_limited" };
 
   try {
     const svc = createServiceClient();
@@ -32,10 +34,17 @@ export async function sendChatMessage(rawBody: string): Promise<SendResult> {
       .single();
     if (threadError || !thread) throw threadError ?? new Error("thread kosong");
 
+    let imageKey: string | null = null;
+    if (file) {
+      const up = await uploadChatImage(file, thread.id);
+      if (!up.ok) return { ok: false, error: up.error };
+      imageKey = up.key;
+    }
+
     const { data: message, error: messageError } = await svc
       .from("chat_messages")
-      .insert({ thread_id: thread.id, sender_role: "USER", sender_id: user.id, body })
-      .select("id, thread_id, sender_role, body, created_at")
+      .insert({ thread_id: thread.id, sender_role: "USER", sender_id: user.id, body, image_key: imageKey })
+      .select(CHAT_MESSAGE_COLUMNS)
       .single();
     if (messageError || !message) throw messageError ?? new Error("pesan kosong");
 
@@ -45,7 +54,7 @@ export async function sendChatMessage(rawBody: string): Promise<SendResult> {
         status: "OPEN",
         admin_unread: true,
         last_message_at: message.created_at,
-        last_message_preview: chatPreview(body),
+        last_message_preview: chatPreview(body, !!imageKey),
       })
       .eq("id", thread.id);
 
@@ -54,6 +63,17 @@ export async function sendChatMessage(rawBody: string): Promise<SendResult> {
     console.error("[chat/send]", err instanceof Error ? err.message : err);
     return { ok: false, error: "failed" };
   }
+}
+
+export async function sendChatMessage(rawBody: string): Promise<SendResult> {
+  return deliver(rawBody, null);
+}
+
+/** FormData: `image` (File, wajib) dan `caption` (teks opsional). */
+export async function sendChatImage(formData: FormData): Promise<SendResult> {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "bad_image" };
+  return deliver(formData.get("caption"), file);
 }
 
 /** User membuka chat: tandai balasan admin sebagai sudah dibaca. */
