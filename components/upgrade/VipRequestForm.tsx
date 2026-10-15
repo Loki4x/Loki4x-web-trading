@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { submitVipRequest } from "@/app/(dashboard)/upgrade/actions";
 import { PLAN_PRICE_IDR, type MembershipTierName, type Plan } from "@/lib/pakasir-constants";
 import { PaymentModal } from "@/components/upgrade/PaymentModal";
+import { TermsCheckbox } from "@/components/upgrade/TermsCheckbox";
 import type { VipIbRequest } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
 
@@ -91,6 +92,7 @@ export function VipRequestForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openPlan, setOpenPlan] = useState<Plan | null>(null);
+  const [agreeIb, setAgreeIb] = useState(false);
 
   const visiblePlans = paidPlans.filter((plan) => plans.includes(plan.key));
 
@@ -219,7 +221,8 @@ export function VipRequestForm({
             <Input id="trading_account_id" name="trading_account_id" type="text" label={t("ID Account Trading")} placeholder="12345678" required />
             <Input id="first_deposit" name="first_deposit" type="number" label={t("Deposit Pertama (USD)")} placeholder="15" min={0} step="0.01" required />
             <p className="text-caption text-text-muted">{t("*Minimal deposit $15")}</p>
-            <Button type="submit" loading={submitting} withArrow className="mt-2 w-full justify-center">
+            <TermsCheckbox name="agree_terms" anchor="vip-ib" checked={agreeIb} onChange={setAgreeIb} />
+            <Button type="submit" loading={submitting} disabled={!agreeIb} withArrow className="mt-2 w-full justify-center">
               {t("Ajukan Verifikasi")}
             </Button>
           </form>
