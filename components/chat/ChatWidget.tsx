@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Paperclip, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/client";
 import { cx } from "@/lib/utils";
-import { CHAT_MAX_LEN, type ChatError, type ChatMessage } from "@/lib/chat";
-import { markChatReadByUser, sendChatMessage } from "@/app/(dashboard)/chat/actions";
+import { CHAT_MAX_LEN, CHAT_MESSAGE_COLUMNS, type ChatError, type ChatMessage } from "@/lib/chat";
+import { prepareChatImage } from "@/lib/chat-image-client";
+import { ChatImage } from "@/components/chat/ChatImage";
+import { markChatReadByUser, sendChatImage, sendChatMessage } from "@/app/(dashboard)/chat/actions";
 
 const POLL_CLOSED_MS = 60_000; // cek balasan baru saat panel tertutup
 const POLL_OPEN_MS = 20_000; // cadangan kalau realtime terputus
@@ -21,6 +23,7 @@ export function ChatWidget() {
   const supabase = useMemo(() => createClient(), []);
   const userIdRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [open, setOpen] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -29,6 +32,8 @@ export function ChatWidget() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ file: File; preview: string } | null>(null);
+  const [preparing, setPreparing] = useState(false);
 
   const loadThread = useCallback(async () => {
     if (!userIdRef.current) {
@@ -49,7 +54,7 @@ export function ChatWidget() {
     async (id: string) => {
       const { data } = await supabase
         .from("chat_messages")
-        .select("id, thread_id, sender_role, body, created_at")
+        .select(CHAT_MESSAGE_COLUMNS)
         .eq("thread_id", id)
         .order("created_at", { ascending: true })
         .limit(200);
@@ -139,23 +144,59 @@ export function ChatWidget() {
         return t("Akunmu sedang dinonaktifkan.");
       case "auth":
         return t("Sesi login habis. Muat ulang halaman.");
+      case "bad_image":
+        return t("File harus berupa gambar (JPG, PNG, atau WebP).");
+      case "image_too_big":
+        return t("Foto terlalu besar (maksimal 2 MB).");
       default:
         return t("Pesan gagal terkirim. Coba lagi.");
     }
   }
 
+  function clearPending() {
+    setPending((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return null;
+    });
+  }
+
+  async function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0];
+    e.target.value = "";
+    if (!picked) return;
+    setError(null);
+    setPreparing(true);
+    const prepared = await prepareChatImage(picked);
+    setPreparing(false);
+    if (!prepared) {
+      setError(t("File harus berupa gambar (JPG, PNG, atau WebP)."));
+      return;
+    }
+    clearPending();
+    setPending({ file: prepared, preview: URL.createObjectURL(prepared) });
+  }
+
   async function handleSend() {
     const body = input.trim();
-    if (!body || sending) return;
+    if ((!body && !pending) || sending || preparing) return;
     setSending(true);
     setError(null);
-    const res = await sendChatMessage(body);
+    let res;
+    if (pending) {
+      const fd = new FormData();
+      fd.append("image", pending.file);
+      fd.append("caption", body);
+      res = await sendChatImage(fd);
+    } else {
+      res = await sendChatMessage(body);
+    }
     setSending(false);
     if (!res.ok) {
       setError(errorText(res.error));
       return;
     }
     setInput("");
+    clearPending();
     setThreadId(res.threadId);
     setMessages((prev) => (prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]));
   }
@@ -199,11 +240,17 @@ export function ChatWidget() {
                   <div
                     className={cx(
                       "max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-body-sm",
+                      m.image_key && "w-60",
                       mine
                         ? "rounded-tr-sm bg-primary text-text-on-primary"
                         : "rounded-tl-sm bg-surface-2 text-text-primary"
                     )}
                   >
+                    {m.image_key && (
+                      <div className={cx(m.body && "mb-2")}>
+                        <ChatImage imageKey={m.image_key} alt={t("Foto")} />
+                      </div>
+                    )}
                     {m.body}
                   </div>
                   <p className="mt-1 text-caption text-text-muted">{formatTime(m.created_at)}</p>
@@ -215,7 +262,37 @@ export function ChatWidget() {
 
           <div className="border-t border-border bg-surface p-3">
             {error && <p className="mb-2 text-caption text-error">{error}</p>}
+            {(pending || preparing) && (
+              <div className="mb-2 flex items-center gap-2">
+                {pending ? (
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- pratinjau lokal (blob:) */}
+                    <img src={pending.preview} alt={t("Foto")} className="h-16 w-16 rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={clearPending}
+                      aria-label={t("Hapus foto")}
+                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-error text-white"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-caption text-text-muted">{t("Memproses foto...")}</p>
+                )}
+              </div>
+            )}
             <div className="flex items-end gap-2">
+              <input ref={fileRef} type="file" accept="image/*" onChange={handlePick} className="hidden" />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={sending || preparing}
+                aria-label={t("Lampirkan foto")}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
+              >
+                <Paperclip className="h-5 w-5" />
+              </button>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value.slice(0, CHAT_MAX_LEN))}
@@ -232,7 +309,7 @@ export function ChatWidget() {
               <button
                 type="button"
                 onClick={handleSend}
-                disabled={sending || !input.trim()}
+                disabled={sending || preparing || (!input.trim() && !pending)}
                 aria-label={t("Kirim")}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
               >
