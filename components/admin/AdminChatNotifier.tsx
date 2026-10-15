@@ -87,7 +87,7 @@ export function AdminChatNotifier() {
     const channel = supabase
       .channel("admin-chat-notifier")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, async (payload) => {
-        const row = payload.new as { thread_id: string; sender_role: string; body: string };
+        const row = payload.new as { thread_id: string; sender_role: string; body: string; image_key: string | null };
         if (row.sender_role !== "USER") return;
         let name = "User";
         const { data: thread } = await supabase.from("chat_threads").select("user_id").eq("id", row.thread_id).maybeSingle();
@@ -97,7 +97,8 @@ export function AdminChatNotifier() {
         }
         if (!alive) return;
         window.dispatchEvent(new CustomEvent(ADMIN_CHAT_EVENT));
-        pushToast(name, row.body.length > 90 ? row.body.slice(0, 90) + "…" : row.body);
+        const text = row.body.length > 90 ? row.body.slice(0, 90) + "…" : row.body;
+        pushToast(name, row.image_key ? `📷 ${text || "Foto"}` : text);
         refreshCount(false);
       })
       .subscribe();
