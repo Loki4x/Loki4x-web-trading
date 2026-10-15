@@ -43,6 +43,10 @@ async function submitVipRequestImpl(formData: FormData) {
     return fail(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
   }
 
+  if (formData.get("agree_terms") !== "on") {
+    return fail(t("Kamu harus menyetujui Syarat & Ketentuan VIP via IB."));
+  }
+
   const brokerEmail = String(formData.get("broker_email") ?? "").trim().slice(0, 254);
   const tradingAccountId = String(formData.get("trading_account_id") ?? "").trim().slice(0, 64);
   const firstDeposit = Number(formData.get("first_deposit"));
