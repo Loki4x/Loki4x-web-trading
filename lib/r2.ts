@@ -98,6 +98,22 @@ export async function uploadPrivateToR2(file: File | null, keyPrefix: string): P
   }
 }
 
+/** Upload buffer ke bucket privat dengan kunci yang sudah ditentukan pemanggil. Return true kalau sukses. */
+export async function putPrivateR2Buffer(key: string, body: Buffer, contentType: string): Promise<boolean> {
+  const bucket = process.env.R2_PRIVATE_BUCKET_NAME;
+  if (!bucket) {
+    console.error("R2_PRIVATE_BUCKET_NAME belum diisi: upload foto chat ditolak");
+    return false;
+  }
+  try {
+    await r2Client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+    return true;
+  } catch (err) {
+    console.error("R2 private buffer upload failed:", err);
+    return false;
+  }
+}
+
 export async function getPrivateR2Object(key: string) {
   const bucket = process.env.R2_PRIVATE_BUCKET_NAME;
   if (!bucket) throw new Error("R2_PRIVATE_BUCKET_NAME belum diisi");
