@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Paperclip, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cx } from "@/lib/utils";
-import { CHAT_MAX_LEN, type ChatMessage } from "@/lib/chat";
+import { CHAT_MAX_LEN, CHAT_MESSAGE_COLUMNS, type ChatMessage } from "@/lib/chat";
+import { prepareChatImage } from "@/lib/chat-image-client";
+import { ChatImage } from "@/components/chat/ChatImage";
 import { fetchAdminChatThreads, type AdminChatThread } from "@/lib/chat-admin";
-import { adminMarkChatRead, adminReplyChat, adminSetChatStatus } from "@/app/admin/chat/actions";
+import { adminMarkChatRead, adminReplyChat, adminReplyChatImage, adminSetChatStatus } from "@/app/admin/chat/actions";
 
 const POLL_MS = 15_000; // cadangan kalau realtime terputus
 
@@ -23,6 +25,7 @@ type Filter = "ALL" | "UNREAD";
 export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[] }) {
   const supabase = useMemo(() => createClient(), []);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [threads, setThreads] = useState(initialThreads);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -31,6 +34,8 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ file: File; preview: string } | null>(null);
+  const [preparing, setPreparing] = useState(false);
 
   const selected = threads.find((t) => t.id === selectedId) ?? null;
 
@@ -48,7 +53,7 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
     async (id: string) => {
       const { data } = await supabase
         .from("chat_messages")
-        .select("id, thread_id, sender_role, body, created_at")
+        .select(CHAT_MESSAGE_COLUMNS)
         .eq("thread_id", id)
         .order("created_at", { ascending: true })
         .limit(500);
@@ -92,6 +97,7 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
     setMessages([]);
     setError(null);
     setInput("");
+    clearPending();
     await loadMessages(id);
     const t = threads.find((x) => x.id === id);
     if (t?.admin_unread) {
@@ -100,18 +106,51 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
     }
   }
 
+  function clearPending() {
+    setPending((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return null;
+    });
+  }
+
+  async function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0];
+    e.target.value = "";
+    if (!picked) return;
+    setError(null);
+    setPreparing(true);
+    const prepared = await prepareChatImage(picked);
+    setPreparing(false);
+    if (!prepared) {
+      setError("File harus berupa gambar (JPG, PNG, atau WebP) dan maksimal 2 MB.");
+      return;
+    }
+    clearPending();
+    setPending({ file: prepared, preview: URL.createObjectURL(prepared) });
+  }
+
   async function handleSend() {
     const body = input.trim();
-    if (!body || !selected || sending) return;
+    if ((!body && !pending) || !selected || sending || preparing) return;
     setSending(true);
     setError(null);
-    const res = await adminReplyChat(selected.id, body);
+    let res;
+    if (pending) {
+      const fd = new FormData();
+      fd.append("threadId", selected.id);
+      fd.append("image", pending.file);
+      fd.append("caption", body);
+      res = await adminReplyChatImage(fd);
+    } else {
+      res = await adminReplyChat(selected.id, body);
+    }
     setSending(false);
     if (!res.ok) {
       setError(res.error);
       return;
     }
     setInput("");
+    clearPending();
     setMessages((prev) => (prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]));
     refreshThreads();
   }
@@ -221,11 +260,17 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
                     <div
                       className={cx(
                         "max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-body-sm",
+                        m.image_key && "w-64",
                         fromAdmin
                           ? "rounded-tr-sm bg-primary text-text-on-primary"
                           : "rounded-tl-sm bg-surface-2 text-text-primary"
                       )}
                     >
+                      {m.image_key && (
+                        <div className={cx(m.body && "mb-2")}>
+                          <ChatImage imageKey={m.image_key} alt="Foto" />
+                        </div>
+                      )}
                       {m.body}
                     </div>
                     <p className="mt-1 text-caption text-text-muted">
@@ -240,7 +285,37 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
 
             <div className="border-t border-border p-3">
               {error && <p className="mb-2 text-caption text-error">{error}</p>}
+              {(pending || preparing) && (
+                <div className="mb-2 flex items-center gap-2">
+                  {pending ? (
+                    <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- pratinjau lokal (blob:) */}
+                      <img src={pending.preview} alt="Foto" className="h-16 w-16 rounded-lg object-cover" />
+                      <button
+                        type="button"
+                        onClick={clearPending}
+                        aria-label="Hapus foto"
+                        className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-error text-white"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-caption text-text-muted">Memproses foto...</p>
+                  )}
+                </div>
+              )}
               <div className="flex items-end gap-2">
+                <input ref={fileRef} type="file" accept="image/*" onChange={handlePick} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={sending || preparing}
+                  aria-label="Lampirkan foto"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value.slice(0, CHAT_MAX_LEN))}
@@ -257,7 +332,7 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={sending || !input.trim()}
+                  disabled={sending || preparing || (!input.trim() && !pending)}
                   className="flex h-11 items-center gap-2 rounded-full bg-primary px-4 text-body-sm font-semibold text-text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
