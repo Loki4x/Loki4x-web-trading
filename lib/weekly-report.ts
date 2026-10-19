@@ -129,7 +129,16 @@ function buildEmail(
 export async function sendWeeklyReports(
   now = new Date(),
   opts: { force?: boolean; dryRun?: boolean } = {}
-): Promise<{ week: string; recipients: number; sent: number; skipped?: string }> {
+): Promise<{
+  week: string;
+  recipients: number;
+  sent: number;
+  skipped?: string;
+  // Diagnosa: kenapa email terkirim / tidak. Dicetak di log GitHub Actions.
+  eligible?: number;
+  closedSignals?: number;
+  usersWithTrades?: number;
+}> {
   const service = createServiceClient();
   const week = isoWeekKey(now);
 
@@ -195,5 +204,12 @@ export async function sendWeeklyReports(
   }
 
   if (!opts.dryRun) await sendEmailBatch(messages);
-  return { week, recipients: recipients.length, sent: opts.dryRun ? 0 : messages.length };
+  return {
+    week,
+    recipients: recipients.length,
+    sent: opts.dryRun ? 0 : messages.length,
+    eligible: messages.length,
+    closedSignals: weekSignals.length,
+    usersWithTrades: tradesByUser.size,
+  };
 }
