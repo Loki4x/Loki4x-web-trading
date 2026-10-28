@@ -2,6 +2,7 @@ import { getUserT } from "@/lib/i18n/server";
 import { dateLocale } from "@/lib/i18n/dictionary";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getPakasirTransactionStatus } from "@/lib/pakasir";
+import { getPoketoInvoice } from "@/lib/poketo";
 import { notifyUser } from "@/lib/notifications";
 import { type Plan } from "@/lib/pakasir-constants";
 import { computeGrant } from "@/lib/membership-grant";
@@ -27,20 +28,33 @@ export async function finalizePakasirPayment(
 
   if (payment.status === "COMPLETED") return { status: "COMPLETED" };
 
-  // API v2 mengecek status lewat txn_id. Utamakan yang tersimpan saat order dibuat;
-  // txn_id dari webhook hanya cadangan, dan tetap aman karena hasilnya dicocokkan ke order_id kita.
-  const txnId: string | null = payment.pakasir_txn_id ?? txnIdHint ?? null;
-  if (!txnId) return { status: "PENDING" };
+  // Verifikasi ke gateway yang membuat order ini (bukan percaya body webhook).
+  // payment_method "poketo" = tagihan Poketo; selain itu = Pakasir (order lama).
+  const provider = payment.payment_method === "poketo" ? "Poketo" : "Pakasir";
+  let verified: { completedAt: string | null; sandbox: boolean } | null = null;
 
-  const transaction = await getPakasirTransactionStatus({ txnId });
-  if (
-    !transaction ||
-    transaction.status !== "completed" ||
-    transaction.order_id !== orderId ||
-    transaction.amount < payment.amount
-  ) {
-    return { status: "PENDING" };
+  if (provider === "Poketo") {
+    const invoice = await getPoketoInvoice(orderId);
+    if (invoice && invoice.status === "paid" && invoice.referenceId === orderId && invoice.amount >= payment.amount) {
+      verified = { completedAt: invoice.paidAt, sandbox: invoice.environment === "sandbox" };
+    }
+  } else {
+    // API v2 Pakasir mengecek status lewat txn_id. Utamakan yang tersimpan saat order dibuat;
+    // txn_id dari webhook hanya cadangan, dan tetap aman karena hasilnya dicocokkan ke order_id kita.
+    const txnId: string | null = payment.pakasir_txn_id ?? txnIdHint ?? null;
+    if (!txnId) return { status: "PENDING" };
+    const transaction = await getPakasirTransactionStatus({ txnId });
+    if (
+      transaction &&
+      transaction.status === "completed" &&
+      transaction.order_id === orderId &&
+      transaction.amount >= payment.amount
+    ) {
+      verified = { completedAt: transaction.completed_at, sandbox: transaction.is_sandbox };
+    }
   }
+
+  if (!verified) return { status: "PENDING" };
 
   // "Klaim" pembayaran secara atomik SEBELUM memberi akses. UPDATE ... WHERE
   // status <> 'COMPLETED' dieksekusi Postgres per-baris dengan row lock, jadi
@@ -51,7 +65,7 @@ export async function finalizePakasirPayment(
     .from("payments")
     .update({
       status: "COMPLETED",
-      completed_at: transaction.completed_at ?? new Date().toISOString(),
+      completed_at: verified.completedAt ?? new Date().toISOString(),
     })
     .eq("order_id", orderId)
     .neq("status", "COMPLETED")
@@ -82,7 +96,7 @@ export async function finalizePakasirPayment(
   if (upgradeError) {
     // Upgrade gagal: kembalikan klaim supaya pembayaran ini bisa diproses ulang
     // (webhook Pakasir akan retry karena kita balas 400, atau user klik "Cek Status").
-    console.error(`[pakasir] Gagal upgrade tier untuk order ${orderId}, klaim dikembalikan:`, upgradeError);
+    console.error(`[payment/${provider}] Gagal upgrade tier untuk order ${orderId}, klaim dikembalikan:`, upgradeError);
     await service
       .from("payments")
       .update({ status: payment.status, completed_at: null })
@@ -91,14 +105,15 @@ export async function finalizePakasirPayment(
   }
 
   await logAudit(service, {
-    actor: { id: null, email: "system (Pakasir)" },
+    actor: { id: null, email: `system (${provider})` },
     action: "PAYMENT_AUTO_COMPLETED",
     targetUserId: payment.user_id,
     targetId: orderId,
     details: {
       target_email: profile?.email ?? null,
       plan,
-      sandbox: transaction.is_sandbox,
+      sandbox: verified.sandbox,
+      provider,
       promo_code: payment.promo_code ?? null,
       discount_amount: payment.discount_amount ?? 0,
       from_tier: profile?.tier ?? null,
@@ -132,7 +147,7 @@ export async function finalizePakasirPayment(
       client: service,
     });
   } catch (err) {
-    console.error(`[pakasir] Notifikasi gagal untuk order ${orderId} (upgrade tetap berhasil):`, err);
+    console.error(`[payment/${provider}] Notifikasi gagal untuk order ${orderId} (upgrade tetap berhasil):`, err);
   }
 
   return { status: "COMPLETED" };
