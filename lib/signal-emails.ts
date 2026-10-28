@@ -91,7 +91,7 @@ function build(event: SignalEmailEvent, locale: Locale): { subject: string; html
 }
 
 /**
- * Kirim email sinyal ke member yang: VIP/Membership AKTIF, notify_signals = true,
+ * Kirim email sinyal (dan, untuk sinyal baru, notifikasi lonceng dashboard) ke member yang: VIP/Membership AKTIF, notify_signals = true,
  * tidak disuspend, dan punya email. Tidak pernah melempar error (jangan sampai
  * gagal kirim email membuat posting sinyal gagal).
  */
@@ -99,16 +99,16 @@ export async function sendSignalEmails(event: SignalEmailEvent): Promise<{ sent:
   try {
     const service = createServiceClient();
     const now = Date.now();
-    const recipients: { email: string; locale: Locale }[] = [];
+    const recipients: { id: string; email: string | null; locale: Locale }[] = [];
 
     for (let from = 0; ; from += 1000) {
       const { data, error } = await service
         .from("profiles")
-        .select("email, language, tier, vip_expires_at")
+        .select("id, email, language, tier, vip_expires_at")
         .eq("notify_signals", true)
         .in("tier", ["VIP", "MEMBERSHIP"])
         .or("is_suspended.is.null,is_suspended.eq.false")
-        .not("email", "is", null)
+        .order("id")
         .range(from, from + 999);
       if (error) {
         console.error("[signal-emails] gagal ambil penerima:", error.message);
@@ -116,19 +116,44 @@ export async function sendSignalEmails(event: SignalEmailEvent): Promise<{ sent:
       }
       for (const p of data ?? []) {
         const active = !p.vip_expires_at || new Date(p.vip_expires_at).getTime() > now;
-        if (active && p.email) recipients.push({ email: p.email, locale: p.language === "en" ? "en" : "id" });
+        if (active) recipients.push({ id: p.id, email: p.email, locale: p.language === "en" ? "en" : "id" });
       }
       if (!data || data.length < 1000) break;
     }
 
     if (recipients.length === 0) return { sent: 0 };
 
+    // Notifikasi di lonceng dashboard: hanya untuk sinyal BARU. Tidak butuh email.
+    // type "ANNOUNCEMENT" dipakai supaya aman terhadap constraint tabel notifications.
+    if (event.kind === "NEW") {
+      const sig = event.signal;
+      const message = `Entry ${num(sig.entry_price)} · TP ${num(sig.take_profit)} · SL ${num(sig.stop_loss)}`;
+      const pair = `${sig.symbol} ${sig.side}`;
+      const titles: Record<Locale, string> = {
+        id: translate("id", "🔔 Sinyal baru: {pair}", { pair }),
+        en: translate("en", "🔔 Sinyal baru: {pair}", { pair }),
+      };
+      for (let i = 0; i < recipients.length; i += 500) {
+        const rows = recipients.slice(i, i + 500).map((r) => ({
+          user_id: r.id,
+          type: "ANNOUNCEMENT",
+          title: titles[r.locale],
+          message,
+        }));
+        const { error } = await service.from("notifications").insert(rows);
+        if (error) console.error("[signal-emails] gagal insert notifikasi:", error.message);
+      }
+    }
+
+    const emailRecipients = recipients.filter((r): r is { id: string; email: string; locale: Locale } => !!r.email);
+    if (emailRecipients.length === 0) return { sent: 0 };
+
     const built: Record<Locale, { subject: string; html: string }> = {
       id: build(event, "id"),
       en: build(event, "en"),
     };
-    await sendEmailBatch(recipients.map((r) => ({ to: r.email, ...built[r.locale] })));
-    return { sent: recipients.length };
+    await sendEmailBatch(emailRecipients.map((r) => ({ to: r.email, ...built[r.locale] })));
+    return { sent: emailRecipients.length };
   } catch (err) {
     console.error("[signal-emails] error:", err);
     return { sent: 0 };
