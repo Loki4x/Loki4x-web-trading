@@ -290,6 +290,7 @@ export const EN_STRINGS: Record<string, string> = {
   "Saya sudah membaca dan menyetujui": "I have read and agree to the",
   "Syarat & Ketentuan": "Terms & Conditions",
   "Kamu harus menyetujui Syarat & Ketentuan VIP via IB.": "You must agree to the VIP via IB Terms & Conditions.",
+  "Ganti bahasa": "Change language",
   "Pesan gagal terkirim. Coba lagi.": "Message failed to send. Please try again.",
   "Chat dengan tim support": "Chat with support",
   "Support Loki4x Academy": "Loki4x Academy Support",
