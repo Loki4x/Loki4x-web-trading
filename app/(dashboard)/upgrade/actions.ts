@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createPakasirTransaction, type PakasirMethod } from "@/lib/pakasir";
+import { createPoketoInvoice, POKETO_MIN_AMOUNT } from "@/lib/poketo";
+import { SITE_URL } from "@/lib/site-url";
 import { finalizePakasirPayment } from "@/lib/pakasir-fulfillment";
 import { generateQrDataUrl } from "@/lib/qrcode";
 import { uploadPrivateToR2, UPLOAD_MAX_BYTES, isAllowedUploadType } from "@/lib/r2";
@@ -216,6 +218,99 @@ export async function createInstantPayment(args: {
   promoCode?: string | null;
 }) {
   return safely("createInstantPayment", () => createInstantPaymentImpl(args));
+}
+
+const PLAN_TITLE: Record<Plan, string> = {
+  VIP: "VIP",
+  MEMBERSHIP: "Membership",
+  MEMBERSHIP_LIFETIME: "Membership Lifetime",
+};
+
+/**
+ * Bayar QRIS / Virtual Account lewat Poketo. Server membuat tagihan (invoice), lalu user membayar
+ * di halaman Poketo (paymentUrl). Akses diaktifkan oleh webhook / pengecekan status.
+ */
+async function createPoketoPaymentImpl({ plan, promoCode }: { plan: Plan; promoCode?: string | null }) {
+  const { t } = await getT();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fail(t("Sesi kamu berakhir. Silakan masuk lagi."));
+
+  if (!(await rateLimit(`pay-create:${user.id}`, 10, 3600))) {
+    return fail(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
+  }
+
+  // `plan` datang dari client: harus salah satu paket yang boleh dibeli akun ini.
+  const status = await getMembershipStatus();
+  if (!purchasablePlans(status).includes(plan)) {
+    return fail(t("Paket ini tidak tersedia untuk akun kamu saat ini."));
+  }
+
+  // Harga SELALU dihitung di server; kode promo divalidasi ulang di sini.
+  let amount = PLAN_PRICE_IDR[plan];
+  let promo: { id: string; code: string; original: number; discount: number } | null = null;
+  if (promoCode && promoCode.trim()) {
+    const quoted = await quotePromo(createServiceClient(), { code: promoCode, plan, userId: user.id });
+    if (!quoted.ok) return fail(t(PROMO_MESSAGE[quoted.error]));
+    amount = quoted.quote.idr.final;
+    promo = {
+      id: quoted.quote.codeId,
+      code: quoted.quote.code,
+      original: quoted.quote.idr.original,
+      discount: quoted.quote.idr.discount,
+    };
+  }
+  if (amount < POKETO_MIN_AMOUNT) return fail(t("Nominal pembayaran terlalu kecil."));
+
+  const service = createServiceClient();
+  const { data: profile } = await service.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
+
+  const orderId = `LOKI4X-${user.id.slice(0, 8)}-${Date.now()}`;
+  const invoice = await createPoketoInvoice({
+    orderId,
+    amount,
+    title: `Loki4x Academy - ${PLAN_TITLE[plan]}`,
+    description: `Akses ${PLAN_TITLE[plan]} Loki4x Academy`,
+    customer: { name: profile?.full_name ?? null, email: user.email ?? profile?.email ?? null },
+    redirectUrl: `${SITE_URL}/upgrade`,
+    expiresInMinutes: 1440,
+  });
+  if (!invoice) return fail(t("Gagal membuat transaksi pembayaran, coba lagi."));
+
+  const { error } = await service.from("payments").insert({
+    user_id: user.id,
+    order_id: orderId,
+    plan,
+    amount,
+    status: "PENDING",
+    payment_method: "poketo",
+    payment_number: invoice.paymentUrl, // URL halaman bayar
+    pakasir_txn_id: invoice.id, // kolom lama dipakai ulang untuk ID tagihan Poketo
+    expired_at: invoice.expiresAt || null,
+    currency: "IDR",
+    promo_code_id: promo?.id ?? null,
+    promo_code: promo?.code ?? null,
+    original_amount: promo?.original ?? amount,
+    discount_amount: promo?.discount ?? 0,
+  });
+  if (error) {
+    console.error("[upgrade/createPoketoPayment] gagal menyimpan order:", error.message);
+    return fail(t("Gagal menyimpan order pembayaran"));
+  }
+
+  return {
+    ok: true as const,
+    orderId,
+    amount,
+    paymentUrl: invoice.paymentUrl,
+    expiredAt: invoice.expiresAt ?? "",
+  };
+}
+
+export async function createPoketoPayment(args: { plan: Plan; promoCode?: string | null }) {
+  return safely("createPoketoPayment", () => createPoketoPaymentImpl(args));
 }
 
 export async function checkInstantPaymentStatus(orderId: string) {

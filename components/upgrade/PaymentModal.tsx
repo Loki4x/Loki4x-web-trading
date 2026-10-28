@@ -4,19 +4,19 @@ import { compressImageFile } from "@/lib/compress-image";
 import { useEffect, useRef, useState } from "react";
 import { TermsCheckbox } from "@/components/upgrade/TermsCheckbox";
 import { useRouter } from "next/navigation";
-import { X, Copy, Check, Upload, Loader2 } from "lucide-react";
+import { X, Copy, Check, Upload, Loader2, ExternalLink } from "lucide-react";
 import { cx } from "@/lib/utils";
 import {
-  createInstantPayment,
+  createPoketoPayment,
   checkInstantPaymentStatus,
   submitUsdtPayment,
   previewPromoCode,
 } from "@/app/(dashboard)/upgrade/actions";
-import { BANK_VA_METHODS, PLAN_PRICE_IDR, type PakasirMethod, type Plan } from "@/lib/pakasir-constants";
+import { PLAN_PRICE_IDR, type Plan } from "@/lib/pakasir-constants";
 import { USDT_WALLETS, USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 import { useT } from "@/lib/i18n/client";
 
-type Tab = "QRIS" | "BANK" | "USDT";
+type Tab = "ONLINE" | "USDT";
 
 interface AppliedPromo {
   code: string;
@@ -24,14 +24,11 @@ interface AppliedPromo {
   usdt: { original: number; discount: number; final: number };
 }
 
-interface InstantResult {
+interface OnlineResult {
   orderId: string;
   amount: number;
-  totalPayment: number;
-  paymentNumber: string;
-  qrImage: string | null;
+  paymentUrl: string;
   expiredAt: string;
-  method: PakasirMethod;
 }
 
 function formatIDR(n: number) {
@@ -87,7 +84,7 @@ function StatusWaiting({ orderId, onCompleted }: { orderId: string; onCompleted:
 export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => void }) {
   const t = useT();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("QRIS");
+  const [tab, setTab] = useState<Tab>("ONLINE");
   const [completed, setCompleted] = useState(false);
 
   // Langkah awal: kode promo (opsional). Order baru dibuat setelah "Lanjut ke pembayaran".
@@ -98,17 +95,11 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
   const [promoChecking, setPromoChecking] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
 
-  // QRIS
-  const [qris, setQris] = useState<InstantResult | null>(null);
-  const [qrisLoading, setQrisLoading] = useState(false);
-  const [qrisError, setQrisError] = useState<string | null>(null);
-  const qrisRequested = useRef(false);
-
-  // Bank transfer
-  const [bank, setBank] = useState<PakasirMethod | null>(null);
-  const [bankResult, setBankResult] = useState<InstantResult | null>(null);
-  const [bankLoading, setBankLoading] = useState(false);
-  const [bankError, setBankError] = useState<string | null>(null);
+  // QRIS / Virtual Account lewat Poketo (halaman bayar Poketo dibuka di tab baru)
+  const [online, setOnline] = useState<OnlineResult | null>(null);
+  const [onlineLoading, setOnlineLoading] = useState(false);
+  const [onlineError, setOnlineError] = useState<string | null>(null);
+  const onlineRequested = useRef(false);
 
   // USDT
   const [network, setNetwork] = useState<UsdtNetwork>("BEP20");
@@ -147,27 +138,27 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
     setStarted(true);
   }
 
-  useEffect(() => {
-    if (started && tab === "QRIS" && !qrisRequested.current) {
-      qrisRequested.current = true;
-      setQrisLoading(true);
-      createInstantPayment({ plan, method: "qris", promoCode: promo?.code ?? null })
-        .then((r) => (r.ok ? setQris(r) : setQrisError(r.message)))
-        .catch((e) => setQrisError(e instanceof Error ? e.message : t("Gagal membuat QRIS")))
-        .finally(() => setQrisLoading(false));
+  async function createOnlinePayment() {
+    setOnlineError(null);
+    setOnlineLoading(true);
+    try {
+      const r = await createPoketoPayment({ plan, promoCode: promo?.code ?? null });
+      if (r.ok) setOnline(r);
+      else setOnlineError(r.message);
+    } catch (e) {
+      setOnlineError(e instanceof Error ? e.message : t("Gagal membuat transaksi pembayaran, coba lagi."));
+    } finally {
+      setOnlineLoading(false);
     }
-  }, [started, tab, plan]);
-
-  function selectBank(method: PakasirMethod) {
-    setBank(method);
-    setBankResult(null);
-    setBankError(null);
-    setBankLoading(true);
-    createInstantPayment({ plan, method, promoCode: promo?.code ?? null })
-      .then((r) => (r.ok ? setBankResult(r) : setBankError(r.message)))
-      .catch((e) => setBankError(e instanceof Error ? e.message : t("Gagal membuat Virtual Account")))
-      .finally(() => setBankLoading(false));
   }
+
+  useEffect(() => {
+    if (started && tab === "ONLINE" && !onlineRequested.current) {
+      onlineRequested.current = true;
+      createOnlinePayment();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started, tab, plan]);
 
   async function handleUsdtSubmit() {
     setUsdtError(null);
@@ -312,69 +303,50 @@ export function PaymentModal({ plan, onClose }: { plan: Plan; onClose: () => voi
         ) : (
           <>
             <div className="mt-5 flex gap-1 rounded-xl border border-border p-1">
-              {tabBtn("QRIS", "QRIS")}
-              {tabBtn("BANK", t("Transfer Bank"))}
+              {tabBtn("ONLINE", t("QRIS & Bank"))}
               {tabBtn("USDT", "USDT")}
             </div>
 
-            {tab === "QRIS" && (
+            {tab === "ONLINE" && (
               <div className="mt-5">
-                {qrisLoading && (
+                {onlineLoading && (
                   <p className="flex items-center justify-center gap-2 py-10 text-body-sm text-text-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" /> {t("Membuat QRIS...")}
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t("Menyiapkan pembayaran...")}
                   </p>
                 )}
-                {qrisError && <p className="py-6 text-center text-body-sm text-error">{qrisError}</p>}
-                {qris && (
-                  <div className="flex flex-col items-center">
-                    {qris.qrImage && (
-                      <img src={qris.qrImage} alt="QRIS" className="h-64 w-64 rounded-lg border border-border bg-white p-2" />
-                    )}
-                    <p className="mt-3 text-body font-semibold text-text-primary">{formatIDR(qris.totalPayment)}</p>
-                    <p className="text-caption text-text-muted">{t("Scan pakai aplikasi e-wallet/mobile banking apa saja")}</p>
-                    <StatusWaiting orderId={qris.orderId} onCompleted={handleCompleted} />
+                {onlineError && (
+                  <div className="py-4 text-center">
+                    <p className="text-body-sm text-error">{onlineError}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onlineRequested.current = true;
+                        createOnlinePayment();
+                      }}
+                      className="mt-3 rounded-lg border border-border px-4 py-2 text-body-sm font-semibold text-text-secondary hover:bg-surface-hover"
+                    >
+                      {t("Coba lagi")}
+                    </button>
                   </div>
                 )}
-              </div>
-            )}
-
-            {tab === "BANK" && (
-              <div className="mt-5">
-                <p className="text-body-sm font-medium text-text-secondary">{t("Pilih Bank")}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {BANK_VA_METHODS.map((b) => (
-                    <button
-                      key={b.method}
-                      type="button"
-                      onClick={() => selectBank(b.method)}
-                      className={cx(
-                        "rounded-full border px-2 py-1 text-caption font-medium transition-colors",
-                        bank === b.method
-                          ? "border-primary bg-primary-subtle text-primary"
-                          : "border-border text-text-secondary hover:bg-surface-hover"
-                      )}
+                {online && (
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-body-sm text-text-secondary">
+                      {t("Pembayaran siap. Pilih QRIS atau Virtual Account bank di halaman pembayaran yang aman.")}
+                    </p>
+                    <a
+                      href={online.paymentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary mt-4 inline-flex items-center gap-2"
                     >
-                      {b.label}
-                    </button>
-                  ))}
-                </div>
-
-                {bankLoading && (
-                  <p className="flex items-center justify-center gap-2 py-8 text-body-sm text-text-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" /> {t("Membuat Virtual Account...")}
-                  </p>
-                )}
-                {bankError && <p className="py-6 text-center text-body-sm text-error">{bankError}</p>}
-                {bankResult && (
-                  <div className="mt-4 rounded-lg border border-border bg-surface-2 p-4">
-                    <p className="text-caption text-text-muted">{t("Nomor Virtual Account")}</p>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <p className="break-all text-body font-semibold text-text-primary">{bankResult.paymentNumber}</p>
-                      <CopyButton text={bankResult.paymentNumber} />
-                    </div>
-                    <p className="mt-3 text-caption text-text-muted">Total Transfer</p>
-                    <p className="text-body font-semibold text-text-primary">{formatIDR(bankResult.totalPayment)}</p>
-                    <StatusWaiting orderId={bankResult.orderId} onCompleted={handleCompleted} />
+                      {t("Bayar sekarang")} — {formatIDR(online.amount)}
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <p className="mt-3 text-caption text-text-muted">
+                      {t("Biaya layanan dan biaya metode pembayaran ditambahkan di halaman pembayaran.")}
+                    </p>
+                    <StatusWaiting orderId={online.orderId} onCompleted={handleCompleted} />
                   </div>
                 )}
               </div>
