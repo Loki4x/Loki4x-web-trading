@@ -4,7 +4,7 @@ export type Room = "FREE" | "VIP" | "MEMBERSHIP";
 
 export const ROOMS: Room[] = ["FREE", "VIP", "MEMBERSHIP"];
 export const ROOM_RANK: Record<Room, number> = { FREE: 0, VIP: 1, MEMBERSHIP: 2 };
-export const ROOM_LABEL: Record<Room, string> = { FREE: "Free", VIP: "VIP", MEMBERSHIP: "Membership" };
+export const ROOM_LABEL: Record<Room, string> = { FREE: "General", VIP: "VIP", MEMBERSHIP: "Membership" };
 
 export const COMMUNITY_MAX_LEN = 500;
 export const COMMUNITY_PAGE_SIZE = 50;
