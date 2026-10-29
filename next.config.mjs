@@ -34,6 +34,14 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Service worker harus selalu diambil terbaru supaya update tidak tertahan di cache.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "X-Frame-Options", value: "DENY" },

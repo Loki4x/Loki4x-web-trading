@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LocaleProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
 import { SITE_URL } from "@/lib/site-url";
+import { RegisterServiceWorker } from "@/components/pwa/RegisterServiceWorker";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -35,6 +36,10 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#050810",
+};
+
 export default async function RootLayout({
   children,
 }: {
@@ -56,6 +61,7 @@ export default async function RootLayout({
         className={`${plusJakarta.variable} ${inter.variable} ${jetbrainsMono.variable} font-body`}
       >
         <LocaleProvider locale={locale}>{children}</LocaleProvider>
+        <RegisterServiceWorker />
       </body>
     </html>
   );
