@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Crown,
   Gift,
+  MessagesSquare,
   Menu,
   X,
   ChevronDown,
@@ -38,6 +39,7 @@ const topLinks: { href: string; key: DictKey; icon: typeof LayoutDashboard }[] =
   { href: "/dashboard", key: "nav.dashboard", icon: LayoutDashboard },
   { href: "/upgrade", key: "nav.upgrade", icon: Crown },
   { href: "/referral", key: "nav.referral", icon: Gift },
+  { href: "/community", key: "nav.community", icon: MessagesSquare },
 ];
 
 const groups: {

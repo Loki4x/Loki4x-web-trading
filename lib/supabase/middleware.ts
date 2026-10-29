@@ -46,6 +46,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/signals") ||
     request.nextUrl.pathname.startsWith("/academy") ||
     request.nextUrl.pathname.startsWith("/referral") ||
+    request.nextUrl.pathname.startsWith("/community") ||
     request.nextUrl.pathname.startsWith("/reset-password");
 
   if (!user && isDashboardRoute) {
