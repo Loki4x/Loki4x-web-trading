@@ -270,8 +270,9 @@ export function CommunityChat({
                       {isAdmin && (
                         <button
                           onClick={() => handleDelete(m.id)}
-                          className="opacity-0 transition-opacity hover:text-error group-hover:opacity-100 focus:opacity-100"
-                          aria-label={t("Hapus pesan ini?")}
+                          className="rounded p-0.5 text-text-muted transition-colors hover:text-error"
+                          aria-label={t("Hapus pesan")}
+                          title={t("Hapus pesan")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
