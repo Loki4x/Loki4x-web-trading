@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "id.web.loki4xacademy.www.twa",
+        "sha256_cert_fingerprints": ["E6:71:AA:1F:D2:84:BD:5D:61:7C:6D:FB:16:DA:6C:7C:60:88:9F:02:45:5E:7C:D2:EB:CC:D0:B8:87:FD:C5:10"]
+      }
+    }]
