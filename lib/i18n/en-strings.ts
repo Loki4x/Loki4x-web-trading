@@ -575,4 +575,8 @@ export const EN_STRINGS: Record<string, string> = {
   "Terlalu cepat. Tunggu sebentar lalu coba lagi.": "Too fast. Wait a moment and try again.",
   "Tulis pesan...": "Write a message...",
   "Upgrade paketmu untuk bergabung ke obrolan ini.": "Upgrade your plan to join this chat.",
+  "Foto tidak bisa dipakai. Pilih foto JPG, PNG, atau WebP (maksimal 2MB).": "This photo can't be used. Choose a JPG, PNG, or WebP photo (max 2MB).",
+  "Foto terlalu besar (maksimal 2MB).": "The photo is too large (max 2MB).",
+  "Foto dari {name}": "Photo from {name}",
+  "Kirim foto": "Send photo",
 };

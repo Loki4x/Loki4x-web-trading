@@ -18,6 +18,15 @@ export type ChatUploadResult = { ok: true; key: string } | { ok: false; error: C
 
 /** Validasi + simpan foto chat ke bucket R2 privat. Dipanggil hanya dari server action. */
 export async function uploadChatImage(file: unknown, threadId: string): Promise<ChatUploadResult> {
+  return uploadPrivateImage(file, `chat/${threadId}`);
+}
+
+/** Sama seperti di atas, untuk chat komunitas: kunci `community/<ruang>/<uuid>-<waktu>.<ext>`. */
+export async function uploadCommunityImage(file: unknown, room: string): Promise<ChatUploadResult> {
+  return uploadPrivateImage(file, `community/${room}`);
+}
+
+async function uploadPrivateImage(file: unknown, folder: string): Promise<ChatUploadResult> {
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "bad_image" };
   if (file.size > CHAT_IMAGE_MAX_BYTES) return { ok: false, error: "image_too_big" };
 
@@ -25,7 +34,7 @@ export async function uploadChatImage(file: unknown, threadId: string): Promise<
   const kind = sniffImage(buffer);
   if (!kind) return { ok: false, error: "bad_image" };
 
-  const key = `chat/${threadId}/${randomUUID()}-${Date.now()}.${kind.ext}`;
+  const key = `${folder}/${randomUUID()}-${Date.now()}.${kind.ext}`;
   const saved = await putPrivateR2Buffer(key, buffer, kind.mime);
   return saved ? { ok: true, key } : { ok: false, error: "failed" };
 }

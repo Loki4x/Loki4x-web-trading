@@ -8,7 +8,14 @@ export const ROOM_LABEL: Record<Room, string> = { FREE: "Free", VIP: "VIP", MEMB
 
 export const COMMUNITY_MAX_LEN = 500;
 export const COMMUNITY_PAGE_SIZE = 50;
-export const COMMUNITY_COLUMNS = "id, room, user_id, author_name, author_tier, is_admin, body, created_at";
+export const COMMUNITY_COLUMNS = "id, room, user_id, author_name, author_tier, is_admin, body, image_key, created_at";
+
+// Pola kunci foto di R2: community/<RUANG>/<uuid>-<timestamp>.<ext>
+export const COMMUNITY_IMAGE_KEY_RE = /^community\/(FREE|VIP|MEMBERSHIP)\/[0-9a-f-]{36}-\d{10,16}\.(jpg|png|webp)$/i;
+
+export function communityImageUrl(key: string) {
+  return `/api/community/image?key=${encodeURIComponent(key)}`;
+}
 
 export interface CommunityMessage {
   id: string;
@@ -18,10 +25,20 @@ export interface CommunityMessage {
   author_tier: string;
   is_admin: boolean;
   body: string;
+  image_key: string | null;
   created_at: string;
 }
 
-export type CommunityError = "auth" | "empty" | "too_long" | "rate_limited" | "suspended" | "forbidden" | "failed";
+export type CommunityError =
+  | "auth"
+  | "empty"
+  | "too_long"
+  | "rate_limited"
+  | "suspended"
+  | "forbidden"
+  | "bad_image"
+  | "image_too_big"
+  | "failed";
 
 export type CommunitySendResult = { ok: true; message: CommunityMessage } | { ok: false; error: CommunityError };
 

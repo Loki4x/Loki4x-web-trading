@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Lock, Send, Trash2 } from "lucide-react";
+import { Lock, Paperclip, Send, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/client";
 import { cx } from "@/lib/utils";
@@ -18,7 +18,9 @@ import {
   type Room,
 } from "@/lib/community";
 import type { Tier } from "@/lib/tier";
-import { deleteCommunityMessage, sendCommunityMessage } from "@/app/(dashboard)/community/actions";
+import { prepareChatImage } from "@/lib/chat-image-client";
+import { CommunityImage } from "@/components/community/CommunityImage";
+import { deleteCommunityMessage, sendCommunityImage, sendCommunityMessage } from "@/app/(dashboard)/community/actions";
 
 const POLL_MS = 20_000; // cadangan kalau realtime terputus
 
@@ -50,12 +52,15 @@ export function CommunityChat({
   const supabase = useMemo(() => createClient(), []);
   const listRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true); // auto-scroll hanya kalau user sedang di bawah
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [room, setRoom] = useState<Room>(initialRoom);
   const [messages, setMessages] = useState<CommunityMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ file: File; preview: string } | null>(null);
+  const [preparing, setPreparing] = useState(false);
 
   const allowed = canAccessRoom(tier, room);
 
@@ -81,6 +86,7 @@ export function CommunityChat({
     }
     setMessages([]);
     setError(null);
+    clearPending();
     stickRef.current = true;
     if (canAccessRoom(tier, room)) loadMessages(room);
   }, [room, tier, loadMessages]);
@@ -125,6 +131,32 @@ export function CommunityChat({
     if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }
 
+  function clearPending() {
+    setPending((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return null;
+    });
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handlePickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0];
+    if (!picked) return;
+    setError(null);
+    setPreparing(true);
+    const prepared = await prepareChatImage(picked);
+    setPreparing(false);
+    if (!prepared) {
+      setError(t("Foto tidak bisa dipakai. Pilih foto JPG, PNG, atau WebP (maksimal 2MB)."));
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+    setPending((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return { file: prepared, preview: URL.createObjectURL(prepared) };
+    });
+  }
+
   function errorText(code: CommunityError) {
     switch (code) {
       case "empty":
@@ -137,6 +169,10 @@ export function CommunityChat({
         return t("Akunmu sedang disuspend.");
       case "forbidden":
         return t("Kamu belum punya akses ke ruang ini.");
+      case "bad_image":
+        return t("Foto tidak bisa dipakai. Pilih foto JPG, PNG, atau WebP (maksimal 2MB).");
+      case "image_too_big":
+        return t("Foto terlalu besar (maksimal 2MB).");
       default:
         return t("Gagal mengirim pesan. Coba lagi.");
     }
@@ -144,16 +180,26 @@ export function CommunityChat({
 
   async function handleSend() {
     const body = input.trim();
-    if (!body || sending) return;
+    if ((!body && !pending) || sending || preparing) return;
     setSending(true);
     setError(null);
-    const res = await sendCommunityMessage(room, body);
+    let res;
+    if (pending) {
+      const fd = new FormData();
+      fd.set("room", room);
+      fd.set("image", pending.file);
+      fd.set("caption", body);
+      res = await sendCommunityImage(fd);
+    } else {
+      res = await sendCommunityMessage(room, body);
+    }
     setSending(false);
     if (!res.ok) {
       setError(errorText(res.error));
       return;
     }
     setInput("");
+    clearPending();
     stickRef.current = true;
     setMessages((prev) => (prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]));
   }
@@ -239,6 +285,11 @@ export function CommunityChat({
                           : "rounded-tl-sm bg-surface-2 text-text-primary"
                       )}
                     >
+                      {m.image_key && (
+                        <div className={cx(m.body && "mb-2", "w-56 max-w-full")}>
+                          <CommunityImage imageKey={m.image_key} alt={t("Foto dari {name}", { name: m.author_name })} />
+                        </div>
+                      )}
                       {m.body}
                     </div>
                   </div>
@@ -249,7 +300,25 @@ export function CommunityChat({
 
           <div className="border-t border-border p-3">
             {error && <p className="mb-2 text-caption text-error">{error}</p>}
+            {pending && (
+              <div className="mb-2 flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element -- pratinjau lokal (blob) */}
+                <img src={pending.preview} alt="" className="h-14 w-14 rounded-lg object-cover" />
+                <button onClick={clearPending} className="rounded-full p-1 text-text-muted hover:text-error" aria-label={t("Hapus foto")}>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
             <div className="flex items-end gap-2">
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePickFile} />
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={sending || preparing}
+                className="btn-secondary !px-3 disabled:opacity-50"
+                aria-label={t("Kirim foto")}
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -266,7 +335,7 @@ export function CommunityChat({
               />
               <button
                 onClick={handleSend}
-                disabled={sending || !input.trim()}
+                disabled={sending || preparing || (!input.trim() && !pending)}
                 className="btn-primary !px-4 disabled:opacity-50"
                 aria-label={t("Kirim")}
               >
