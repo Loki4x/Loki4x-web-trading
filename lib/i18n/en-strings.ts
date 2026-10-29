@@ -579,4 +579,5 @@ export const EN_STRINGS: Record<string, string> = {
   "Foto terlalu besar (maksimal 2MB).": "The photo is too large (max 2MB).",
   "Foto dari {name}": "Photo from {name}",
   "Kirim foto": "Send photo",
+  "Hapus pesan": "Delete message",
 };
