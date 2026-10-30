@@ -21,6 +21,7 @@ import { hasAccess } from "@/lib/tier";
 import Link from "next/link";
 import { ArrowRight, Wallet, TrendingUp, Percent, Hash } from "lucide-react";
 import { getT } from "@/lib/i18n/server";
+import { PushPrompt } from "@/components/push/PushPrompt";
 
 export default async function DashboardOverviewPage() {
   const { t } = await getT();
@@ -172,6 +173,8 @@ export default async function DashboardOverviewPage() {
         <MembershipStatusBar tier={tier} expiresAt={vipExpiresAt} />
 
         <UpgradeBanner tier={tier} />
+
+        {tier !== "FREE" && <PushPrompt />}
 
         {!onboardingDone && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
