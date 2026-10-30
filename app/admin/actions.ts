@@ -11,7 +11,7 @@ import { simulatePakasirPayment } from "@/lib/pakasir";
 import { type Plan } from "@/lib/pakasir-constants";
 import { computeGrant } from "@/lib/membership-grant";
 import { logAudit, getAuditActor } from "@/lib/audit";
-import { sendSignalEmails } from "@/lib/signal-emails";
+import { sendSignalNotifications } from "@/lib/signal-notify";
 import { redeemPromoForPayment, normalizePromoCode, PROMO_CODE_PATTERN } from "@/lib/promo";
 import { grantReferralReward } from "@/lib/referral";
 import { uploadToR2 } from "@/lib/r2";
@@ -272,7 +272,7 @@ export async function addSignal(formData: FormData): Promise<ActionResult> {
     // Email hanya untuk sinyal BARU yang masih berjalan (diposting dalam 30 menit terakhir).
     // Sinyal lama / riwayat yang diinput mundur tidak mengirim email.
     if (!isTerminal && Date.now() - postedAt.getTime() < FRESH_WINDOW_MS) {
-      await sendSignalEmails({
+      await sendSignalNotifications({
         kind: "NEW",
         signal: {
           symbol,
@@ -369,7 +369,7 @@ export async function updateSignalStatus(
       .select("symbol, side, entry_price, take_profit, stop_loss, status, result_pips")
       .eq("id", signalId)
       .single();
-    if (full) await sendSignalEmails({ kind: "CLOSED", signal: full });
+    if (full) await sendSignalNotifications({ kind: "CLOSED", signal: full });
   }
 
   revalidatePath("/admin/signals");
@@ -547,7 +547,7 @@ export async function addSignalUpdate(formData: FormData): Promise<ActionResult>
   });
 
   if (sendEmail) {
-    await sendSignalEmails({ kind: "UPDATE", signal, updateType: type, message, price });
+    await sendSignalNotifications({ kind: "UPDATE", signal, updateType: type, message, price });
   }
 
   revalidatePath("/admin/signals");

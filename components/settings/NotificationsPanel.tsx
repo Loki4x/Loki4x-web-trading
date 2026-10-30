@@ -6,6 +6,7 @@ import { ShieldCheck, Receipt, BellRing, Radio, BarChart3, Newspaper } from "luc
 import { Switch } from "@/components/ui/Switch";
 import { updateNotificationPrefs } from "@/app/(dashboard)/settings/actions";
 import type { Profile } from "@/lib/types";
+import { PushSetting } from "@/components/push/PushSetting";
 import { useT } from "@/lib/i18n/client";
 
 export function NotificationsPanel({ profile }: { profile: Profile | null }) {
@@ -68,7 +69,7 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
             <div>
               <p className="text-body-sm font-semibold text-text-primary">{t("Notifikasi sinyal trading")}</p>
               <p className="text-caption text-text-muted">
-                {t("Email saat ada sinyal baru, update sinyal, dan sinyal ditutup. Khusus member VIP dan Membership.")}
+                {t("Notifikasi push saat ada sinyal baru, update sinyal, dan sinyal ditutup. Khusus member VIP dan Membership. Aktifkan push di perangkatmu pada pengaturan di bawah ini.")}
               </p>
             </div>
           </div>
@@ -81,6 +82,8 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
             label={t("Notifikasi sinyal trading")}
           />
         </div>
+
+        <PushSetting />
 
         <div className="flex items-start justify-between gap-4 py-4">
           <div className="flex gap-3">
