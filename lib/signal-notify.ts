@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { translate, type Locale } from "@/lib/i18n/dictionary";
-import { sendPush, pushConfigured, type PushPayload } from "@/lib/web-push";
+import { sendPushToUsers } from "@/lib/push-send";
 
 type Vars = Record<string, string | number>;
 
@@ -121,45 +121,10 @@ export async function sendSignalNotifications(event: SignalNotifyEvent): Promise
     }
 
     // Push ke perangkat.
-    if (!pushConfigured()) return { pushed: 0, bell };
-    const localeById = new Map(recipients.map((r) => [r.id, r.locale]));
-    const subs: { id: string; user_id: string; endpoint: string; p256dh: string; auth: string }[] = [];
-    for (let i = 0; i < recipients.length; i += 200) {
-      const ids = recipients.slice(i, i + 200).map((r) => r.id);
-      const { data, error } = await service
-        .from("push_subscriptions")
-        .select("id, user_id, endpoint, p256dh, auth")
-        .in("user_id", ids);
-      if (error) {
-        console.error("[signal-notify] gagal ambil langganan push:", error.message);
-        continue;
-      }
-      subs.push(...(data ?? []));
-    }
-
-    let pushed = 0;
-    const gone: string[] = [];
-    for (let i = 0; i < subs.length; i += 25) {
-      const batch = subs.slice(i, i + 25);
-      const results = await Promise.all(
-        batch.map((s) => {
-          const t = text[localeById.get(s.user_id) ?? "id"];
-          const payload: PushPayload = { title: t.title, body: t.body, url: "/signals" };
-          return sendPush(s, payload, { urgency: "high", ttl: 6 * 3600 });
-        })
-      );
-      results.forEach((r, idx) => {
-        if (r.ok) pushed++;
-        else if (r.gone) gone.push(batch[idx].id);
-      });
-    }
-
-    // Langganan yang sudah tidak berlaku (aplikasi dihapus / izin dicabut) dibersihkan.
-    if (gone.length > 0) {
-      for (let i = 0; i < gone.length; i += 200) {
-        await service.from("push_subscriptions").delete().in("id", gone.slice(i, i + 200));
-      }
-    }
+    const { sent: pushed } = await sendPushToUsers(
+      recipients.map((r) => ({ userId: r.id, payload: { title: text[r.locale].title, body: text[r.locale].body, url: "/signals" } })),
+      { urgency: "high", ttl: 6 * 3600 }
+    );
     return { pushed, bell };
   } catch (err) {
     console.error("[signal-notify] error:", err);

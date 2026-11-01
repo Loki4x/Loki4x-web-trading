@@ -1,13 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sendPushToUsers } from "@/lib/push-send";
 
 type NotificationType = "ANNOUNCEMENT" | "TIER_UPGRADE" | "EXPIRY_WARNING" | "EXPIRY_ENDED";
 
 type NotificationChannels = {
   website?: boolean;
   email?: boolean;
+  push?: boolean;
 };
+
+export type AudienceTier = "ALL" | "FREE" | "VIP" | "MEMBERSHIP";
+
+const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 function emailHtml(title: string, message: string) {
   return `
@@ -29,6 +35,7 @@ export async function notifyUser({
   message,
   channels = { website: true, email: true },
   client,
+  pushUrl = "/dashboard",
 }: {
   userId: string;
   email: string | null;
@@ -39,6 +46,8 @@ export async function notifyUser({
   // Pass a service-role client (lib/supabase/service.ts) when calling this
   // outside a logged-in user's request, e.g. from a webhook route.
   client?: SupabaseClient;
+  /** Halaman yang dibuka saat notifikasi push diketuk. */
+  pushUrl?: string;
 }) {
   const supabase = client ?? (await createClient());
 
@@ -65,6 +74,10 @@ export async function notifyUser({
   if (sendEmailAllowed && email) {
     await sendEmail({ to: email, subject: title, html: emailHtml(title, message) });
   }
+
+  if (channels.push) {
+    await sendPushToUsers([{ userId, payload: { title, body: clip(message, 180), url: pushUrl } }]);
+  }
 }
 
 export async function notifyAllUsers({
@@ -72,18 +85,43 @@ export async function notifyAllUsers({
   title,
   message,
   channels = { website: true, email: true },
+  tier = "ALL",
 }: {
   type: NotificationType;
   title: string;
   message: string;
   channels?: NotificationChannels;
+  /** Batasi penerima ke satu tier (tier efektif: VIP/Membership kedaluwarsa dihitung Free). */
+  tier?: AudienceTier;
 }) {
   const supabase = await createClient();
-  const { data: profiles } = await supabase.from("profiles").select("id, email");
-  if (!profiles) return;
+  // Ambil semua profil per 1000 baris (batas default Supabase), supaya tidak terpotong saat user banyak.
+  const data: { id: string; email: string | null; tier: string | null; vip_expires_at: string | null }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: page, error } = await supabase.from("profiles").select("id, email, tier, vip_expires_at").order("id").range(from, from + 999);
+    if (error) {
+      console.error("[notifyAllUsers] gagal ambil profil:", error.message);
+      break;
+    }
+    data.push(...(page ?? []));
+    if (!page || page.length < 1000) break;
+  }
+  if (data.length === 0) return { recipients: 0 };
+
+  const now = Date.now();
+  const profiles = data.filter((p) => {
+    if (tier === "ALL") return true;
+    const stored = p.tier === "VIP" || p.tier === "MEMBERSHIP" ? p.tier : "FREE";
+    const expired = !!p.vip_expires_at && new Date(p.vip_expires_at).getTime() <= now;
+    const effective = stored !== "FREE" && expired ? "FREE" : stored;
+    return effective === tier;
+  });
+  if (profiles.length === 0) return { recipients: 0 };
 
   if (channels.website) {
-    await supabase.from("notifications").insert(profiles.map((p) => ({ user_id: p.id, type, title, message })));
+    for (let i = 0; i < profiles.length; i += 500) {
+      await supabase.from("notifications").insert(profiles.slice(i, i + 500).map((p) => ({ user_id: p.id, type, title, message })));
+    }
   }
 
   if (channels.email) {
@@ -91,4 +129,9 @@ export async function notifyAllUsers({
       if (p.email) await sendEmail({ to: p.email, subject: title, html: emailHtml(title, message) });
     }
   }
+
+  if (channels.push) {
+    await sendPushToUsers(profiles.map((p) => ({ userId: p.id, payload: { title, body: clip(message, 180), url: "/dashboard" } })));
+  }
+  return { recipients: profiles.length };
 }

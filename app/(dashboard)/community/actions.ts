@@ -45,6 +45,8 @@ async function deliver(room: string, rawBody: unknown, file: File | null): Promi
   const expired = !!profile.vip_expires_at && new Date(profile.vip_expires_at).getTime() <= Date.now();
   const effective: Tier = profile.is_admin ? "MEMBERSHIP" : stored !== "FREE" && expired ? "FREE" : stored;
   if (!canAccessRoom(effective, room)) return { ok: false, error: "forbidden" };
+  // Ruang Pengumuman: hanya admin yang boleh menulis.
+  if (room === "ANNOUNCEMENT" && !profile.is_admin) return { ok: false, error: "forbidden" };
 
   if (!(await rateLimit(`community:${user.id}`, 12, 60))) return { ok: false, error: "rate_limited" };
   if (file && !(await rateLimit(`community-img:${user.id}`, 10, 600))) return { ok: false, error: "rate_limited" };
@@ -104,6 +106,50 @@ export async function deleteCommunityMessage(id: string): Promise<{ ok: boolean 
   if (error) {
     console.error("[community/delete]", error.message);
     return { ok: false };
+  }
+  return { ok: true };
+}
+
+/** Hanya admin: sematkan / lepas sematan pesan. */
+export async function pinCommunityMessage(id: string, pinned: boolean): Promise<{ ok: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!profile?.is_admin) return { ok: false };
+
+  const { error } = await createServiceClient()
+    .from("community_messages")
+    .update({ pinned_at: pinned ? new Date().toISOString() : null })
+    .eq("id", id);
+  if (error) {
+    console.error("[community/pin]", error.message);
+    return { ok: false };
+  }
+  return { ok: true };
+}
+
+/** Member melaporkan pesan ke admin. Hanya pesan yang bisa dibaca pelapor (RLS), dan satu laporan per orang per pesan. */
+export async function reportCommunityMessage(id: string): Promise<{ ok: boolean; error?: "auth" | "rate_limited" | "failed" }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "auth" };
+  if (!(await rateLimit(`community-report:${user.id}`, 10, 600))) return { ok: false, error: "rate_limited" };
+
+  // Lewat RLS: kalau user tidak boleh membaca pesan ini, hasilnya kosong.
+  const { data: message } = await supabase.from("community_messages").select("id, user_id").eq("id", id).maybeSingle();
+  if (!message || message.user_id === user.id) return { ok: false, error: "failed" };
+
+  const { error } = await createServiceClient()
+    .from("community_reports")
+    .upsert({ message_id: id, reporter_id: user.id }, { onConflict: "message_id,reporter_id", ignoreDuplicates: true });
+  if (error) {
+    console.error("[community/report]", error.message);
+    return { ok: false, error: "failed" };
   }
   return { ok: true };
 }

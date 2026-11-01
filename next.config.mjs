@@ -34,6 +34,14 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // File APK diunduh sebagai berkas, bukan dibuka di browser.
+        source: "/downloads/loki4x-academy.apk",
+        headers: [
+          { key: "Content-Type", value: "application/vnd.android.package-archive" },
+          { key: "Content-Disposition", value: "attachment" },
+        ],
+      },
+      {
         // Service worker harus selalu diambil terbaru supaya update tidak tertahan di cache.
         source: "/sw.js",
         headers: [

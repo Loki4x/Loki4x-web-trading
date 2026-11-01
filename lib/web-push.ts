@@ -16,6 +16,8 @@ export interface PushPayload {
   body: string;
   url?: string;
   tag?: string;
+  /** Tombol di notifikasi (Android/Chrome). Tap tombol atau badan notifikasi sama-sama membuka `url`. */
+  actions?: { action: string; title: string }[];
 }
 
 export type PushResult = { ok: true } | { ok: false; status: number; gone: boolean };

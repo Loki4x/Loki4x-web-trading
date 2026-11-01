@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { CommunityUnreadBadge } from "@/components/community/CommunityUnreadBadge";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 import type { TradingAccount } from "@/lib/types";
@@ -237,6 +238,7 @@ export function Sidebar({
             <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={linkClass(pathname === href)}>
               <Icon className="h-4 w-4" />
               {t(key)}
+              {href === "/community" && <CommunityUnreadBadge />}
             </Link>
           ))}
 

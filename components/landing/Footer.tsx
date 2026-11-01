@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Reveal } from "@/components/ui/Reveal";
+import { DownloadApp } from "@/components/landing/DownloadApp";
 
 const legal = [
   { href: "/privacy", label: "Privacy Policy" },
@@ -61,6 +62,8 @@ export function Footer() {
             </div>
           </div>
         </div>
+
+        <DownloadApp />
 
         <div className="mt-10 border-t border-border pt-6">
           <p className="text-body-sm text-text-muted">© 2026 Loki4x Academy. All rights reserved.</p>

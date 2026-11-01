@@ -3,6 +3,7 @@ import { getEconomicCalendarRange } from "@/lib/economic-calendar";
 import { claimMarker } from "@/lib/cron-marker";
 import { fetchRecipients, tierAtLeast } from "@/lib/recipients";
 import { translate, type Locale } from "@/lib/i18n/dictionary";
+import { sendPushToUsers } from "@/lib/push-send";
 
 // Pengingat dikirim untuk berita yang mulai 5–20 menit lagi. Dengan cron tiap 5 menit,
 // pengingat tiba kira-kira 15–20 menit sebelum rilis (bisa lebih mepet kalau jadwal GitHub/cron telat).
@@ -23,7 +24,7 @@ export async function sendNewsReminders(now = new Date()) {
     const lead = new Date(e.dateISO).getTime() - now.getTime();
     return lead >= MIN_LEAD_MS && lead < MAX_LEAD_MS;
   });
-  if (events.length === 0) return { slots: 0, notified: 0 };
+  if (events.length === 0) return { slots: 0, notified: 0, pushed: 0 };
 
   // Kelompokkan per waktu rilis: satu notifikasi per slot waktu, bukan per berita.
   const slots = new Map<string, typeof events>();
@@ -35,6 +36,7 @@ export async function sendNewsReminders(now = new Date()) {
   const service = createServiceClient();
   let recipients: Awaited<ReturnType<typeof fetchRecipients>> | null = null;
   let notified = 0;
+  let pushed = 0;
   let slotCount = 0;
 
   for (const [slotIso, list] of Array.from(slots.entries()).sort()) {
@@ -73,6 +75,16 @@ export async function sendNewsReminders(now = new Date()) {
       if (error) console.error("[news-reminders] gagal insert notifikasi:", error.message);
       else notified += rows.length;
     }
+
+    // Push ke perangkat (bilah notifikasi). Berita rilis sebentar lagi, jadi TTL pendek: lewat 20 menit tidak berguna.
+    const { sent } = await sendPushToUsers(
+      recipients.map((r) => ({
+        userId: r.id,
+        payload: { title: text[r.locale].title, body: text[r.locale].message, url: "/news" },
+      })),
+      { urgency: "high", ttl: 20 * 60 }
+    );
+    pushed += sent;
   }
-  return { slots: slotCount, notified };
+  return { slots: slotCount, notified, pushed };
 }
