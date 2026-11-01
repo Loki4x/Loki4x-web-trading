@@ -34,6 +34,27 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+// Push ke perangkat anggota. Tidak fatal: kalau gagal atau secret belum diisi, lonceng & email tetap sudah terkirim.
+async function sendExpiryPush(warning, ended) {
+  if (warning.length === 0 && ended.length === 0) return;
+  const secret = process.env.CRON_SECRET;
+  const site = (process.env.SITE_URL || "https://www.loki4xacademy.web.id").replace(/\/$/, "");
+  if (!secret) {
+    console.log("CRON_SECRET belum diisi: push masa aktif dilewati.");
+    return;
+  }
+  try {
+    const res = await fetch(`${site}/api/cron/expiry-push`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ warning, ended }),
+    });
+    console.log("Push masa aktif:", res.status, await res.text());
+  } catch (e) {
+    console.error("Gagal kirim push masa aktif:", e);
+  }
+}
+
 async function run() {
   const { data: profiles, error: fetchError } = await supabase
     .from("profiles")
@@ -45,6 +66,9 @@ async function run() {
   if (!profiles) return;
 
   let failures = 0;
+  // Daftar user untuk notifikasi push (dikirim lewat /api/cron/expiry-push setelah semuanya selesai).
+  const pushWarning = [];
+  const pushEnded = [];
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -59,6 +83,7 @@ async function run() {
       const message = `Paket ${p.tier} kamu akan berakhir besok (${expiryDate}). Perpanjang sekarang biar aksesmu nggak terputus.`;
       await supabase.from("notifications").insert({ user_id: p.id, type: "EXPIRY_WARNING", title, message });
       await sendEmail(p.email, title, emailHtml(title, message));
+      pushWarning.push({ id: p.id, tier: p.tier, date: expiryDate });
       console.log(`Warning terkirim ke ${p.email}`);
     }
 
@@ -76,9 +101,12 @@ async function run() {
       }
       await supabase.from("notifications").insert({ user_id: p.id, type: "EXPIRY_ENDED", title, message });
       await sendEmail(p.email, title, emailHtml(title, message));
+      pushEnded.push({ id: p.id, tier: p.tier });
       console.log(`Expiry ended terkirim ke ${p.email}`);
     }
   }
+
+  await sendExpiryPush(pushWarning, pushEnded);
 
   console.log("Selesai cek expiry.");
   if (failures > 0) {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Lock, Paperclip, Send, Trash2, X } from "lucide-react";
+import { Flag, Lock, Megaphone, Paperclip, Pin, PinOff, Send, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/client";
 import { cx } from "@/lib/utils";
@@ -13,6 +13,7 @@ import {
   ROOMS,
   ROOM_LABEL,
   canAccessRoom,
+  canWriteRoom,
   type CommunityError,
   type CommunityMessage,
   type Room,
@@ -20,7 +21,13 @@ import {
 import type { Tier } from "@/lib/tier";
 import { prepareChatImage } from "@/lib/chat-image-client";
 import { CommunityImage } from "@/components/community/CommunityImage";
-import { deleteCommunityMessage, sendCommunityImage, sendCommunityMessage } from "@/app/(dashboard)/community/actions";
+import {
+  deleteCommunityMessage,
+  pinCommunityMessage,
+  reportCommunityMessage,
+  sendCommunityImage,
+  sendCommunityMessage,
+} from "@/app/(dashboard)/community/actions";
 
 const POLL_MS = 20_000; // cadangan kalau realtime terputus
 
@@ -41,12 +48,14 @@ export function CommunityChat({
   isAdmin,
   initialRoom,
   initialMessages,
+  initialPinned,
 }: {
   userId: string;
   tier: Tier;
   isAdmin: boolean;
   initialRoom: Room;
   initialMessages: CommunityMessage[];
+  initialPinned: CommunityMessage | null;
 }) {
   const t = useT();
   const supabase = useMemo(() => createClient(), []);
@@ -61,8 +70,13 @@ export function CommunityChat({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<{ file: File; preview: string } | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const [pinned, setPinned] = useState<CommunityMessage | null>(initialPinned);
+  const [reportCounts, setReportCounts] = useState<Record<string, number>>({});
+  const [reported, setReported] = useState<Set<string>>(new Set());
+  const [notice, setNotice] = useState<string | null>(null);
 
   const allowed = canAccessRoom(tier, room);
+  const canWrite = canWriteRoom(tier, room, isAdmin);
 
   const loadMessages = useCallback(
     async (target: Room) => {
@@ -77,6 +91,31 @@ export function CommunityChat({
     [supabase]
   );
 
+  const loadPinned = useCallback(
+    async (target: Room) => {
+      const { data } = await supabase
+        .from("community_messages")
+        .select(COMMUNITY_COLUMNS)
+        .eq("room", target)
+        .not("pinned_at", "is", null)
+        .order("pinned_at", { ascending: false })
+        .limit(1);
+      setPinned(((data ?? [])[0] ?? null) as CommunityMessage | null);
+    },
+    [supabase]
+  );
+
+  // Tandai ruang ini sudah dibaca (menghilangkan badge di sidebar).
+  const markRead = useCallback(
+    async (target: Room) => {
+      await supabase
+        .from("community_reads")
+        .upsert({ user_id: userId, room: target, last_read_at: new Date().toISOString() }, { onConflict: "user_id,room" });
+      window.dispatchEvent(new CustomEvent("community:read"));
+    },
+    [supabase, userId]
+  );
+
   // Ganti ruang: muat ulang pesan (lewati muat pertama karena sudah dikirim dari server).
   const firstLoad = useRef(true);
   useEffect(() => {
@@ -85,11 +124,40 @@ export function CommunityChat({
       return;
     }
     setMessages([]);
+    setPinned(null);
     setError(null);
+    setNotice(null);
     clearPending();
     stickRef.current = true;
-    if (canAccessRoom(tier, room)) loadMessages(room);
-  }, [room, tier, loadMessages]);
+    if (canAccessRoom(tier, room)) {
+      loadMessages(room);
+      loadPinned(room);
+    }
+  }, [room, tier, loadMessages, loadPinned]);
+
+  // Buka ruang = sudah dibaca.
+  useEffect(() => {
+    if (allowed) markRead(room);
+  }, [room, allowed, markRead]);
+
+  // Admin: jumlah laporan per pesan (RLS hanya mengizinkan admin membaca tabel laporan).
+  useEffect(() => {
+    if (!isAdmin || messages.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("community_reports")
+        .select("message_id")
+        .in("message_id", messages.map((m) => m.id));
+      if (cancelled || !data) return;
+      const counts: Record<string, number> = {};
+      for (const r of data as { message_id: string }[]) counts[r.message_id] = (counts[r.message_id] ?? 0) + 1;
+      setReportCounts(counts);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, messages, supabase]);
 
   // Realtime + cadangan polling untuk ruang yang sedang dibuka.
   useEffect(() => {
@@ -103,6 +171,19 @@ export function CommunityChat({
         (payload) => {
           const msg = payload.new as CommunityMessage;
           setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+          if (document.visibilityState === "visible") markRead(room);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "community_messages", filter: `room=eq.${room}` },
+        (payload) => {
+          const msg = payload.new as CommunityMessage;
+          setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned_at: msg.pinned_at } : m)));
+          setPinned((prev) => {
+            if (msg.pinned_at) return !prev || new Date(msg.pinned_at) >= new Date(prev.pinned_at ?? 0) ? msg : prev;
+            return prev?.id === msg.id ? null : prev;
+          });
         }
       )
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_messages" }, (payload) => {
@@ -112,14 +193,17 @@ export function CommunityChat({
       .subscribe();
 
     const timer = setInterval(() => {
-      if (document.visibilityState === "visible") loadMessages(room);
+      if (document.visibilityState === "visible") {
+        loadMessages(room);
+        loadPinned(room);
+      }
     }, POLL_MS);
 
     return () => {
       clearInterval(timer);
       supabase.removeChannel(channel);
     };
-  }, [room, allowed, supabase, loadMessages]);
+  }, [room, allowed, supabase, loadMessages, loadPinned, markRead]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -210,6 +294,27 @@ export function CommunityChat({
     if (res.ok) setMessages((prev) => prev.filter((m) => m.id !== id));
   }
 
+  async function handlePin(m: CommunityMessage) {
+    const next = !m.pinned_at;
+    const res = await pinCommunityMessage(m.id, next);
+    if (!res.ok) return;
+    const stamp = next ? new Date().toISOString() : null;
+    setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, pinned_at: stamp } : x)));
+    setPinned((prev) => (next ? { ...m, pinned_at: stamp } : prev?.id === m.id ? null : prev));
+  }
+
+  async function handleReport(id: string) {
+    if (!window.confirm(t("Laporkan pesan ini ke admin?"))) return;
+    const res = await reportCommunityMessage(id);
+    if (res.ok) {
+      setReported((prev) => new Set(prev).add(id));
+      setNotice(t("Laporan terkirim. Terima kasih."));
+    } else {
+      setNotice(res.error === "rate_limited" ? t("Terlalu cepat. Tunggu sebentar lalu coba lagi.") : t("Gagal mengirim laporan."));
+    }
+    setTimeout(() => setNotice(null), 4000);
+  }
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap gap-2">
@@ -227,17 +332,20 @@ export function CommunityChat({
               )}
             >
               {!ok && <Lock className="h-3.5 w-3.5" />}
-              {ROOM_LABEL[r]}
+              {r === "ANNOUNCEMENT" && ok && <Megaphone className="h-3.5 w-3.5" />}
+              {t(ROOM_LABEL[r])}
             </button>
           );
         })}
       </div>
 
+      {notice && <p className="mb-2 text-caption text-success">{notice}</p>}
+
       {!allowed ? (
         <div className="card flex flex-col items-center gap-3 py-12 text-center">
           <Lock className="h-8 w-8 text-text-muted" />
           <p className="text-body font-semibold text-text-primary">
-            {t("Ruang {room} khusus member {room}.", { room: ROOM_LABEL[room] })}
+            {t("Ruang {room} khusus member {room}.", { room: t(ROOM_LABEL[room]) })}
           </p>
           <p className="max-w-sm text-body-sm text-text-secondary">
             {t("Upgrade paketmu untuk bergabung ke obrolan ini.")}
@@ -248,6 +356,17 @@ export function CommunityChat({
         </div>
       ) : (
         <div className="card flex h-[min(620px,calc(100vh-14rem))] flex-col !p-0">
+          {pinned && (
+            <div className="flex items-start gap-2 border-b border-border bg-primary-subtle px-4 py-2">
+              <Pin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="text-caption font-semibold text-primary">{t("Disematkan")}</p>
+                <p className="line-clamp-2 break-words text-body-sm text-text-primary">
+                  {pinned.body || t("Foto dari {name}", { name: pinned.author_name })}
+                </p>
+              </div>
+            </div>
+          )}
           <div ref={listRef} onScroll={onScroll} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {messages.length === 0 ? (
               <p className="py-10 text-center text-body-sm text-text-muted">
@@ -267,14 +386,42 @@ export function CommunityChat({
                         </span>
                       )}
                       <span>{formatTime(m.created_at)}</span>
+                      {m.pinned_at && <Pin className="h-3 w-3 text-primary" aria-label={t("Disematkan")} />}
+                      {isAdmin && (reportCounts[m.id] ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-subtle px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                          <Flag className="h-3 w-3" />
+                          {reportCounts[m.id]}
+                        </span>
+                      )}
                       {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => handlePin(m)}
+                            className="rounded p-0.5 text-text-muted transition-colors hover:text-primary"
+                            aria-label={m.pinned_at ? t("Lepas sematan") : t("Sematkan pesan")}
+                            title={m.pinned_at ? t("Lepas sematan") : t("Sematkan pesan")}
+                          >
+                            {m.pinned_at ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(m.id)}
+                            className="rounded p-0.5 text-text-muted transition-colors hover:text-error"
+                            aria-label={t("Hapus pesan")}
+                            title={t("Hapus pesan")}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
+                      {!isAdmin && !mine && (
                         <button
-                          onClick={() => handleDelete(m.id)}
-                          className="rounded p-0.5 text-text-muted transition-colors hover:text-error"
-                          aria-label={t("Hapus pesan")}
-                          title={t("Hapus pesan")}
+                          onClick={() => handleReport(m.id)}
+                          disabled={reported.has(m.id)}
+                          className="rounded p-0.5 text-text-muted transition-colors hover:text-warning disabled:opacity-40"
+                          aria-label={t("Laporkan pesan")}
+                          title={t("Laporkan pesan")}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Flag className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
@@ -299,6 +446,11 @@ export function CommunityChat({
             )}
           </div>
 
+          {!canWrite ? (
+            <div className="border-t border-border p-4 text-center text-body-sm text-text-muted">
+              {t("Hanya admin yang bisa menulis di ruang ini.")}
+            </div>
+          ) : (
           <div className="border-t border-border p-3">
             {error && <p className="mb-2 text-caption text-error">{error}</p>}
             {pending && (
@@ -347,6 +499,7 @@ export function CommunityChat({
               {input.length}/{COMMUNITY_MAX_LEN}
             </p>
           </div>
+          )}
         </div>
       )}
     </div>

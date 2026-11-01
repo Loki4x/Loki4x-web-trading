@@ -28,6 +28,15 @@ export default async function CommunityPage({ searchParams }: { searchParams: { 
     .limit(COMMUNITY_PAGE_SIZE);
   const initialMessages = ((data ?? []) as CommunityMessage[]).reverse();
 
+  const { data: pinnedRows } = await supabase
+    .from("community_messages")
+    .select(COMMUNITY_COLUMNS)
+    .eq("room", initialRoom)
+    .not("pinned_at", "is", null)
+    .order("pinned_at", { ascending: false })
+    .limit(1);
+  const initialPinned = ((pinnedRows ?? [])[0] ?? null) as CommunityMessage | null;
+
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
@@ -42,6 +51,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: { 
         isAdmin={isAdmin}
         initialRoom={initialRoom}
         initialMessages={initialMessages}
+        initialPinned={initialPinned}
       />
     </main>
   );

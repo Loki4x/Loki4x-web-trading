@@ -44,6 +44,7 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
       tag: data.tag || undefined,
+      actions: Array.isArray(data.actions) ? data.actions.slice(0, 2) : undefined,
       data: { url: data.url || "/dashboard" },
     })
   );

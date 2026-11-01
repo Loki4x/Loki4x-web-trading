@@ -746,23 +746,31 @@ export async function sendAdminNotification(formData: FormData) {
   const supabase = await assertIsAdmin();
 
   const target = String(formData.get("target"));
-  const title = String(formData.get("title"));
-  const message = String(formData.get("message"));
+  const title = String(formData.get("title") ?? "").trim();
+  const message = String(formData.get("message") ?? "").trim();
+  if (!title || !message) return { message: t("Terjadi kesalahan.") };
 
-  const channelValue = String(formData.get("channel") ?? "BOTH");
   const channels = {
-    website: channelValue === "BOTH" || channelValue === "WEBSITE",
-    email: channelValue === "BOTH" || channelValue === "EMAIL",
+    website: formData.get("ch_website") === "true",
+    email: formData.get("ch_email") === "true",
+    push: formData.get("ch_push") === "true",
   };
+  if (!channels.website && !channels.email && !channels.push) {
+    return { message: t("Pilih minimal satu kanal pengiriman.") };
+  }
+  const channelLabel = [channels.push && "push", channels.website && "website", channels.email && "email"].filter(Boolean).join("+");
 
   if (target === "ALL") {
-    await notifyAllUsers({ type: "ANNOUNCEMENT", title, message, channels });
+    const rawAudience = String(formData.get("audience") ?? "ALL");
+    const audience = rawAudience === "FREE" || rawAudience === "VIP" || rawAudience === "MEMBERSHIP" ? rawAudience : "ALL";
+    const { recipients } = await notifyAllUsers({ type: "ANNOUNCEMENT", title, message, channels, tier: audience });
     await logAudit(supabase, {
       actor: await getAuditActor(supabase),
       action: "ANNOUNCEMENT_SENT",
-      details: { target: "ALL", title, channel: channelValue },
+      details: { target: "ALL", audience, title, channel: channelLabel, recipients },
     });
-    return { message: t("Notifikasi terkirim ke semua user.") };
+    if (audience === "ALL") return { message: t("Notifikasi terkirim ke semua user.") };
+    return { message: t("Notifikasi terkirim ke {n} user tier {tier}.", { n: recipients, tier: audience }) };
   }
 
   const email = String(formData.get("email") ?? "");
@@ -785,7 +793,7 @@ export async function sendAdminNotification(formData: FormData) {
     actor: await getAuditActor(supabase),
     action: "ANNOUNCEMENT_SENT",
     targetUserId: targetProfile.id,
-    details: { target: email, title, channel: channelValue },
+    details: { target: email, title, channel: channelLabel },
   });
 
   return { message: t("Notifikasi terkirim ke {email}.", { email }) };
