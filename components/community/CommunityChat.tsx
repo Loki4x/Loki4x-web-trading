@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Flag, Lock, Megaphone, Paperclip, Pin, PinOff, Send, Trash2, X } from "lucide-react";
+import { CornerUpLeft, Flag, Lock, Megaphone, Paperclip, Pin, PinOff, Send, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/client";
 import { cx } from "@/lib/utils";
 import {
   COMMUNITY_COLUMNS,
   COMMUNITY_MAX_LEN,
+  COMMUNITY_MAX_MENTIONS,
   COMMUNITY_PAGE_SIZE,
   ROOMS,
   ROOM_LABEL,
@@ -33,6 +34,10 @@ const POLL_MS = 20_000; // cadangan kalau realtime terputus
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function escapeRe(v: string) {
+  return v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function badgeFor(m: CommunityMessage): { label: string; cls: string } | null {
@@ -74,6 +79,10 @@ export function CommunityChat({
   const [reportCounts, setReportCounts] = useState<Record<string, number>>({});
   const [reported, setReported] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<CommunityMessage | null>(null);
+  const [mentioned, setMentioned] = useState<Map<string, string>>(new Map()); // id → nama
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const allowed = canAccessRoom(tier, room);
   const canWrite = canWriteRoom(tier, room, isAdmin);
@@ -128,6 +137,9 @@ export function CommunityChat({
     setError(null);
     setNotice(null);
     clearPending();
+    setReplyTo(null);
+    setMentioned(new Map());
+    setMentionQuery(null);
     stickRef.current = true;
     if (canAccessRoom(tier, room)) {
       loadMessages(room);
@@ -215,6 +227,60 @@ export function CommunityChat({
     if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }
 
+  // Orang yang bisa disebut: penulis lain yang pesannya sudah tampil di ruang ini.
+  const people = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of messages) if (m.user_id !== userId && !map.has(m.user_id)) map.set(m.user_id, m.author_name);
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [messages, userId]);
+
+  const mentionRe = useMemo(() => {
+    const names = Array.from(new Set(messages.map((m) => m.author_name))).sort((a, b) => b.length - a.length);
+    return names.length ? new RegExp(`(@(?:${names.map(escapeRe).join("|")}))`, "g") : null;
+  }, [messages]);
+
+  const suggestions = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase();
+    return people.filter((p) => p.name.toLowerCase().startsWith(q)).slice(0, 5);
+  }, [mentionQuery, people]);
+
+  function renderBody(text: string, mine: boolean) {
+    if (!mentionRe) return text;
+    return text.split(mentionRe).map((part, i) =>
+      i % 2 === 1 ? (
+        <span key={i} className={mine ? "font-bold underline" : "font-semibold text-primary"}>
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  }
+
+  function onInputChange(value: string) {
+    setInput(value);
+    const m = /(?:^|\s)@([^\s@]{0,24})$/.exec(value);
+    setMentionQuery(m ? m[1] : null);
+  }
+
+  function pickMention(p: { id: string; name: string }) {
+    setInput((prev) => prev.replace(/(^|\s)@[^\s@]{0,24}$/, `$1@${p.name} `));
+    setMentioned((prev) => new Map(prev).set(p.id, p.name));
+    setMentionQuery(null);
+    inputRef.current?.focus();
+  }
+
+  function startReply(m: CommunityMessage) {
+    setReplyTo(m);
+    inputRef.current?.focus();
+  }
+
+  function jumpTo(id: string | null) {
+    if (!id) return;
+    document.getElementById(`cmsg-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   function clearPending() {
     setPending((prev) => {
       if (prev) URL.revokeObjectURL(prev.preview);
@@ -267,15 +333,22 @@ export function CommunityChat({
     if ((!body && !pending) || sending || preparing) return;
     setSending(true);
     setError(null);
+    // Hanya mention yang namanya masih tertulis di pesan.
+    const mentionIds = Array.from(mentioned)
+      .filter(([, name]) => body.includes(`@${name}`))
+      .map(([id]) => id)
+      .slice(0, COMMUNITY_MAX_MENTIONS);
     let res;
     if (pending) {
       const fd = new FormData();
       fd.set("room", room);
       fd.set("image", pending.file);
       fd.set("caption", body);
+      if (replyTo) fd.set("reply_to", replyTo.id);
+      fd.set("mentions", JSON.stringify(mentionIds));
       res = await sendCommunityImage(fd);
     } else {
-      res = await sendCommunityMessage(room, body);
+      res = await sendCommunityMessage(room, body, { replyTo: replyTo?.id, mentionIds });
     }
     setSending(false);
     if (!res.ok) {
@@ -283,6 +356,9 @@ export function CommunityChat({
       return;
     }
     setInput("");
+    setReplyTo(null);
+    setMentioned(new Map());
+    setMentionQuery(null);
     clearPending();
     stickRef.current = true;
     setMessages((prev) => (prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]));
@@ -377,7 +453,7 @@ export function CommunityChat({
                 const mine = m.user_id === userId;
                 const badge = badgeFor(m);
                 return (
-                  <div key={m.id} className={cx("group flex flex-col", mine ? "items-end" : "items-start")}>
+                  <div id={`cmsg-${m.id}`} key={m.id} className={cx("group flex flex-col", mine ? "items-end" : "items-start")}>
                     <div className="mb-1 flex items-center gap-2 text-caption text-text-muted">
                       <span className="font-medium text-text-secondary">{mine ? t("Kamu") : m.author_name}</span>
                       {badge && (
@@ -387,6 +463,16 @@ export function CommunityChat({
                       )}
                       <span>{formatTime(m.created_at)}</span>
                       {m.pinned_at && <Pin className="h-3 w-3 text-primary" aria-label={t("Disematkan")} />}
+                      {canWrite && (
+                        <button
+                          onClick={() => startReply(m)}
+                          className="rounded p-0.5 text-text-muted transition-colors hover:text-primary"
+                          aria-label={t("Balas")}
+                          title={t("Balas")}
+                        >
+                          <CornerUpLeft className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       {isAdmin && (reportCounts[m.id] ?? 0) > 0 && (
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-subtle px-1.5 py-0.5 text-[10px] font-semibold text-warning">
                           <Flag className="h-3 w-3" />
@@ -433,12 +519,25 @@ export function CommunityChat({
                           : "rounded-tl-sm bg-surface-2 text-text-primary"
                       )}
                     >
+                      {(m.reply_to || m.reply_name) && (
+                        <button
+                          type="button"
+                          onClick={() => jumpTo(m.reply_to)}
+                          className={cx(
+                            "mb-2 block w-full rounded-lg border-l-2 px-2 py-1 text-left text-caption",
+                            mine ? "border-white/70 bg-white/15" : "border-primary bg-surface"
+                          )}
+                        >
+                          <span className="block font-semibold">{m.reply_name}</span>
+                          <span className="line-clamp-2 break-words opacity-80">{m.reply_excerpt || t("Foto")}</span>
+                        </button>
+                      )}
                       {m.image_key && (
                         <div className={cx(m.body && "mb-2", "w-56 max-w-full")}>
                           <CommunityImage imageKey={m.image_key} alt={t("Foto dari {name}", { name: m.author_name })} />
                         </div>
                       )}
-                      {m.body}
+                      {renderBody(m.body, mine)}
                     </div>
                   </div>
                 );
@@ -453,6 +552,35 @@ export function CommunityChat({
           ) : (
           <div className="border-t border-border p-3">
             {error && <p className="mb-2 text-caption text-error">{error}</p>}
+            {replyTo && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg border-l-2 border-primary bg-surface-2 px-3 py-1.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-caption font-semibold text-primary">{t("Membalas {name}", { name: replyTo.author_name })}</p>
+                  <p className="line-clamp-1 break-words text-caption text-text-secondary">
+                    {replyTo.body || t("Foto dari {name}", { name: replyTo.author_name })}
+                  </p>
+                </div>
+                <button onClick={() => setReplyTo(null)} className="rounded-full p-1 text-text-muted hover:text-error" aria-label={t("Batal membalas")}>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            {suggestions.length > 0 && (
+              <ul className="mb-2 overflow-hidden rounded-lg border border-border bg-surface">
+                {suggestions.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pickMention(p)}
+                      className="w-full px-3 py-2 text-left text-body-sm text-text-primary hover:bg-surface-hover"
+                    >
+                      @{p.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             {pending && (
               <div className="mb-2 flex items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element -- pratinjau lokal (blob) */}
@@ -473,8 +601,9 @@ export function CommunityChat({
                 <Paperclip className="h-4 w-4" />
               </button>
               <textarea
+                ref={inputRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => onInputChange(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();

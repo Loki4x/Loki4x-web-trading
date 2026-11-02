@@ -1,5 +1,5 @@
 // Konstanta yang aman diimport dari Client Component (tidak ada fetch/secret
-// di sini). Logika server (call API Pakasir) tetap di lib/pakasir.ts.
+// di sini). Logika server pembayaran otomatis ada di lib/poketo.ts.
 
 export type Plan = "VIP" | "MEMBERSHIP" | "MEMBERSHIP_LIFETIME";
 
@@ -20,32 +20,6 @@ export function planToTier(plan: Plan): "VIP" | "MEMBERSHIP" {
 export function isLifetimePlan(plan: Plan): boolean {
   return plan === "MEMBERSHIP_LIFETIME";
 }
-
-export type PakasirMethod =
-  | "qris"
-  | "bri_va"
-  | "bni_va"
-  | "cimb_niaga_va"
-  | "bnc_va"
-  | "maybank_va"
-  | "permata_va"
-  | "artha_graha_va"
-  | "sampoerna_va";
-
-export const BANK_VA_METHODS: { method: PakasirMethod; label: string }[] = [
-  { method: "bri_va", label: "BRI" },
-  { method: "bni_va", label: "BNI" },
-  { method: "cimb_niaga_va", label: "CIMB Niaga" },
-  { method: "permata_va", label: "Permata" },
-  { method: "maybank_va", label: "Maybank" },
-  { method: "bnc_va", label: "BNC" },
-  { method: "artha_graha_va", label: "Artha Graha" },
-  { method: "sampoerna_va", label: "Sampoerna" },
-];
-
-// Daftar metode yang boleh dikirim ke Pakasir. Dipakai untuk validasi di server
-// (nilai `method` masuk ke path URL API Pakasir, jadi nggak boleh dari input bebas).
-export const PAKASIR_METHODS: PakasirMethod[] = ["qris", ...BANK_VA_METHODS.map((b) => b.method)];
 
 export type MembershipTierName = "FREE" | "VIP" | "MEMBERSHIP";
 

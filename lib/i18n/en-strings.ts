@@ -332,7 +332,6 @@ export const EN_STRINGS: Record<string, string> = {
   "Format tanggal tidak valid.": "Invalid date format.",
   "Tanggal tidak valid.": "Invalid date.",
   "Ada angka yang tidak valid.": "One of the numbers is invalid.",
-  "Gagal simulasi: {detail}": "Simulation failed: {detail}",
   "Isi harga penutupan, atau isi {level} di atas.": "Enter a closing price, or fill in {level} above.",
   "Kami sudah kirim kode 6 digit ke {email}.": "We've sent a 6-digit code to {email}.",
   "email kamu": "your email",
@@ -350,7 +349,6 @@ export const EN_STRINGS: Record<string, string> = {
   "Notifikasi terkirim ke semua user.": "Notification sent to all users.",
   "User dengan email itu nggak ketemu.": "No user found with that email.",
   "Notifikasi terkirim ke {email}.": "Notification sent to {email}.",
-  "Simulasi terkirim ke Pakasir. Webhook biasanya masuk dalam beberapa detik — refresh halaman ini.": "Simulation sent to Pakasir. The webhook usually arrives within a few seconds — refresh this page.",
   "Pembayaran {plan} berhasil dikonfirmasi": "{plan} payment confirmed",
   "Pembayaran USDT kamu sudah diverifikasi admin. Akun kamu sekarang aktif sebagai {tier} {expiry}.": "Your USDT payment has been verified by an admin. Your account is now active as {tier} {expiry}.",
   "Pembayaran {plan} berhasil": "{plan} payment successful",
@@ -617,4 +615,7 @@ export const EN_STRINGS: Record<string, string> = {
   "Paket {tier} kamu sudah berakhir. Upgrade lagi kapan aja buat buka semua fitur.": "Your {tier} plan has ended. Upgrade again any time to unlock all features.",
   "Berakhir hari ini": "Ends today",
   "Tersisa {n} hari": "{n} days left",
+  "Balas": "Reply",
+  "Membalas {name}": "Replying to {name}",
+  "Batal membalas": "Cancel reply",
 };

@@ -5,7 +5,7 @@ import { Check, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { submitVipRequest } from "@/app/(dashboard)/upgrade/actions";
-import { PLAN_PRICE_IDR, type MembershipTierName, type Plan } from "@/lib/pakasir-constants";
+import { PLAN_PRICE_IDR, type MembershipTierName, type Plan } from "@/lib/payment-constants";
 import { PaymentModal } from "@/components/upgrade/PaymentModal";
 import { TermsCheckbox } from "@/components/upgrade/TermsCheckbox";
 import type { VipIbRequest } from "@/lib/types";

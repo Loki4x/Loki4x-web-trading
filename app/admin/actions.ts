@@ -7,8 +7,7 @@ import { dateLocale } from "@/lib/i18n/dictionary";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUser, notifyAllUsers } from "@/lib/notifications";
-import { simulatePakasirPayment } from "@/lib/pakasir";
-import { type Plan } from "@/lib/pakasir-constants";
+import { type Plan } from "@/lib/payment-constants";
 import { computeGrant } from "@/lib/membership-grant";
 import { logAudit, getAuditActor } from "@/lib/audit";
 import { sendSignalNotifications } from "@/lib/signal-notify";
@@ -797,24 +796,6 @@ export async function sendAdminNotification(formData: FormData) {
   });
 
   return { message: t("Notifikasi terkirim ke {email}.", { email }) };
-}
-
-// Testing khusus mode Sandbox Pakasir — jangan pakai di mode Live/Production.
-export async function simulateSandboxPayment(orderId: string, amount: number) {
-  const { t } = await getT();
-  await assertIsAdmin();
-
-  const result = await simulatePakasirPayment({ orderId, amount });
-
-  if (!result.ok) {
-    return { success: false, message: t("Gagal simulasi: {detail}", { detail: JSON.stringify(result.data) }) };
-  }
-
-  revalidatePath("/admin/pakasir-sandbox");
-  return {
-    success: true,
-    message: t("Simulasi terkirim ke Pakasir. Webhook biasanya masuk dalam beberapa detik — refresh halaman ini."),
-  };
 }
 
 // Parameter ke-2 dan ke-3 sengaja diabaikan: user_id dan plan diambil dari baris

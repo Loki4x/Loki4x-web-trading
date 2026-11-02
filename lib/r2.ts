@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 const r2Client = new S3Client({
   region: "auto",
@@ -118,6 +118,19 @@ export async function getPrivateR2Object(key: string) {
   const bucket = process.env.R2_PRIVATE_BUCKET_NAME;
   if (!bucket) throw new Error("R2_PRIVATE_BUCKET_NAME belum diisi");
   return r2Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+}
+
+/** Hapus satu objek dari bucket privat. Gagal tidak melempar error (cukup dicatat); return true kalau sukses. */
+export async function deletePrivateR2Object(key: string): Promise<boolean> {
+  const bucket = process.env.R2_PRIVATE_BUCKET_NAME;
+  if (!bucket) return false;
+  try {
+    await r2Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+    return true;
+  } catch (err) {
+    console.error("R2 private delete failed:", err instanceof Error ? err.message : err);
+    return false;
+  }
 }
 
 export const UPLOAD_MAX_BYTES = MAX_FILE_SIZE;

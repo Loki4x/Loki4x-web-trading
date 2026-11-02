@@ -1,4 +1,4 @@
-import type { Plan } from "@/lib/pakasir-constants";
+import type { Plan } from "@/lib/payment-constants";
 
 export type UsdtNetwork = "BEP20" | "TRC20";
 

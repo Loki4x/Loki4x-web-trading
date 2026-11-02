@@ -1,4 +1,4 @@
-import { isLifetimePlan, planToTier, type Plan } from "@/lib/pakasir-constants";
+import { isLifetimePlan, planToTier, type Plan } from "@/lib/payment-constants";
 
 type TierName = "FREE" | "VIP" | "MEMBERSHIP";
 const RANK: Record<TierName, number> = { FREE: 0, VIP: 1, MEMBERSHIP: 2 };
@@ -11,7 +11,7 @@ export interface MembershipFields {
 
 /**
  * Hitung tier + masa aktif baru setelah user membayar `plan`.
- * Dipakai oleh pembayaran otomatis (Pakasir) DAN approval USDT manual,
+ * Dipakai oleh pembayaran otomatis (Poketo) DAN approval USDT manual,
  * supaya keduanya selalu konsisten.
  *
  * Aturan:

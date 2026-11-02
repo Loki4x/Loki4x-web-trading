@@ -8,11 +8,12 @@ export const ROOM_RANK: Record<Room, number> = { ANNOUNCEMENT: 0, FREE: 0, VIP: 
 export const ROOM_LABEL: Record<Room, string> = { ANNOUNCEMENT: "Pengumuman", FREE: "General", VIP: "VIP", MEMBERSHIP: "Membership" };
 
 export const COMMUNITY_MAX_LEN = 500;
+export const COMMUNITY_MAX_MENTIONS = 5;
 export const COMMUNITY_PAGE_SIZE = 50;
-export const COMMUNITY_COLUMNS = "id, room, user_id, author_name, author_tier, is_admin, body, image_key, pinned_at, created_at";
+export const COMMUNITY_COLUMNS = "id, room, user_id, author_name, author_tier, is_admin, body, image_key, pinned_at, reply_to, reply_name, reply_excerpt, created_at";
 
 // Pola kunci foto di R2: community/<RUANG>/<uuid>-<timestamp>.<ext>
-export const COMMUNITY_IMAGE_KEY_RE = /^community\/(FREE|VIP|MEMBERSHIP)\/[0-9a-f-]{36}-\d{10,16}\.(jpg|png|webp)$/i;
+export const COMMUNITY_IMAGE_KEY_RE = /^community\/(ANNOUNCEMENT|FREE|VIP|MEMBERSHIP)\/[0-9a-f-]{36}-\d{10,16}\.(jpg|png|webp)$/i;
 
 export function communityImageUrl(key: string) {
   return `/api/community/image?key=${encodeURIComponent(key)}`;
@@ -28,6 +29,9 @@ export interface CommunityMessage {
   body: string;
   image_key: string | null;
   pinned_at: string | null;
+  reply_to: string | null;
+  reply_name: string | null;
+  reply_excerpt: string | null;
   created_at: string;
 }
 
