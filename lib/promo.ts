@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PLAN_PRICE_IDR, type Plan } from "@/lib/pakasir-constants";
+import { PLAN_PRICE_IDR, type Plan } from "@/lib/payment-constants";
 import { USDT_PRICE } from "@/lib/usdt";
 
 export type PromoType = "PERCENT" | "FIXED_IDR";

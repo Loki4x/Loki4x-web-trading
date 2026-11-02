@@ -1,26 +1,21 @@
 import { getUserT } from "@/lib/i18n/server";
 import { dateLocale } from "@/lib/i18n/dictionary";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getPakasirTransactionStatus } from "@/lib/pakasir";
 import { getPoketoInvoice } from "@/lib/poketo";
 import { notifyUser } from "@/lib/notifications";
-import { type Plan } from "@/lib/pakasir-constants";
+import { type Plan } from "@/lib/payment-constants";
 import { computeGrant } from "@/lib/membership-grant";
 import { logAudit } from "@/lib/audit";
 import { redeemPromoForPayment } from "@/lib/promo";
 import { grantReferralReward } from "@/lib/referral";
 
 /**
- * Verifikasi status transaksi ke Pakasir (Transaction Detail API, bukan
- * cuma percaya body webhook), lalu kalau memang lunas: upgrade tier user
- * + kirim notifikasi. Idempotent — aman dipanggil berkali-kali untuk
- * order_id yang sama (dari webhook maupun dari tombol "Cek Status" user),
- * termasuk kalau dipanggil bersamaan.
+ * Verifikasi status tagihan ke Poketo (bukan cuma percaya body webhook), lalu kalau memang
+ * lunas: upgrade tier user + kirim notifikasi. Idempotent: aman dipanggil berkali-kali untuk
+ * order_id yang sama (dari webhook maupun dari tombol "Cek Status" user), termasuk kalau
+ * dipanggil bersamaan.
  */
-export async function finalizePakasirPayment(
-  orderId: string,
-  txnIdHint?: string | null
-): Promise<{ status: "COMPLETED" | "PENDING" | "NOT_FOUND" }> {
+export async function finalizePayment(orderId: string): Promise<{ status: "COMPLETED" | "PENDING" | "NOT_FOUND" }> {
   const service = createServiceClient();
 
   const { data: payment } = await service.from("payments").select("*").eq("order_id", orderId).single();
@@ -28,30 +23,15 @@ export async function finalizePakasirPayment(
 
   if (payment.status === "COMPLETED") return { status: "COMPLETED" };
 
-  // Verifikasi ke gateway yang membuat order ini (bukan percaya body webhook).
-  // payment_method "poketo" = tagihan Poketo; selain itu = Pakasir (order lama).
-  const provider = payment.payment_method === "poketo" ? "Poketo" : "Pakasir";
-  let verified: { completedAt: string | null; sandbox: boolean } | null = null;
+  // Hanya tagihan Poketo yang bisa diverifikasi otomatis. Order lama dari gateway sebelumnya (Pakasir,
+  // sudah dihentikan) tidak bisa dicek lagi; admin bisa mengaktifkannya manual lewat panel.
+  if (payment.payment_method !== "poketo") return { status: "PENDING" };
+  const provider = "Poketo";
 
-  if (provider === "Poketo") {
-    const invoice = await getPoketoInvoice(orderId);
-    if (invoice && invoice.status === "paid" && invoice.referenceId === orderId && invoice.amount >= payment.amount) {
-      verified = { completedAt: invoice.paidAt, sandbox: invoice.environment === "sandbox" };
-    }
-  } else {
-    // API v2 Pakasir mengecek status lewat txn_id. Utamakan yang tersimpan saat order dibuat;
-    // txn_id dari webhook hanya cadangan, dan tetap aman karena hasilnya dicocokkan ke order_id kita.
-    const txnId: string | null = payment.pakasir_txn_id ?? txnIdHint ?? null;
-    if (!txnId) return { status: "PENDING" };
-    const transaction = await getPakasirTransactionStatus({ txnId });
-    if (
-      transaction &&
-      transaction.status === "completed" &&
-      transaction.order_id === orderId &&
-      transaction.amount >= payment.amount
-    ) {
-      verified = { completedAt: transaction.completed_at, sandbox: transaction.is_sandbox };
-    }
+  let verified: { completedAt: string | null; sandbox: boolean } | null = null;
+  const invoice = await getPoketoInvoice(orderId);
+  if (invoice && invoice.status === "paid" && invoice.referenceId === orderId && invoice.amount >= payment.amount) {
+    verified = { completedAt: invoice.paidAt, sandbox: invoice.environment === "sandbox" };
   }
 
   if (!verified) return { status: "PENDING" };
@@ -95,7 +75,7 @@ export async function finalizePakasirPayment(
 
   if (upgradeError) {
     // Upgrade gagal: kembalikan klaim supaya pembayaran ini bisa diproses ulang
-    // (webhook Pakasir akan retry karena kita balas 400, atau user klik "Cek Status").
+    // (webhook Poketo akan retry karena kita balas 400, atau user klik "Cek Status").
     console.error(`[payment/${provider}] Gagal upgrade tier untuk order ${orderId}, klaim dikembalikan:`, upgradeError);
     await service
       .from("payments")

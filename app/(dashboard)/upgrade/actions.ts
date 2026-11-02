@@ -3,14 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { createPakasirTransaction, type PakasirMethod } from "@/lib/pakasir";
 import { createPoketoInvoice, POKETO_MIN_AMOUNT } from "@/lib/poketo";
 import { SITE_URL } from "@/lib/site-url";
-import { finalizePakasirPayment } from "@/lib/pakasir-fulfillment";
-import { generateQrDataUrl } from "@/lib/qrcode";
+import { finalizePayment } from "@/lib/payment-fulfillment";
 import { uploadPrivateToR2, UPLOAD_MAX_BYTES, isAllowedUploadType } from "@/lib/r2";
 import { isEmail } from "@/lib/validation";
-import { PLAN_PRICE_IDR, PAKASIR_METHODS, purchasablePlans, type Plan } from "@/lib/pakasir-constants";
+import { PLAN_PRICE_IDR, purchasablePlans, type Plan } from "@/lib/payment-constants";
 import { getMembershipStatus } from "@/lib/tier";
 import { getT } from "@/lib/i18n/server";
 import { rateLimit } from "@/lib/rate-limit";
@@ -124,102 +122,6 @@ export async function previewPromoCode({ plan, code }: { plan: Plan; code: strin
   return { ok: true, code: result.quote.code, idr: result.quote.idr, usdt: result.quote.usdt };
 }
 
-async function createInstantPaymentImpl({
-  plan,
-  method,
-  promoCode,
-}: {
-  plan: Plan;
-  method: PakasirMethod;
-  promoCode?: string | null;
-}) {
-  const { t } = await getT();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return fail(t("Sesi kamu berakhir. Silakan masuk lagi."));
-
-  if (!(await rateLimit(`pay-create:${user.id}`, 10, 3600))) {
-    return fail(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
-  }
-
-  // `plan` dan `method` datang dari client, jadi jangan dipercaya begitu saja.
-  // Paket harus salah satu yang memang boleh dibeli akun ini (mencegah downgrade
-  // tak sengaja & pembelian lifetime dua kali), dan `method` masuk ke path URL
-  // API Pakasir sehingga wajib dari daftar yang sudah ditentukan.
-  const status = await getMembershipStatus();
-  if (!purchasablePlans(status).includes(plan)) {
-    return fail(t("Paket ini tidak tersedia untuk akun kamu saat ini."));
-  }
-  if (!PAKASIR_METHODS.includes(method)) {
-    return fail(t("Metode pembayaran tidak valid."));
-  }
-
-  // Harga SELALU dihitung di server. Kalau ada kode promo, divalidasi ulang di sini
-  // (bukan percaya hasil preview dari browser).
-  let amount = PLAN_PRICE_IDR[plan];
-  let promo: { id: string; code: string; original: number; discount: number } | null = null;
-  if (promoCode && promoCode.trim()) {
-    const quoted = await quotePromo(createServiceClient(), { code: promoCode, plan, userId: user.id });
-    if (!quoted.ok) return fail(t(PROMO_MESSAGE[quoted.error]));
-    amount = quoted.quote.idr.final;
-    promo = {
-      id: quoted.quote.codeId,
-      code: quoted.quote.code,
-      original: quoted.quote.idr.original,
-      discount: quoted.quote.idr.discount,
-    };
-  }
-  const orderId = `LOKI4X-${user.id.slice(0, 8)}-${Date.now()}`;
-
-  const created = await createPakasirTransaction({ method, orderId, amount });
-  if (!created) return fail(t("Gagal membuat transaksi pembayaran, coba lagi."));
-
-  const service = createServiceClient();
-  const { error } = await service.from("payments").insert({
-    user_id: user.id,
-    order_id: orderId,
-    plan,
-    amount,
-    status: "PENDING",
-    payment_method: method,
-    payment_number: created.payment_number,
-    pakasir_txn_id: created.txn_id,
-    expired_at: created.expired_at || null,
-    currency: "IDR",
-    promo_code_id: promo?.id ?? null,
-    promo_code: promo?.code ?? null,
-    original_amount: promo?.original ?? amount,
-    discount_amount: promo?.discount ?? 0,
-  });
-  if (error) {
-    console.error("[upgrade/createInstantPayment] gagal menyimpan order:", error.message);
-    return fail(t("Gagal menyimpan order pembayaran"));
-  }
-
-  const qrImage = method === "qris" ? await generateQrDataUrl(created.payment_number) : null;
-
-  return {
-    ok: true as const,
-    orderId,
-    amount,
-    totalPayment: created.total_payment,
-    paymentNumber: created.payment_number,
-    qrImage,
-    expiredAt: created.expired_at,
-    method,
-  };
-}
-
-export async function createInstantPayment(args: {
-  plan: Plan;
-  method: PakasirMethod;
-  promoCode?: string | null;
-}) {
-  return safely("createInstantPayment", () => createInstantPaymentImpl(args));
-}
-
 const PLAN_TITLE: Record<Plan, string> = {
   VIP: "VIP",
   MEMBERSHIP: "Membership",
@@ -287,7 +189,7 @@ async function createPoketoPaymentImpl({ plan, promoCode }: { plan: Plan; promoC
     status: "PENDING",
     payment_method: "poketo",
     payment_number: invoice.paymentUrl, // URL halaman bayar
-    pakasir_txn_id: invoice.id, // kolom lama dipakai ulang untuk ID tagihan Poketo
+    pakasir_txn_id: invoice.id, // nama kolom warisan; berisi ID tagihan Poketo
     expired_at: invoice.expiresAt || null,
     currency: "IDR",
     promo_code_id: promo?.id ?? null,
@@ -326,7 +228,7 @@ export async function checkInstantPaymentStatus(orderId: string) {
   if (!owned) return null;
 
   try {
-    const result = await finalizePakasirPayment(orderId);
+    const result = await finalizePayment(orderId);
     return result.status;
   } catch (err) {
     console.error("[upgrade/checkInstantPaymentStatus]", err);

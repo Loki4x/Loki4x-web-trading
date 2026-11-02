@@ -5,7 +5,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 // SUPABASE_SERVICE_ROLE_KEY with a NEXT_PUBLIC_ prefix.
 //
 // Used where there's no logged-in user session to work with, e.g. the
-// Pakasir webhook (Pakasir's server calls it, not the browser).
+// Poketo webhook (Poketo's server calls it, not the browser).
 export function createServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

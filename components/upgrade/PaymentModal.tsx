@@ -12,7 +12,7 @@ import {
   submitUsdtPayment,
   previewPromoCode,
 } from "@/app/(dashboard)/upgrade/actions";
-import { PLAN_PRICE_IDR, type Plan } from "@/lib/pakasir-constants";
+import { PLAN_PRICE_IDR, type Plan } from "@/lib/payment-constants";
 import { USDT_WALLETS, USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
 import { useT } from "@/lib/i18n/client";
 

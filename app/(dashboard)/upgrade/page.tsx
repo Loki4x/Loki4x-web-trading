@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembershipStatus } from "@/lib/tier";
-import { purchasablePlans } from "@/lib/pakasir-constants";
+import { purchasablePlans } from "@/lib/payment-constants";
 import { VipRequestForm } from "@/components/upgrade/VipRequestForm";
 import type { VipIbRequest } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { verifyPoketoSignature } from "@/lib/poketo";
-import { finalizePakasirPayment } from "@/lib/pakasir-fulfillment";
+import { finalizePayment } from "@/lib/payment-fulfillment";
 
 // Poketo POST ke sini untuk setiap event tagihan. Docs: https://poketo.id/docs
 // Set sebagai URL webhook proyek Poketo:  https://<domain-kamu>/api/poketo/webhook
 //
 // Header `Poketo-Signature` diverifikasi dengan POKETO_WEBHOOK_SECRET (whsec_...). Meski begitu,
-// isi body tidak langsung dipercaya: finalizePakasirPayment mengecek ulang status tagihan ke API Poketo
+// isi body tidak langsung dipercaya: finalizePayment mengecek ulang status tagihan ke API Poketo
 // (pakai API key kita) sebelum memberi akses.
 //
 // Respons: 2xx = selesai. 5xx = Poketo mengulang (sampai 6 kali). 4xx lain = gagal permanen.
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing referenceId" }, { status: 400 });
   }
 
-  const result = await finalizePakasirPayment(orderId);
+  const result = await finalizePayment(orderId);
   if (result.status === "NOT_FOUND") return NextResponse.json({ error: "Unknown order" }, { status: 404 });
   if (result.status === "PENDING") {
     // Belum terverifikasi lunas di API Poketo: minta Poketo mengulang.

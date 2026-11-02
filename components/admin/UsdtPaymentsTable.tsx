@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X, FileImage } from "lucide-react";
 import { approveUsdtPayment, rejectUsdtPayment } from "@/app/admin/actions";
-import type { Plan } from "@/lib/pakasir-constants";
+import type { Plan } from "@/lib/payment-constants";
 import { useT } from "@/lib/i18n/client";
 
 interface PaymentRow {
