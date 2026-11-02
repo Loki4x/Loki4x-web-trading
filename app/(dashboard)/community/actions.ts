@@ -29,6 +29,12 @@ function displayName(fullName: string | null, email: string | null) {
   return name.length > 24 ? `${name.slice(0, 24)}…` : name;
 }
 
+function effectiveTier(p: { tier: string | null; vip_expires_at: string | null; is_admin: boolean | null }): Tier {
+  const stored: Tier = p.tier === "VIP" || p.tier === "MEMBERSHIP" ? p.tier : "FREE";
+  const expired = !!p.vip_expires_at && new Date(p.vip_expires_at).getTime() <= Date.now();
+  return p.is_admin ? "MEMBERSHIP" : stored !== "FREE" && expired ? "FREE" : stored;
+}
+
 /** Kirim pesan (dan/atau foto) ke ruang chat komunitas. Tier dicek ulang di server (tier lebih tinggi boleh ke ruang di bawahnya). */
 async function deliver(room: string, rawBody: unknown, file: File | null, extras: Extras = {}): Promise<CommunitySendResult> {
   const supabase = await createClient();
@@ -209,6 +215,51 @@ export async function sendCommunityImage(formData: FormData): Promise<CommunityS
     replyTo: formData.get("reply_to"),
     mentionIds,
   });
+}
+
+/**
+ * Cari member yang bisa disebut (@) di sebuah ruang: siapa pun yang punya akses ke ruang itu, tanpa harus pernah
+ * mengirim pesan. VIP/Membership berhak di ruang VIP, hanya Membership (dan admin) di ruang Membership.
+ * Hanya nama tampilan dan id yang dikembalikan, dan hanya ke user yang sendiri punya akses ke ruang tersebut.
+ */
+export async function searchMentionable(room: string, query: string): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !isRoom(room)) return [];
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("tier, vip_expires_at, is_admin, is_suspended")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!me || me.is_suspended) return [];
+  const myTier = effectiveTier(me);
+  if (!canAccessRoom(myTier, room)) return [];
+
+  if (!(await rateLimit(`community-mention:${user.id}`, 90, 60))) return [];
+
+  // Buang karakter yang berarti khusus di filter PostgREST/ILIKE.
+  const q = (typeof query === "string" ? query : "").trim().slice(0, 24).replace(/[%_,()*\\]/g, "");
+  let req = createServiceClient()
+    .from("profiles")
+    .select("id, full_name, email, tier, vip_expires_at, is_admin, is_suspended")
+    .neq("id", user.id)
+    .eq("is_suspended", false)
+    .limit(60);
+  if (room === "VIP") req = req.or("tier.in.(VIP,MEMBERSHIP),is_admin.eq.true");
+  if (room === "MEMBERSHIP") req = req.or("tier.eq.MEMBERSHIP,is_admin.eq.true");
+  if (q) req = req.or(`full_name.ilike.${q}%,email.ilike.${q}%`);
+  const { data } = await req.order("full_name", { ascending: true });
+
+  const out: { id: string; name: string }[] = [];
+  for (const p of data ?? []) {
+    if (!canAccessRoom(effectiveTier(p), room)) continue; // buang yang masa aktifnya sudah habis
+    out.push({ id: p.id, name: displayName(p.full_name, p.email) });
+    if (out.length >= 6) break;
+  }
+  return out;
 }
 
 /** Hanya admin: hapus pesan (moderasi). */

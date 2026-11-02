@@ -26,6 +26,7 @@ import {
   deleteCommunityMessage,
   pinCommunityMessage,
   reportCommunityMessage,
+  searchMentionable,
   sendCommunityImage,
   sendCommunityMessage,
 } from "@/app/(dashboard)/community/actions";
@@ -239,11 +240,31 @@ export function CommunityChat({
     return names.length ? new RegExp(`(@(?:${names.map(escapeRe).join("|")}))`, "g") : null;
   }, [messages]);
 
+  // Saran @: semua member yang punya akses ke ruang ini (dicari di server), plus penulis yang sudah tampil di layar.
+  const [remote, setRemote] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (mentionQuery === null || !allowed || !canWrite) {
+      setRemote([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const found = await searchMentionable(room, mentionQuery);
+      if (!cancelled) setRemote(found);
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [mentionQuery, room, allowed, canWrite]);
+
   const suggestions = useMemo(() => {
     if (mentionQuery === null) return [];
     const q = mentionQuery.toLowerCase();
-    return people.filter((p) => p.name.toLowerCase().startsWith(q)).slice(0, 5);
-  }, [mentionQuery, people]);
+    const local = people.filter((p) => p.name.toLowerCase().startsWith(q));
+    const seen = new Set<string>();
+    return [...local, ...remote].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 6);
+  }, [mentionQuery, people, remote]);
 
   function renderBody(text: string, mine: boolean) {
     if (!mentionRe) return text;
