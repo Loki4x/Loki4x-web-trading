@@ -1,37 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Copy } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { useT } from "@/lib/i18n/client";
+import { INSTRUMENTS } from "@/lib/lot-instruments";
 
-type InstrumentType = "Forex" | "Commodity" | "Index" | "Crypto" | "Custom";
-type MarginBasis = "quote" | "base"; // "quote": notional = lots × contractSize × price. "base": notional = lots × contractSize (price-independent, e.g. USD adalah base currency).
-
-interface Instrument {
+/** Data sinyal yang mengisi kalkulator otomatis (dari tombol "Hitung lot"). */
+export interface LotInitial {
   symbol: string;
-  type: InstrumentType;
-  pipSize: number; // harga per 1 pip
-  contractSize: number; // unit per 1.0 lot standard
-  quoteIsUSD: boolean; // apakah mata uang quote = USD (pip value bisa langsung dihitung tanpa bagi harga)
-  marginBasis: MarginBasis;
+  direction: "LONG" | "SHORT";
+  entry: string;
+  sl: string;
+  tp: string | null;
 }
 
-const INSTRUMENTS: Instrument[] = [
-  { symbol: "EURUSD", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "GBPUSD", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "AUDUSD", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "NZDUSD", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "USDJPY", type: "Forex", pipSize: 0.01, contractSize: 100_000, quoteIsUSD: false, marginBasis: "base" },
-  { symbol: "USDCHF", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: false, marginBasis: "base" },
-  { symbol: "USDCAD", type: "Forex", pipSize: 0.0001, contractSize: 100_000, quoteIsUSD: false, marginBasis: "base" },
-  { symbol: "XAUUSD", type: "Commodity", pipSize: 0.1, contractSize: 100, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "XAGUSD", type: "Commodity", pipSize: 0.001, contractSize: 5_000, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "US30", type: "Index", pipSize: 1, contractSize: 1, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "NAS100", type: "Index", pipSize: 1, contractSize: 1, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "BTCUSD", type: "Crypto", pipSize: 1, contractSize: 1, quoteIsUSD: true, marginBasis: "quote" },
-  { symbol: "CUSTOM", type: "Custom", pipSize: 0.0001, contractSize: 0, quoteIsUSD: true, marginBasis: "quote" },
-];
+const PREFS_KEY = "loki4x-lot-prefs";
 
 const QUICK_BALANCES = [5_000, 10_000, 25_000, 50_000];
 const RISK_LEVELS = [0.5, 1, 2, 3];
@@ -50,22 +34,43 @@ function fmt(n: number | null, digits = 2) {
   return n.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-export function LotCalculator() {
+export function LotCalculator({ initial }: { initial?: LotInitial }) {
   const t = useT();
-  const [symbol, setSymbol] = useState("XAUUSD");
-  const [direction, setDirection] = useState<"LONG" | "SHORT">("SHORT");
+  const [symbol, setSymbol] = useState(initial?.symbol ?? "XAUUSD");
+  const [direction, setDirection] = useState<"LONG" | "SHORT">(initial?.direction ?? "SHORT");
   const [balance, setBalance] = useState("400");
   const [riskPercent, setRiskPercent] = useState("0.5");
   const [leverage, setLeverage] = useState("100");
-  const [entry, setEntry] = useState("4379");
-  const [slMode, setSlMode] = useState<"PRICE" | "PIPS">("PIPS");
-  const [slValue, setSlValue] = useState("20");
-  const [tpMode, setTpMode] = useState<"PRICE" | "PIPS" | "RR">("PIPS");
-  const [tpValue, setTpValue] = useState("450");
+  const [entry, setEntry] = useState(initial?.entry ?? "4379");
+  const [slMode, setSlMode] = useState<"PRICE" | "PIPS">(initial ? "PRICE" : "PIPS");
+  const [slValue, setSlValue] = useState(initial?.sl ?? "20");
+  const [tpMode, setTpMode] = useState<"PRICE" | "PIPS" | "RR">(initial ? "PRICE" : "PIPS");
+  const [tpValue, setTpValue] = useState(initial ? (initial.tp ?? "") : "450");
   const [customPipSize, setCustomPipSize] = useState("0.0001");
   const [customPipValue, setCustomPipValue] = useState("10");
   const [customContractSize, setCustomContractSize] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Saldo, risiko, dan leverage terakhir diingat di browser ini supaya tidak diisi ulang tiap kali.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null");
+      if (saved && typeof saved === "object") {
+        if (typeof saved.balance === "string") setBalance(saved.balance);
+        if (typeof saved.riskPercent === "string") setRiskPercent(saved.riskPercent);
+        if (typeof saved.leverage === "string") setLeverage(saved.leverage);
+      }
+    } catch {
+      /* penyimpanan browser tidak tersedia: pakai nilai bawaan */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ balance, riskPercent, leverage }));
+    } catch {
+      /* abaikan */
+    }
+  }, [balance, riskPercent, leverage]);
 
   const instrument = INSTRUMENTS.find((i) => i.symbol === symbol) ?? INSTRUMENTS[0];
   const isCustom = instrument.type === "Custom";

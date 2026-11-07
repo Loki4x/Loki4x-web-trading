@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ImageIcon } from "lucide-react";
+import Link from "next/link";
+import { Calculator, ImageIcon } from "lucide-react";
+import { INSTRUMENTS } from "@/lib/lot-instruments";
 import { TradeSideBadge } from "@/components/trades/TradeSideBadge";
 import { PortfolioGrowthChart } from "@/components/signals/PortfolioGrowthChart";
 import { SignalAnalysisModal } from "@/components/signals/SignalAnalysisModal";
@@ -31,6 +33,15 @@ const CATEGORY_FILTERS: { key: CategoryFilter; label: DictKey | null; raw?: stri
   { key: "CRYPTO", label: null, raw: "Crypto" },
 ];
 
+/** Link ke kalkulator lot dengan data sinyal terisi; null kalau sinyal tidak bisa dihitung (tanpa SL atau instrumen tidak dikenal). */
+function lotCalcHref(s: Signal): string | null {
+  const symbol = s.symbol.toUpperCase();
+  if (s.stop_loss === null || !INSTRUMENTS.some((i) => i.symbol === symbol && i.symbol !== "CUSTOM")) return null;
+  const q = new URLSearchParams({ symbol, side: s.side, entry: String(s.entry_price), sl: String(s.stop_loss) });
+  if (s.take_profit !== null) q.set("tp", String(s.take_profit));
+  return `/calculator?${q.toString()}`;
+}
+
 function daysAgoLabel(dateString: string, t: (k: DictKey, v?: Record<string, string | number>) => string): string {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
@@ -50,9 +61,12 @@ function priceDistancePercent(
 export function SignalsList({
   signals,
   updatesBySignal = {},
+  canCalculate = false,
 }: {
   signals: Signal[];
   updatesBySignal?: Record<string, SignalUpdate[]>;
+  /** Tombol "Hitung lot" hanya untuk Membership (kalkulator lot khusus tier itu). */
+  canCalculate?: boolean;
 }) {
   const t = useT();
   const [category, setCategory] = useState<CategoryFilter>("ALL");
@@ -305,6 +319,7 @@ export function SignalsList({
                       <p className="text-caption text-text-muted">{daysAgoLabel(s.posted_at, t)}</p>
                     </td>
                     <td className="px-4 py-3">
+                      <div className="flex flex-col items-start gap-1.5">
                       {s.chart_image_url || s.notes || (updatesBySignal[s.id]?.length ?? 0) > 0 ? (
                         <button
                           onClick={() => setAnalysisSignal(s)}
@@ -321,6 +336,16 @@ export function SignalsList({
                       ) : (
                         <span className="text-body-sm text-text-muted">—</span>
                       )}
+                      {canCalculate && !isTerminalStatus(s.status) && lotCalcHref(s) && (
+                        <Link
+                          href={lotCalcHref(s)!}
+                          className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
+                        >
+                          <Calculator className="h-4 w-4" />
+                          {t("Hitung lot")}
+                        </Link>
+                      )}
+                      </div>
                     </td>
                   </tr>
                 );
