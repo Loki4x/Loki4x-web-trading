@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Reveal } from "@/components/ui/Reveal";
 import { DownloadApp } from "@/components/landing/DownloadApp";
+import { getLandingT } from "@/lib/i18n/landing";
 
 const legal = [
   { href: "/privacy", label: "Privacy Policy" },
@@ -13,7 +14,8 @@ const socials = [
   { href: "https://www.tiktok.com/@lokiforex?_r=1&_t=ZS-99lRHOmRZht", label: "TikTok" },
 ];
 
-export function Footer() {
+export async function Footer() {
+  const { l } = await getLandingT();
   return (
     <footer className="border-t border-border py-14">
       <Reveal className="mx-auto max-w-content px-6">
@@ -28,26 +30,25 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-3 text-body-sm text-text-secondary">
-              A focused trading journal and market news workspace, built for
-              traders who take their process seriously.
+              {l("A focused trading journal and market news workspace, built for traders who take their process seriously.")}
             </p>
           </div>
 
           <div className="flex gap-16">
             <div className="flex flex-col gap-3">
-              <span className="text-caption font-semibold text-text-muted">Legal</span>
+              <span className="text-caption font-semibold text-text-muted">{l("Legal")}</span>
               {legal.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className="text-body-sm text-text-secondary hover:text-text-primary"
                 >
-                  {item.label}
+                  {l(item.label)}
                 </Link>
               ))}
             </div>
             <div className="flex flex-col gap-3">
-              <span className="text-caption font-semibold text-text-muted">Social</span>
+              <span className="text-caption font-semibold text-text-muted">{l("Social")}</span>
               {socials.map((item) => (
                 <a
                   key={item.href}
@@ -66,7 +67,7 @@ export function Footer() {
         <DownloadApp />
 
         <div className="mt-10 border-t border-border pt-6">
-          <p className="text-body-sm text-text-muted">© 2026 Loki4x Academy. All rights reserved.</p>
+          <p className="text-body-sm text-text-muted">{l("© 2026 Loki4x Academy. All rights reserved.")}</p>
         </div>
       </Reveal>
     </footer>

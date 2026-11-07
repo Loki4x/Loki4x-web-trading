@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
+import { getLandingT } from "@/lib/i18n/landing";
 import { ArrowRight, Calculator, Landmark, LineChart, Newspaper, NotebookPen, Play } from "lucide-react";
 
 // Animasi masuk murni CSS: jalan sejak paint pertama tanpa nunggu JS dan tanpa "kedip" dari HTML server-render.
@@ -111,7 +112,8 @@ const PILLARS = [
   { icon: Calculator, label: "Lot Calculator" },
 ];
 
-export function Hero() {
+export async function Hero() {
+  const { l } = await getLandingT();
   return (
     <section className="relative isolate flex min-h-[calc(100svh-4rem)] flex-col overflow-hidden">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -156,46 +158,45 @@ export function Hero() {
           className="animate-enter inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-badge font-semibold tracking-wide text-text-secondary backdrop-blur"
           style={enter(0)}
         >
-          TRADING JOURNAL &amp; MARKET NEWS
+          {l("TRADING JOURNAL & MARKET NEWS")}
         </span>
 
         <h1 className="mt-6 max-w-4xl text-[2.5rem] font-extrabold leading-[1.08] tracking-tight text-text-primary md:text-[3.75rem] lg:text-[4.5rem]">
-          <Words text="Log every trade." start={250} />
+          <Words text={l("Log every trade.")} start={250} />
           <br />
-          <Words text="Read every market" start={620} />
+          <Words text={l("Read every market")} start={620} />
           <span
             className="lk-word inline-block italic text-primary-hover"
             style={{ fontFamily: 'Georgia, "Times New Roman", serif', animationDelay: "1000ms" }}
           >
-            move.
+            {l("move.")}
           </span>
         </h1>
 
         <p className="animate-enter mx-auto mt-6 max-w-xl text-body-lg text-text-secondary" style={enter(1100)}>
-          Loki4x Academy keeps your entries, exits and reasoning in one disciplined journal, next to the economic
-          releases that actually move price.
+          {l("Loki4x Academy keeps your entries, exits and reasoning in one disciplined journal, next to the economic releases that actually move price.")}
         </p>
 
         <div className="animate-enter mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row" style={enter(1250)}>
           <Link href="/signup" className="btn-primary">
-            Get Started Free
+            {l("Get Started Free")}
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link href="#features" className="btn-ghost">
             <Play className="h-3.5 w-3.5" />
-            See how it works
+            {l("See how it works")}
           </Link>
         </div>
       </div>
 
       {/* Pengganti "Trusted by": pilar produk, duduk di atas lantai grid */}
       <div className="animate-enter relative z-10 mx-auto w-full max-w-content px-6 pb-10 pt-8 text-center" style={enter(1500)}>
-        <p className="text-caption text-text-muted">One workspace for everything you need to trade with discipline</p>
+        <p className="text-caption text-text-muted">{l("One workspace for everything you need to trade with discipline")}</p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
           {PILLARS.map(({ icon: Icon, label }) => (
             <span key={label} className="inline-flex items-center gap-2 text-body-sm font-medium text-text-secondary">
               <Icon className="h-4 w-4 text-primary" />
-              {label}
+              {l(label)}
             </span>
           ))}
         </div>
