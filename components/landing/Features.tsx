@@ -5,7 +5,7 @@ import { Accent, SectionHeading } from "@/components/landing/SectionHeading";
 import { getLandingT, type LandingT } from "@/lib/i18n/landing";
 
 const card =
-  "relative flex h-full flex-col rounded-2xl border border-border bg-surface/60 p-6 backdrop-blur transition-colors duration-200 hover:border-primary/40";
+  "card-hover relative flex h-full flex-col rounded-2xl border border-border bg-surface/60 p-6 backdrop-blur transition-colors duration-200 hover:border-primary/40";
 
 function Mock({ children, sample }: { children: ReactNode; sample: string }) {
   return (

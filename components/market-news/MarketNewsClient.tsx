@@ -76,7 +76,7 @@ export function MarketNewsClient({ news }: { news: MarketNewsItem[] }) {
               href={item.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="card flex flex-col gap-3 transition-colors hover:border-primary/40 hover:bg-surface-hover"
+              className="card card-hover flex flex-col gap-3 hover:bg-surface-hover"
             >
               <div className="flex flex-wrap items-center gap-1.5">
                 {item.categories.map((cat) => (

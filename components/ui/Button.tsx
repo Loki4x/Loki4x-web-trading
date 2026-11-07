@@ -14,7 +14,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const base =
-      "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-body font-semibold transition-colors disabled:opacity-50 disabled:pointer-events-none";
+      "btn-fx inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-body font-semibold transition-colors disabled:opacity-50 disabled:pointer-events-none";
     const variants = {
       primary: "bg-primary text-text-on-primary shadow-glow hover:bg-primary-hover",
       secondary:
