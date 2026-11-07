@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import { SUPPORT_EMAIL } from "@/lib/site-url";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "How Loki4x Academy collects, uses and protects your personal data.",
+  alternates: { canonical: "/privacy" },
+};
+
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-content px-6 py-12">

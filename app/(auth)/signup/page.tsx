@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { GoogleButton } from "@/components/auth/GoogleButton";
@@ -6,6 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { signup } from "@/app/(auth)/actions";
 import { getT } from "@/lib/i18n/server";
 import { authErrorKey } from "@/lib/auth-errors";
+
+export const metadata: Metadata = {
+  title: "Create a free account",
+  description: "Sign up free for Loki4x Academy: trading journal, market news and gold signals.",
+  alternates: { canonical: "/signup" },
+};
 
 export default async function SignupPage({
   searchParams,

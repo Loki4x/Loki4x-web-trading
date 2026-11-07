@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { SUPPORT_EMAIL } from "@/lib/site-url";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "Terms of use, plans, payments and refund policy for Loki4x Academy.",
+  alternates: { canonical: "/terms" },
+};
 
 // [judul, isi]
 const PAID_TERMS: [string, string][] = [
