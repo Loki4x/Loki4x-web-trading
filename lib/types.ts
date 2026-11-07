@@ -59,6 +59,9 @@ export interface Trade {
   session: TradeSession | null;
   notes: string | null;
   confluence: string | null;
+  strategy: string | null;
+  emotion: string | null;
+  followed_plan: boolean | null;
   before_photo_url: string | null;
   after_photo_url: string | null;
   created_at: string;

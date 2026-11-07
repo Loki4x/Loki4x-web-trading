@@ -4,6 +4,8 @@ import { KpiCard } from "@/components/dashboard/KpiCard";
 import { TopPairsList } from "@/components/reports/TopPairsList";
 import { DailyPnlHeatmap } from "@/components/reports/DailyPnlHeatmap";
 import { SessionBreakdown, type SessionStat } from "@/components/reports/SessionBreakdown";
+import { TagBreakdown, type TagRow } from "@/components/reports/TagBreakdown";
+import { EMOTION_LABEL, isEmotion } from "@/lib/journal-tags";
 import { formatCurrency } from "@/lib/utils";
 import type { Trade, TradeSession } from "@/lib/types";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
@@ -116,6 +118,28 @@ export default async function ReportsPage({
     total: g.total,
   }));
 
+  // Kelompokkan trade tertutup: strategi, emosi, dan kepatuhan pada rencana.
+  function group(keyOf: (tr: Trade) => string | null): TagRow[] {
+    const m = new Map<string, TagRow>();
+    for (const tr of closed) {
+      const label = keyOf(tr);
+      if (!label) continue;
+      const g = m.get(label) ?? { label, total: 0, wins: 0, pnl: 0 };
+      g.total += 1;
+      if ((tr.pnl ?? 0) > 0) g.wins += 1;
+      g.pnl += tr.pnl ?? 0;
+      m.set(label, g);
+    }
+    return Array.from(m.values());
+  }
+  const strategyRows = group((tr) => tr.strategy);
+  const emotionRows = group((tr) => (tr.emotion && isEmotion(tr.emotion) ? t(EMOTION_LABEL[tr.emotion]) : null));
+  const planRows = group((tr) =>
+    tr.followed_plan === true ? t("Sesuai rencana") : tr.followed_plan === false ? t("Melanggar rencana") : null
+  );
+  const tagHeaders = { trades: t("Trade"), winRate: "Win rate", pnl: "P&L" };
+  const tagEmpty = t("Belum ada data. Isi strategi, emosi, dan kepatuhan rencana saat mencatat trade.");
+
   return (
     <main className="mx-auto max-w-content px-6 py-8">
       <div className="mb-6">
@@ -145,6 +169,12 @@ export default async function ReportsPage({
           <TopPairsList pairs={pairs} currency={activeAccount.currency} />
           <SessionBreakdown stats={sessionStats} />
         </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <TagBreakdown title={t("Per Strategi")} rows={strategyRows} currency={activeAccount.currency} empty={tagEmpty} headers={tagHeaders} />
+        <TagBreakdown title={t("Per Emosi")} rows={emotionRows} currency={activeAccount.currency} empty={tagEmpty} headers={tagHeaders} />
+        <TagBreakdown title={t("Sesuai Rencana vs Melanggar")} rows={planRows} currency={activeAccount.currency} empty={tagEmpty} headers={tagHeaders} />
       </div>
     </main>
   );

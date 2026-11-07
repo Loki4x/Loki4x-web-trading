@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { uploadToR2 } from "@/lib/r2";
+import { STRATEGY_MAX_LEN, isEmotion, parseFollowedPlan } from "@/lib/journal-tags";
 import { SYMBOL_RE, cleanText, isUuid, isValidDate, ownedPhotoUrl } from "@/lib/validation";
 
 export async function addTrade(formData: FormData) {
@@ -27,6 +28,10 @@ export async function addTrade(formData: FormData) {
   const tradeDate = String(formData.get("trade_date") ?? "");
   const notes = cleanText(formData.get("notes"), 5000);
   const confluence = cleanText(formData.get("confluence"), 2000);
+  const strategy = cleanText(formData.get("strategy"), STRATEGY_MAX_LEN) || null;
+  const emotionRaw = String(formData.get("emotion") ?? "");
+  const emotion = isEmotion(emotionRaw) ? emotionRaw : null;
+  const followedPlan = parseFollowedPlan(formData.get("followed_plan"));
   const numbersOk =
     Number.isFinite(entryPrice) && entryPrice > 0 && [exitPrice, pips, pnlManual].every((n) => n === null || Number.isFinite(n));
   const accountId = String(formData.get("account_id") ?? "");
@@ -79,6 +84,9 @@ export async function addTrade(formData: FormData) {
     session,
     notes,
     confluence,
+    strategy,
+    emotion,
+    followed_plan: followedPlan,
     before_photo_url: beforePhotoUrl,
     after_photo_url: afterPhotoUrl,
   });
@@ -109,6 +117,10 @@ export async function updateTrade(tradeId: string, formData: FormData) {
   const tradeDate = String(formData.get("trade_date") ?? "");
   const notes = cleanText(formData.get("notes"), 5000);
   const confluence = cleanText(formData.get("confluence"), 2000);
+  const strategy = cleanText(formData.get("strategy"), STRATEGY_MAX_LEN) || null;
+  const emotionRaw = String(formData.get("emotion") ?? "");
+  const emotion = isEmotion(emotionRaw) ? emotionRaw : null;
+  const followedPlan = parseFollowedPlan(formData.get("followed_plan"));
   const numbersOk =
     Number.isFinite(entryPrice) && entryPrice > 0 && [exitPrice, pips, pnlManual].every((n) => n === null || Number.isFinite(n));
   if (
@@ -161,6 +173,9 @@ export async function updateTrade(tradeId: string, formData: FormData) {
       session,
       notes,
       confluence,
+      strategy,
+      emotion,
+      followed_plan: followedPlan,
       before_photo_url: beforePhotoUrl,
       after_photo_url: afterPhotoUrl,
     })
