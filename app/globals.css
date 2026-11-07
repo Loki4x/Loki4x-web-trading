@@ -106,6 +106,85 @@
       focus:border-primary focus:outline-none;
   }
 
+  /* ---- Micro-interaction ----
+     Tombol: terangkat sedikit saat disorot (hanya perangkat dengan kursor), mengecil saat ditekan (juga di layar sentuh).
+     Kartu yang bisa diklik: terangkat dengan garis biru menyala. Semuanya mati otomatis kalau pengguna memilih "kurangi gerakan". */
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-fx {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .btn-primary:active:not(:disabled),
+  .btn-secondary:active:not(:disabled),
+  .btn-ghost:active:not(:disabled),
+  .btn-fx:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .card-hover,
+  a.card,
+  button.card {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms, box-shadow 200ms, background-color 200ms;
+  }
+  .card-hover:active,
+  a.card:active,
+  button.card:active {
+    transform: scale(0.985);
+  }
+
+  /* Baris tabel dan item menu: perubahan warna halus, dan sedikit mengecil saat diketuk. */
+  tbody tr {
+    transition: background-color 150ms ease;
+  }
+  nav a,
+  aside a {
+    transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+  }
+  nav a:active,
+  aside a:active {
+    transform: scale(0.98);
+  }
+
+  @media (hover: hover) {
+    .btn-primary:hover:not(:disabled),
+    .btn-secondary:hover:not(:disabled),
+    .btn-fx:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+    .btn-primary:hover:not(:disabled),
+    .shadow-glow:hover:not(:disabled) {
+      box-shadow: 0 6px 32px rgba(95, 133, 219, 0.55);
+    }
+    .btn-primary:active:not(:disabled),
+    .btn-secondary:active:not(:disabled),
+    .btn-fx:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+    .card-hover:hover,
+    a.card:hover,
+    button.card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(95, 133, 219, 0.5);
+      box-shadow: 0 12px 32px -14px rgba(95, 133, 219, 0.4);
+    }
+    .card-hover:active,
+    a.card:active,
+    button.card:active {
+      transform: scale(0.985);
+    }
+  }
+
+  /* Modal: latar memudar, kotaknya naik dan membesar halus saat muncul. */
+  div.fixed.inset-0.z-50 {
+    animation: overlay-in 180ms ease-out both;
+  }
+  div.fixed.inset-0.z-50 > div {
+    animation: panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   /* Skeleton loading dengan efek shimmer (dipakai components/ui/Skeleton.tsx) */
   .skeleton {
     position: relative;
@@ -144,6 +223,16 @@
   40% { background-position: 0% 100%, 50%   0%, 100%  50%; }
   60% { background-position: 0%  50%, 50% 100%, 100%   0%; }
   80% { background-position: 0%  50%, 50%  50%, 100% 100%; }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes shimmer {

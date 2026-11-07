@@ -66,7 +66,7 @@ export async function Pricing() {
         {plans.map((plan, i) => (
           <Reveal key={plan.name} delay={i * 120} className="h-full">
             <div
-              className={`relative h-full rounded-2xl border p-8 ${
+              className={`card-hover relative h-full rounded-2xl border p-8 ${
                 plan.featured ? "border-primary bg-primary-subtle/40 shadow-[0_0_60px_rgba(95,133,219,0.2)]" : "border-border bg-surface/60 backdrop-blur"
               }`}
             >
@@ -98,7 +98,7 @@ export async function Pricing() {
 
               <Link
                 href={plan.href}
-                className={`mt-8 flex w-full items-center justify-center rounded-full px-6 py-3 font-semibold transition-colors ${
+                className={`btn-fx mt-8 flex w-full items-center justify-center rounded-full px-6 py-3 font-semibold transition-colors ${
                   plan.featured
                     ? "bg-primary text-text-on-primary shadow-glow hover:bg-primary-hover"
                     : "border border-border bg-surface-2 text-text-primary hover:bg-surface-hover"
