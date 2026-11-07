@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { GoogleButton } from "@/components/auth/GoogleButton";
@@ -6,6 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { login } from "@/app/(auth)/actions";
 import { getT } from "@/lib/i18n/server";
 import { authErrorKey } from "@/lib/auth-errors";
+
+export const metadata: Metadata = {
+  title: "Log in",
+  description: "Log in to your Loki4x Academy trading journal and signals.",
+  alternates: { canonical: "/login" },
+};
 
 export default async function LoginPage({
   searchParams,

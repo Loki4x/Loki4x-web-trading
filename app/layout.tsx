@@ -30,8 +30,14 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: TITLE,
+  title: { default: TITLE, template: "%s | Loki4x Academy" },
   description: DESCRIPTION,
+  applicationName: "Loki4x Academy",
+  keywords: ["trading journal", "forex signals", "gold signals", "XAUUSD", "market news", "jurnal trading", "sinyal trading"],
+  // Kode verifikasi Google Search Console (opsional; isi lewat env kalau verifikasi memakai meta tag).
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
   openGraph: { title: TITLE, description: DESCRIPTION, siteName: "Loki4x Academy", type: "website", url: "/" },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
