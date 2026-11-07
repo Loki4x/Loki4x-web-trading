@@ -2,15 +2,16 @@ import type { ReactNode } from "react";
 import { Compass, GraduationCap, ShieldCheck } from "lucide-react";
 import { Reveal } from "@/components/ui/Reveal";
 import { Accent, SectionHeading } from "@/components/landing/SectionHeading";
+import { getLandingT, type LandingT } from "@/lib/i18n/landing";
 
 const card =
   "relative flex h-full flex-col rounded-2xl border border-border bg-surface/60 p-6 backdrop-blur transition-colors duration-200 hover:border-primary/40";
 
-function Mock({ children }: { children: ReactNode }) {
+function Mock({ children, sample }: { children: ReactNode; sample: string }) {
   return (
     <div className="relative mb-6 flex h-40 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-background/60 px-4">
       {children}
-      <span className="absolute right-2 top-2 text-[9px] font-medium uppercase tracking-wider text-text-muted">Sample</span>
+      <span className="absolute right-2 top-2 text-[9px] font-medium uppercase tracking-wider text-text-muted">{sample}</span>
     </div>
   );
 }
@@ -80,15 +81,15 @@ const CotMock = (
   </svg>
 );
 
-const LotMock = (
+const LotMock = (l: LandingT) => (
   <div className="w-full max-w-[220px] space-y-2">
-    {["Balance", "Risk %", "Stop loss"].map((l, i) => (
-      <div key={l} className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-1.5">
-        <span className="text-[10px] text-text-muted">{l}</span>
+    {["Balance", "Risk %", "Stop loss"].map((label, i) => (
+      <div key={label} className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-1.5">
+        <span className="text-[10px] text-text-muted">{l(label)}</span>
         <Line w={["38%", "22%", "30%"][i]} />
       </div>
     ))}
-    <div className="rounded-md bg-primary/15 px-3 py-1.5 text-center text-caption font-semibold text-primary-hover">Lot size</div>
+    <div className="rounded-md bg-primary/15 px-3 py-1.5 text-center text-caption font-semibold text-primary-hover">{l("Lot size")}</div>
   </div>
 );
 
@@ -98,46 +99,47 @@ const strip = [
   { icon: ShieldCheck, title: "Your journal stays yours", text: "Your trades are visible only to you. Nothing you log is shared or published." },
 ];
 
-export function Features() {
+export async function Features() {
+  const { l } = await getLandingT();
   return (
     <section id="features" className="scroll-mt-24 border-t border-border py-24">
       <div className="mx-auto max-w-content px-6">
         <SectionHeading
-          badge="Features"
-          description="Journal, signals, news, and positioning in one workspace, built for traders who want to see the whole picture."
+          badge={l("Features")}
+          description={l("Journal, signals, news, and positioning in one workspace, built for traders who want to see the whole picture.")}
         >
-          The Toolkit Every Modern <Accent>Trader</Accent> Needs
+          {l("The Toolkit Every Modern")} <Accent>Trader</Accent> {l("Needs")}
         </SectionHeading>
 
         <div className="mt-14 grid grid-cols-1 gap-5 lg:grid-cols-6">
           <Reveal className="h-full lg:col-span-3">
             <div className={card}>
-              <Mock>{JournalMock}</Mock>
-              <Copy title="Trade Journal" text="Log every entry and exit in seconds. Win rate, risk-reward, and running P&L update automatically." />
+              <Mock sample={l("Sample")}>{JournalMock}</Mock>
+              <Copy title={l("Trade Journal")} text={l("Log every entry and exit in seconds. Win rate, risk-reward, and running P&L update automatically.")} />
             </div>
           </Reveal>
           <Reveal delay={120} className="h-full lg:col-span-3">
             <div className={card}>
-              <Mock>{CalendarMock}</Mock>
-              <Copy title="Real-Time Economic Calendar" text="High-impact releases flagged by importance and currency, so no news catches you off guard." />
+              <Mock sample={l("Sample")}>{CalendarMock}</Mock>
+              <Copy title={l("Real-Time Economic Calendar")} text={l("High-impact releases flagged by importance and currency, so no news catches you off guard.")} />
             </div>
           </Reveal>
           <Reveal className="h-full lg:col-span-2">
             <div className={card}>
-              <Mock>{SignalMock}</Mock>
-              <Copy title="Signals & Track Record" text="Curated trade signals with a transparent record of every closed result." />
+              <Mock sample={l("Sample")}>{SignalMock}</Mock>
+              <Copy title={l("Signals & Track Record")} text={l("Curated trade signals with a transparent record of every closed result.")} />
             </div>
           </Reveal>
           <Reveal delay={120} className="h-full lg:col-span-2">
             <div className={card}>
-              <Mock>{CotMock}</Mock>
-              <Copy title="Institutional Positioning" text="See how large players are positioned using official CFTC COT data." />
+              <Mock sample={l("Sample")}>{CotMock}</Mock>
+              <Copy title={l("Institutional Positioning")} text={l("See how large players are positioned using official CFTC COT data.")} />
             </div>
           </Reveal>
           <Reveal delay={240} className="h-full lg:col-span-2">
             <div className={card}>
-              <Mock>{LotMock}</Mock>
-              <Copy title="Lot Calculator" text="Position size, risk exposure, and potential profit before every trade." />
+              <Mock sample={l("Sample")}>{LotMock(l)}</Mock>
+              <Copy title={l("Lot Calculator")} text={l("Position size, risk exposure, and potential profit before every trade.")} />
             </div>
           </Reveal>
         </div>
@@ -147,9 +149,9 @@ export function Features() {
             <Reveal key={title} delay={i * 120}>
               <div className="flex items-center gap-2 text-body font-semibold text-text-primary">
                 <Icon className="h-4 w-4 text-primary" />
-                {title}
+                {l(title)}
               </div>
-              <p className="mt-2 text-body-sm text-text-secondary">{text}</p>
+              <p className="mt-2 text-body-sm text-text-secondary">{l(text)}</p>
             </Reveal>
           ))}
         </div>

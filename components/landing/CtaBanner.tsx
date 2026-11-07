@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
 import { Reveal } from "@/components/ui/Reveal";
 import { Accent } from "@/components/landing/SectionHeading";
+import { getLandingT } from "@/lib/i18n/landing";
 
 // Lantai grid berperspektif, sama dengan di Hero, memakai biru brand (#5F85DB).
 const CSS = `.cta-floor{position:absolute;left:-60%;right:-60%;bottom:-10%;height:120%;transform-origin:50% 100%;transform:perspective(620px) rotateX(64deg);
 background-image:linear-gradient(rgba(95,133,219,.42) 1.5px,transparent 1.5px),linear-gradient(90deg,rgba(95,133,219,.42) 1.5px,transparent 1.5px);background-size:76px 76px;
 -webkit-mask-image:radial-gradient(ellipse 55% 70% at 50% 100%,#000 15%,transparent 72%);mask-image:radial-gradient(ellipse 55% 70% at 50% 100%,#000 15%,transparent 72%)}`;
 
-export function CtaBanner() {
+export async function CtaBanner() {
+  const { l } = await getLandingT();
   return (
     <section className="relative isolate flex min-h-[100svh] items-center overflow-hidden border-t border-border">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -27,19 +29,19 @@ export function CtaBanner() {
       <div className="mx-auto w-full max-w-content px-6 py-28 text-center">
         <Reveal from="zoom">
           <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-text-primary md:text-6xl">
-            Start Trading <Accent>Smarter</Accent> Today
+            {l("Start Trading")} <Accent>{l("Smarter")}</Accent> {l("Today")}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-body-lg text-text-secondary">
-            Start your journal for free. It takes less than two minutes to log your first trade.
+            {l("Start your journal for free. It takes less than two minutes to log your first trade.")}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link href="/signup" className="btn-primary">
-              Get Started Free
+              {l("Get Started Free")}
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/#pricing" className="btn-ghost">
               <Play className="h-3.5 w-3.5" />
-              View pricing
+              {l("View pricing")}
             </Link>
           </div>
         </Reveal>

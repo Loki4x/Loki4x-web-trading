@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { getLandingT } from "@/lib/i18n/landing";
 
 const links = [
   { href: "#features", label: "Features" },
@@ -9,7 +11,8 @@ const links = [
   { href: "/news", label: "News" },
 ];
 
-export function Navbar() {
+export async function Navbar() {
+  const { l } = await getLandingT();
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-topbar max-w-content items-center justify-between px-6">
@@ -29,20 +32,21 @@ export function Navbar() {
               href={link.href}
               className="text-body-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
             >
-              {link.label}
+              {l(link.label)}
             </Link>
           ))}
         </nav>
 
         <div className="flex items-center gap-3">
+          <LanguageToggle />
           <Link
             href="/login"
             className="hidden text-body-sm font-medium text-text-secondary transition-colors hover:text-text-primary sm:block"
           >
-            Sign in
+            {l("Sign in")}
           </Link>
           <Link href="/signup" className="btn-primary !px-5 !py-2.5 text-body-sm">
-            Get Started Free
+            {l("Get Started Free")}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
