@@ -618,4 +618,5 @@ export const EN_STRINGS: Record<string, string> = {
   "Balas": "Reply",
   "Membalas {name}": "Replying to {name}",
   "Batal membalas": "Cancel reply",
+  "Hitung lot": "Calculate lot",
 };

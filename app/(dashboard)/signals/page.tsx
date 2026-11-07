@@ -37,7 +37,7 @@ export default async function SignalsPage() {
         <p className="text-body-sm text-text-secondary">{t("signals.subtitle")}</p>
       </div>
 
-      <SignalsList signals={signals ?? []} updatesBySignal={updatesBySignal} />
+      <SignalsList signals={signals ?? []} updatesBySignal={updatesBySignal} canCalculate={hasAccess(tier, "MEMBERSHIP")} />
     </main>
   );
 }
