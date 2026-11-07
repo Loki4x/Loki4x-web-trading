@@ -10,8 +10,19 @@ import { EditTradeModal } from "@/components/trades/EditTradeModal";
 import { formatCurrency, formatDate, formatPrice, pnlColorClass } from "@/lib/utils";
 import { deleteTrade } from "@/app/(dashboard)/trades/actions";
 import type { Trade, AccountCurrency } from "@/lib/types";
+import { EMOTION_LABEL, isEmotion } from "@/lib/journal-tags";
+import { useT } from "@/lib/i18n/client";
 
-export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; currency?: AccountCurrency }) {
+export function TradesTable({
+  trades,
+  currency = "USD",
+  strategyOptions = [],
+}: {
+  trades: Trade[];
+  currency?: AccountCurrency;
+  strategyOptions?: string[];
+}) {
+  const t = useT();
   const router = useRouter();
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
 
@@ -46,7 +57,24 @@ export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; cur
           )}
           {trades.map((trade) => (
             <tr key={trade.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
-              <td className="px-4 py-3 text-body-sm font-semibold text-text-primary">{trade.symbol}</td>
+              <td className="px-4 py-3">
+                <p className="text-body-sm font-semibold text-text-primary">{trade.symbol}</p>
+                {(trade.strategy || trade.emotion || trade.followed_plan !== null) && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {trade.strategy && (
+                      <span className="rounded-full bg-primary-subtle px-1.5 py-0.5 text-[10px] font-semibold text-primary">{trade.strategy}</span>
+                    )}
+                    {trade.emotion && isEmotion(trade.emotion) && (
+                      <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold text-text-secondary">
+                        {t(EMOTION_LABEL[trade.emotion])}
+                      </span>
+                    )}
+                    {trade.followed_plan === false && (
+                      <span className="rounded-full bg-warning-subtle px-1.5 py-0.5 text-[10px] font-semibold text-warning">{t("Melanggar rencana")}</span>
+                    )}
+                  </div>
+                )}
+              </td>
               <td className="px-4 py-3">
                 <TradeSideBadge side={trade.side} />
               </td>
@@ -105,6 +133,7 @@ export function TradesTable({ trades, currency = "USD" }: { trades: Trade[]; cur
         <EditTradeModal
           trade={editingTrade}
           accountCurrency={currency}
+          strategyOptions={strategyOptions}
           onClose={() => setEditingTrade(null)}
         />
       )}

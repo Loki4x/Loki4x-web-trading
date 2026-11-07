@@ -53,6 +53,12 @@ export function TradesClient({
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [modalOpen, setModalOpen] = useState(!!openModal);
 
+  // Strategi yang pernah dipakai, jadi saran di form.
+  const strategyOptions = useMemo(
+    () => Array.from(new Set(trades.map((t) => t.strategy).filter((s): s is string => !!s))),
+    [trades]
+  );
+
   const filtered = useMemo(() => {
     return trades.filter((t) => {
       if (search && !t.symbol.toLowerCase().includes(search.toLowerCase())) return false;
@@ -128,10 +134,10 @@ export function TradesClient({
         </div>
       </div>
 
-      <TradesTable trades={filtered} currency={accountCurrency} />
+      <TradesTable trades={filtered} currency={accountCurrency} strategyOptions={strategyOptions} />
 
       {modalOpen && (
-        <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} accountCurrency={accountCurrency} />
+        <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} accountCurrency={accountCurrency} strategyOptions={strategyOptions} />
       )}
     </div>
   );

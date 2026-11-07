@@ -8,15 +8,18 @@ import { Button } from "@/components/ui/Button";
 import { addTrade } from "@/app/(dashboard)/trades/actions";
 import type { AccountCurrency } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
+import { TradeTagFields } from "@/components/trades/TradeTagFields";
 
 export function AddTradeModal({
   onClose,
   accountId,
   accountCurrency = "USD",
+  strategyOptions = [],
 }: {
   onClose: () => void;
   accountId: string;
   accountCurrency?: AccountCurrency;
+  strategyOptions?: string[];
 }) {
   const t = useT();
   const router = useRouter();
@@ -68,6 +71,8 @@ export function AddTradeModal({
             <label className="text-body-sm font-medium text-text-secondary">Confluence (Trade Reasoning)</label>
             <textarea name="confluence" rows={3} className="input-field resize-none" placeholder="Why did you take this trade? e.g. support/resistance, trend, news, indicator confirmation..." />
           </div>
+
+          <TradeTagFields strategyOptions={strategyOptions} />
 
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Session</label>

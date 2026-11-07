@@ -8,15 +8,18 @@ import { Button } from "@/components/ui/Button";
 import { updateTrade } from "@/app/(dashboard)/trades/actions";
 import type { AccountCurrency, Trade } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
+import { TradeTagFields } from "@/components/trades/TradeTagFields";
 
 export function EditTradeModal({
   onClose,
   trade,
   accountCurrency = "USD",
+  strategyOptions = [],
 }: {
   onClose: () => void;
   trade: Trade;
   accountCurrency?: AccountCurrency;
+  strategyOptions?: string[];
 }) {
   const t = useT();
   const router = useRouter();
@@ -97,6 +100,13 @@ export function EditTradeModal({
               defaultValue={trade.confluence ?? ""}
             />
           </div>
+
+          <TradeTagFields
+            strategyOptions={strategyOptions}
+            defaultStrategy={trade.strategy}
+            defaultEmotion={trade.emotion}
+            defaultFollowedPlan={trade.followed_plan}
+          />
 
           <div className="flex flex-col gap-2">
             <label className="text-body-sm font-medium text-text-secondary">Session</label>
