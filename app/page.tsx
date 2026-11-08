@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/site-url";
 import { getLocale } from "@/lib/i18n/server";
+import { Faq } from "@/components/landing/Faq";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { TrackRecord } from "@/components/landing/TrackRecord";
@@ -58,6 +59,7 @@ export default function LandingPage() {
         <Features />
         <TrackRecord />
         <Pricing />
+        <Faq />
         <CtaBanner />
       </main>
       <Footer />

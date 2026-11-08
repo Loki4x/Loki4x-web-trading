@@ -4,10 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, Receipt, BellRing, Radio, BarChart3, Newspaper } from "lucide-react";
 import { Switch } from "@/components/ui/Switch";
-import { updateNotificationPrefs } from "@/app/(dashboard)/settings/actions";
+import { updateNotificationPrefs, updateSignalPairs } from "@/app/(dashboard)/settings/actions";
 import type { Profile } from "@/lib/types";
 import { PushSetting } from "@/components/push/PushSetting";
 import { useT } from "@/lib/i18n/client";
+import { INSTRUMENTS } from "@/lib/lot-instruments";
+import { cx } from "@/lib/utils";
+
+const PAIR_OPTIONS = INSTRUMENTS.filter((i) => i.symbol !== "CUSTOM").map((i) => i.symbol);
 
 export function NotificationsPanel({ profile }: { profile: Profile | null }) {
   const t = useT();
@@ -17,6 +21,7 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
   const [notifySignals, setNotifySignals] = useState(profile?.notify_signals ?? true);
   const [notifyWeekly, setNotifyWeekly] = useState(profile?.notify_weekly ?? true);
   const [notifyNews, setNotifyNews] = useState(profile?.notify_news ?? true);
+  const [pairs, setPairs] = useState<string[]>(profile?.signal_pairs ?? []);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -31,6 +36,19 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
     formData.set("notify_news", String(next.notifyNews ?? notifyNews));
     const result = await updateNotificationPrefs(formData);
     setSaving(false);
+    if (result.success) {
+      setMessage({ type: "success", text: t("notif.saved") });
+      router.refresh();
+    } else {
+      setMessage({ type: "error", text: result.message });
+    }
+  }
+
+  async function togglePair(symbol: string) {
+    const next = pairs.includes(symbol) ? pairs.filter((p) => p !== symbol) : [...pairs, symbol];
+    setPairs(next);
+    setMessage(null);
+    const result = await updateSignalPairs(next);
     if (result.success) {
       setMessage({ type: "success", text: t("notif.saved") });
       router.refresh();
@@ -82,6 +100,34 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
             label={t("Notifikasi sinyal trading")}
           />
         </div>
+
+        {notifySignals && (
+          <div className="py-4">
+            <p className="text-body-sm font-semibold text-text-primary">{t("Pair yang mau kamu terima")}</p>
+            <p className="mb-3 text-caption text-text-muted">
+              {pairs.length === 0 ? t("Sekarang: semua pair. Pilih pair tertentu untuk membatasi notifikasi sinyal.") : t("Hanya sinyal dari pair terpilih yang dikirim.")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PAIR_OPTIONS.map((symbol) => {
+                const on = pairs.includes(symbol);
+                return (
+                  <button
+                    key={symbol}
+                    type="button"
+                    onClick={() => togglePair(symbol)}
+                    aria-pressed={on}
+                    className={cx(
+                      "btn-fx rounded-full border px-3 py-1.5 text-caption font-semibold",
+                      on ? "border-primary bg-primary text-text-on-primary" : "border-border bg-surface-2 text-text-secondary hover:text-text-primary"
+                    )}
+                  >
+                    {symbol}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <PushSetting />
 

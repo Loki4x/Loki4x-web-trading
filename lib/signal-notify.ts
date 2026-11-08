@@ -80,7 +80,7 @@ export async function sendSignalNotifications(event: SignalNotifyEvent): Promise
     for (let from = 0; ; from += 1000) {
       const { data, error } = await service
         .from("profiles")
-        .select("id, language, tier, vip_expires_at")
+        .select("id, language, tier, vip_expires_at, signal_pairs")
         .eq("notify_signals", true)
         .in("tier", ["VIP", "MEMBERSHIP"])
         .or("is_suspended.is.null,is_suspended.eq.false")
@@ -92,7 +92,10 @@ export async function sendSignalNotifications(event: SignalNotifyEvent): Promise
       }
       for (const p of data ?? []) {
         const active = !p.vip_expires_at || new Date(p.vip_expires_at).getTime() > now;
-        if (active) recipients.push({ id: p.id, locale: p.language === "en" ? "en" : "id" });
+        // Member boleh memilih pair tertentu saja; daftar kosong berarti semua pair.
+        const pairs: string[] = Array.isArray(p.signal_pairs) ? p.signal_pairs : [];
+        const wantsPair = pairs.length === 0 || pairs.includes(event.signal.symbol.toUpperCase());
+        if (active && wantsPair) recipients.push({ id: p.id, locale: p.language === "en" ? "en" : "id" });
       }
       if (!data || data.length < 1000) break;
     }

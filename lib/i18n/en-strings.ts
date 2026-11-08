@@ -638,4 +638,12 @@ export const EN_STRINGS: Record<string, string> = {
   "Sesuai Rencana vs Melanggar": "Followed Plan vs Broke Plan",
   "Trade": "Trades",
   "Belum ada data. Isi strategi, emosi, dan kepatuhan rencana saat mencatat trade.": "No data yet. Fill in strategy, emotion and plan adherence when you log a trade.",
+  "Pair yang mau kamu terima": "Pairs you want to receive",
+  "Sekarang: semua pair. Pilih pair tertentu untuk membatasi notifikasi sinyal.": "Currently: all pairs. Pick specific pairs to limit signal notifications.",
+  "Hanya sinyal dari pair terpilih yang dikirim.": "Only signals for the selected pairs are sent.",
+  "Gagal membuat gambar. Coba lagi.": "Couldn't create the image. Try again.",
+  "Belum ada trade tertutup di bulan ini": "No closed trades this month yet",
+  "Membuat gambar...": "Creating image...",
+  "Bagikan rekap bulan ini": "Share this month's recap",
+  "Tampilkan nominal P&L": "Show P&L amount",
 };
