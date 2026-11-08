@@ -25,6 +25,7 @@ export interface Profile {
   notify_receipts?: boolean;
   notify_expiry?: boolean;
   notify_signals?: boolean;
+  signal_pairs?: string[] | null;
   notify_weekly?: boolean;
   notify_news?: boolean;
   is_admin?: boolean;

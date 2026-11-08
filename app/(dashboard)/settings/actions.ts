@@ -145,3 +145,25 @@ export async function updateNotificationPrefs(formData: FormData) {
   revalidatePath("/settings");
   return { success: true as const };
 }
+
+/** Simpan pair yang mau diterima notifikasinya. Daftar kosong = semua pair. */
+export async function updateSignalPairs(pairs: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false as const, message: "Not authenticated" };
+
+  const clean = Array.from(
+    new Set((Array.isArray(pairs) ? pairs : []).map((p) => String(p).toUpperCase()).filter((p) => /^[A-Z0-9]{3,12}$/.test(p)))
+  ).slice(0, 30);
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ signal_pairs: clean.length > 0 ? clean : null })
+    .eq("id", user.id);
+  if (error) return { success: false as const, message: error.message };
+
+  revalidatePath("/settings");
+  return { success: true as const };
+}

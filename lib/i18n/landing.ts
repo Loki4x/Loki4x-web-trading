@@ -85,6 +85,35 @@ const ID: Record<string, string> = {
   "Most Popular": "Paling Populer",
   "Or pay once — $70 for lifetime access, no monthly renewal.": "Atau bayar sekali — $70 untuk akses seumur hidup, tanpa perpanjangan bulanan.",
 
+  // FAQ
+  FAQ: "FAQ",
+  "Questions,": "Pertanyaan umum,",
+  answered: "terjawab",
+  "Is profit guaranteed?": "Apakah profit dijamin?",
+  "No. Loki4x Academy is a journal and educational tool. Signals and news are references, not financial advice, and trading always carries a risk of loss.":
+    "Tidak. Loki4x Academy adalah alat jurnal dan edukasi. Sinyal dan berita hanya referensi, bukan saran keuangan, dan trading selalu memiliki risiko kerugian.",
+  "What is the difference between Free, VIP and Membership?": "Apa bedanya Free, VIP, dan Membership?",
+  "Free gives you the dashboard overview and the economic calendar. VIP adds signals with a transparent track record and COT positioning. Membership unlocks everything: the unlimited trade journal, full reports, the lot calculator and the full Academy.":
+    "Free memberi ringkasan dashboard dan kalender ekonomi. VIP menambah sinyal dengan track record transparan dan posisi COT. Membership membuka semuanya: jurnal trading tanpa batas, laporan lengkap, kalkulator lot, dan Academy penuh.",
+  "How do I pay?": "Bagaimana cara membayar?",
+  "QRIS and bank virtual account payments are processed automatically, and your plan activates right after payment. USDT is verified manually by an admin, usually within one business day.":
+    "Pembayaran QRIS dan virtual account bank diproses otomatis, dan paketmu aktif tepat setelah pembayaran. USDT diverifikasi manual oleh admin, biasanya dalam satu hari kerja.",
+  "Does my plan renew automatically?": "Apakah paketku diperpanjang otomatis?",
+  "No. We never charge you automatically. When your plan ends, your account returns to Free until you decide to pay again.":
+    "Tidak. Kami tidak pernah menarik pembayaran otomatis. Saat paketmu berakhir, akunmu kembali ke Free sampai kamu memutuskan membayar lagi.",
+  "How do I receive signals?": "Bagaimana cara menerima sinyal?",
+  "VIP and Membership members get push notifications for new signals, updates and closed results. You can turn them on and choose which pairs to follow in Settings.":
+    "Member VIP dan Membership mendapat notifikasi push untuk sinyal baru, pembaruan, dan hasil yang sudah ditutup. Kamu bisa mengaktifkannya dan memilih pair yang diikuti di Pengaturan.",
+  "Can I use it on my phone?": "Bisakah dipakai di ponsel?",
+  "Yes. Install it as an app: download the Android APK from the footer, or add the site to your Home Screen on iPhone.":
+    "Bisa. Pasang sebagai aplikasi: unduh APK Android dari footer, atau tambahkan situs ke Layar Utama di iPhone.",
+  "Is my trade journal private?": "Apakah jurnal tradingku privat?",
+  "Yes. Your trades are visible only to you. Nothing you log is shared or published.":
+    "Ya. Trade-mu hanya terlihat olehmu. Tidak ada yang kamu catat yang dibagikan atau dipublikasikan.",
+  "Can I get a refund?": "Bisakah saya meminta refund?",
+  "Successful payments are not refundable because access activates immediately, except for double payments or system errors on our side.":
+    "Pembayaran yang sudah berhasil tidak dapat dikembalikan karena akses langsung aktif, kecuali untuk pembayaran ganda atau kesalahan sistem dari pihak kami.",
+
   // CTA
   "Start Trading": "Mulai Trading",
   Smarter: "Lebih Cerdas",

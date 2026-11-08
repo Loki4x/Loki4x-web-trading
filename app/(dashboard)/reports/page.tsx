@@ -4,6 +4,7 @@ import { KpiCard } from "@/components/dashboard/KpiCard";
 import { TopPairsList } from "@/components/reports/TopPairsList";
 import { DailyPnlHeatmap } from "@/components/reports/DailyPnlHeatmap";
 import { SessionBreakdown, type SessionStat } from "@/components/reports/SessionBreakdown";
+import { ShareStatsButton } from "@/components/reports/ShareStatsButton";
 import { TagBreakdown, type TagRow } from "@/components/reports/TagBreakdown";
 import { EMOTION_LABEL, isEmotion } from "@/lib/journal-tags";
 import { formatCurrency } from "@/lib/utils";
@@ -142,9 +143,12 @@ export default async function ReportsPage({
 
   return (
     <main className="mx-auto max-w-content px-6 py-8">
-      <div className="mb-6">
-        <h1 className="text-h2 text-text-primary">Reports &amp; Performance</h1>
-        <p className="text-body-sm text-text-secondary">{t("Pantau performa trading kamu dari berbagai sudut.")}</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-h2 text-text-primary">Reports &amp; Performance</h1>
+          <p className="text-body-sm text-text-secondary">{t("Pantau performa trading kamu dari berbagai sudut.")}</p>
+        </div>
+        <ShareStatsButton month={selectedKey} accountId={activeAccount.id} disabled={dailyPnl.length === 0} />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
