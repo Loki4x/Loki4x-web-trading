@@ -9,7 +9,7 @@ import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleU
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 import { createClient } from "@/lib/supabase/client";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { SidebarFooter } from "@/components/ui/SidebarFooter";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -89,7 +89,6 @@ export function AdminSidebar() {
         </button>
 
         <div className="relative ml-auto flex items-center gap-4">
-          <LanguageToggle />
           <button
             onClick={() => setProfileOpen((prev) => !prev)}
             className="text-text-primary"
@@ -172,6 +171,8 @@ export function AdminSidebar() {
           <ArrowLeft className="h-4 w-4" />
           Back to App
         </Link>
+
+        <SidebarFooter />
       </aside>
     </>
   );

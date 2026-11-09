@@ -28,7 +28,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { SidebarFooter } from "@/components/ui/SidebarFooter";
 import { CommunityUnreadBadge } from "@/components/community/CommunityUnreadBadge";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
@@ -163,7 +163,6 @@ export function Sidebar({
         </div>
 
         <div className="ml-auto flex items-center gap-4">
-          <LanguageToggle />
           <NotificationBell notifications={notifications} />
 
           <div className="relative">
@@ -312,6 +311,8 @@ export function Sidebar({
             </>
           )}
         </nav>
+
+        <SidebarFooter />
       </aside>
     </>
   );
