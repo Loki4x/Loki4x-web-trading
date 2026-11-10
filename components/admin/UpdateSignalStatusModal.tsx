@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import { ImageFileInput } from "@/components/ui/ImageFileInput";
 import { Button } from "@/components/ui/Button";
 import { updateSignalStatus } from "@/app/admin/actions";
 import { nowWibInputValue } from "@/lib/utils";
@@ -70,7 +71,7 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
 
     setPending(true);
     setError(null);
-    const result = await updateSignalStatus(signal.id, status, closingPrice, resultPips, closedAtRaw || null);
+    const result = await updateSignalStatus(signal.id, status, closingPrice, resultPips, closedAtRaw || null, formData);
     setPending(false);
 
     if (!result.ok) {
@@ -138,6 +139,25 @@ export function UpdateSignalStatusModal({ signal, onClose }: { signal: Signal; o
               />
               <p className="mt-1.5 text-caption text-text-muted">
                 {t("Ubah kalau sinyal ini sebenarnya ditutup di tanggal lain (mis. memasukkan sinyal lama).")}
+              </p>
+            </div>
+          )}
+
+          {isTerminal && (
+            <div className="flex flex-col gap-2">
+              <label className="text-body-sm font-medium text-text-secondary">{t("Foto hasil (optional)")}</label>
+              {signal.result_image_url && (
+                <a href={signal.result_image_url} target="_blank" rel="noopener noreferrer" className="text-caption text-primary hover:underline">
+                  {t("Lihat foto hasil saat ini (unggah baru untuk menggantinya)")}
+                </a>
+              )}
+              <ImageFileInput
+                name="result_image"
+                accept="image/*"
+                className="input-field file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-caption file:font-semibold file:text-text-on-primary"
+              />
+              <p className="text-caption text-text-muted">
+                {t("Screenshot hasil closing/profit. Tampil di Track Record untuk member VIP dan Membership.")}
               </p>
             </div>
           )}

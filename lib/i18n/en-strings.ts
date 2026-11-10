@@ -656,4 +656,10 @@ export const EN_STRINGS: Record<string, string> = {
   "Ini rangkuman bulan {month}.": "Here is your summary for {month}.",
   "Kamu menerima email ini karena laporan berkala aktif. Matikan di Settings → Notifikasi.": "You are receiving this email because periodic reports are enabled. Turn them off in Settings → Notifications.",
   "📊 Ringkasan bulanan trading kamu — {month}": "📊 Your monthly trading summary — {month}",
+  "Gagal upload foto hasil. Pakai JPG/PNG/WebP maksimal 2 MB.": "Failed to upload result photo. Use JPG/PNG/WebP, max 2 MB.",
+  "Foto hasil (optional)": "Result photo (optional)",
+  "Lihat foto hasil saat ini (unggah baru untuk menggantinya)": "View current result photo (upload a new one to replace it)",
+  "Screenshot hasil closing/profit. Tampil di Track Record untuk member VIP dan Membership.": "Screenshot of the closing/profit result. Shown in the Track Record for VIP and Membership members.",
+  "Foto hasil": "Result photo",
+  "Foto hasil {symbol}": "{symbol} result photo",
 };
