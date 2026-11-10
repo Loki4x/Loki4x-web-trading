@@ -8,10 +8,13 @@ import { useT } from "@/lib/i18n/client";
 export function SignalAnalysisModal({
   signal,
   updates = [],
+  mode = "analysis",
   onClose,
 }: {
   signal: Signal;
   updates?: SignalUpdate[];
+  /** "result": hanya foto hasil (dari kolom Hasil Analisa). */
+  mode?: "analysis" | "result";
   onClose: () => void;
 }) {
   const t = useT();
@@ -27,7 +30,7 @@ export function SignalAnalysisModal({
           </button>
         </div>
 
-        {signal.chart_image_url ? (
+        {mode === "analysis" && (signal.chart_image_url ? (
           <a href={signal.chart_image_url} target="_blank" rel="noopener noreferrer">
             <img
               src={signal.chart_image_url}
@@ -40,7 +43,7 @@ export function SignalAnalysisModal({
             <ImageOff className="h-6 w-6" />
             <p className="text-body-sm">{t("signals.modal.noChart")}</p>
           </div>
-        )}
+        ))}
 
         {signal.result_image_url && (
           <div className="mb-4">
@@ -55,13 +58,13 @@ export function SignalAnalysisModal({
           </div>
         )}
 
-        {signal.notes ? (
+        {mode === "analysis" && (signal.notes ? (
           <p className="whitespace-pre-wrap text-body-sm text-text-secondary">{signal.notes}</p>
         ) : (
           <p className="text-body-sm text-text-muted">{t("signals.modal.noNotes")}</p>
-        )}
+        ))}
 
-        <SignalTimeline updates={updates} />
+        {mode === "analysis" && <SignalTimeline updates={updates} />}
       </div>
     </div>
   );
