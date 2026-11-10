@@ -73,6 +73,7 @@ export function SignalsList({
   const [positionTab, setPositionTab] = useState<PositionTab>("ACTIVE");
   const [signalType, setSignalType] = useState<SignalTypeTab>("REGULAR");
   const [analysisSignal, setAnalysisSignal] = useState<Signal | null>(null);
+  const [resultSignal, setResultSignal] = useState<Signal | null>(null);
 
   const typeCounts = useMemo(() => {
     const news = signals.filter((s) => s.signal_type === "NEWS").length;
@@ -352,11 +353,12 @@ export function SignalsList({
                       {s.result_image_url ? (
                         <button
                           type="button"
-                          onClick={() => setAnalysisSignal(s)}
-                          className="btn-fx block overflow-hidden rounded-md border border-border"
+                          onClick={() => setResultSignal(s)}
+                          className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
                           aria-label={t("Foto hasil {symbol}", { symbol: s.symbol })}
                         >
-                          <img src={s.result_image_url} alt="" loading="lazy" className="h-10 w-16 object-cover" />
+                          <ImageIcon className="h-4 w-4" />
+                          {t("signals.view")}
                         </button>
                       ) : (
                         <span className="text-body-sm text-text-muted">—</span>
@@ -373,6 +375,8 @@ export function SignalsList({
       <p className="mt-4 text-caption text-text-muted">
         {t("signals.disclaimer")}
       </p>
+
+      {resultSignal && <SignalAnalysisModal mode="result" signal={resultSignal} onClose={() => setResultSignal(null)} />}
 
       {analysisSignal && (
         <SignalAnalysisModal
