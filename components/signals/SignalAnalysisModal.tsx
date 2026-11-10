@@ -42,6 +42,19 @@ export function SignalAnalysisModal({
           </div>
         )}
 
+        {signal.result_image_url && (
+          <div className="mb-4">
+            <p className="mb-1.5 text-caption font-semibold uppercase tracking-wide text-text-muted">{t("Foto hasil")}</p>
+            <a href={signal.result_image_url} target="_blank" rel="noopener noreferrer">
+              <img
+                src={signal.result_image_url}
+                alt={t("Foto hasil {symbol}", { symbol: signal.symbol })}
+                className="w-full rounded-lg border border-border object-contain"
+              />
+            </a>
+          </div>
+        )}
+
         {signal.notes ? (
           <p className="whitespace-pre-wrap text-body-sm text-text-secondary">{signal.notes}</p>
         ) : (

@@ -111,6 +111,7 @@ export interface Signal {
   signal_type: SignalType;
   notes: string | null;
   chart_image_url: string | null;
+  result_image_url?: string | null;
   posted_at: string;
   closed_at: string | null;
 }

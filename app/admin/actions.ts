@@ -297,7 +297,8 @@ export async function updateSignalStatus(
   status: string,
   currentPrice: number | null,
   resultPips: number | null,
-  closedAtInput: string | null = null
+  closedAtInput: string | null = null,
+  extra: FormData | null = null
 ): Promise<ActionResult> {
   const { t } = await getT();
   const supabase = await assertIsAdmin();
@@ -337,6 +338,16 @@ export async function updateSignalStatus(
   // tersimpan di current_price.
   if (status === "TP" && currentPrice !== null) {
     updatePayload.take_profit = currentPrice;
+  }
+
+  // Foto hasil (opsional): hanya untuk status penutupan. Kosong = foto lama tidak diubah.
+  if (isTerminal && extra) {
+    const resultFile = extra.get("result_image") as File | null;
+    if (resultFile && resultFile.size > 0) {
+      const resultUrl = await uploadToR2(resultFile, `signal-results/${signalId}-${Date.now()}`);
+      if (!resultUrl) return { ok: false, message: t("Gagal upload foto hasil. Pakai JPG/PNG/WebP maksimal 2 MB.") };
+      updatePayload.result_image_url = resultUrl;
+    }
   }
 
   const { data: before } = await supabase
