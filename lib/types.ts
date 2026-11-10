@@ -139,6 +139,7 @@ export interface VipIbRequest {
   user_id: string;
   broker_email: string;
   trading_account_id: string;
+  broker?: string;
   first_deposit: number;
   status: "PENDING" | "APPROVED" | "REJECTED";
   created_at: string;

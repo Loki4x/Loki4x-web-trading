@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { approveVipRequest, rejectVipRequest } from "@/app/admin/actions";
 import { useT } from "@/lib/i18n/client";
+import { brokerName } from "@/lib/brokers";
 
 interface RequestRow {
   id: string;
   user_id: string;
   broker_email: string;
   trading_account_id: string;
+  broker?: string;
   first_deposit: number;
   status: "PENDING" | "APPROVED" | "REJECTED";
   created_at: string;
@@ -46,6 +48,7 @@ export function VipRequestsTable({ requests }: { requests: RequestRow[] }) {
         <thead>
           <tr className="border-b border-border text-left text-caption uppercase text-text-muted">
             <th className="px-4 py-3">User</th>
+            <th className="px-4 py-3">Broker</th>
             <th className="px-4 py-3">Broker Email</th>
             <th className="px-4 py-3">Account ID</th>
             <th className="px-4 py-3">Deposit</th>
@@ -57,6 +60,7 @@ export function VipRequestsTable({ requests }: { requests: RequestRow[] }) {
           {requests.map((r) => (
             <tr key={r.id} className="border-b border-border last:border-0">
               <td className="px-4 py-3 text-text-primary">{r.profiles?.full_name || r.profiles?.email || r.user_id}</td>
+              <td className="px-4 py-3">{brokerName(r.broker)}</td>
               <td className="px-4 py-3">{r.broker_email}</td>
               <td className="px-4 py-3">{r.trading_account_id}</td>
               <td className="px-4 py-3">${r.first_deposit}</td>

@@ -10,6 +10,7 @@ import { PaymentModal } from "@/components/upgrade/PaymentModal";
 import { TermsCheckbox } from "@/components/upgrade/TermsCheckbox";
 import type { VipIbRequest } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
+import { IB_BROKERS, IB_BROKER_KEYS, type IbBroker } from "@/lib/brokers";
 
 const statusLabel: Record<VipIbRequest["status"], string> = {
   PENDING: "Sedang diproses",
@@ -74,13 +75,11 @@ function formatIDR(amount: number) {
 }
 
 export function VipRequestForm({
-  ibLink,
   existingRequest,
   plans,
   activeTier,
   showIbPath,
 }: {
-  ibLink: string;
   existingRequest: VipIbRequest | null;
   /** Paket yang boleh dibeli akun ini (dari purchasablePlans di server). */
   plans: Plan[];
@@ -93,6 +92,7 @@ export function VipRequestForm({
   const [error, setError] = useState<string | null>(null);
   const [openPlan, setOpenPlan] = useState<Plan | null>(null);
   const [agreeIb, setAgreeIb] = useState(false);
+  const [broker, setBroker] = useState<IbBroker>("exness");
 
   const visiblePlans = paidPlans.filter((plan) => plans.includes(plan.key));
 
@@ -196,13 +196,32 @@ export function VipRequestForm({
             {t("Daftar akun trading baru lewat link referral di bawah, lalu isi form ini biar admin bisa verifikasi.")}
           </p>
 
+          <div role="radiogroup" aria-label={t("Pilih broker")} className="mt-4 grid grid-cols-2 gap-3">
+            {IB_BROKER_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={broker === key}
+                onClick={() => setBroker(key)}
+                className={`btn-fx rounded-xl border px-4 py-3 text-body-sm font-semibold ${
+                  broker === key
+                    ? "border-success bg-success/10 text-success"
+                    : "border-border text-text-secondary hover:bg-surface-hover"
+                }`}
+              >
+                {IB_BROKERS[key].name}
+              </button>
+            ))}
+          </div>
+
           <a
-            href={ibLink}
+            href={IB_BROKERS[broker].link}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary mt-4 inline-flex w-fit items-center gap-2"
           >
-            {t("Daftar Akun IB")}
+            {t("Daftar Akun {broker}", { broker: IB_BROKERS[broker].name })}
             <ExternalLink className="h-4 w-4" />
           </a>
 
@@ -217,6 +236,7 @@ export function VipRequestForm({
           )}
 
           <form action={handleSubmit} className="mt-4 flex flex-col gap-4">
+            <input type="hidden" name="broker" value={broker} />
             <Input id="broker_email" name="broker_email" type="email" label={t("Email yang terdaftar di broker")} placeholder="you@example.com" required />
             <Input id="trading_account_id" name="trading_account_id" type="text" label={t("ID Account Trading")} placeholder="12345678" required />
             <Input id="first_deposit" name="first_deposit" type="number" label={t("Deposit Pertama (USD)")} placeholder="15" min={0} step="0.01" required />
