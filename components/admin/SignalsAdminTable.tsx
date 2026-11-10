@@ -90,7 +90,7 @@ export function SignalsAdminTable({ signals }: { signals: Signal[] }) {
                 {s.closed_at && <p className="text-caption text-text-muted">{t("ditutup")} {formatDate(s.closed_at)}</p>}
               </td>
               <td className="px-4 py-3">
-                {s.chart_image_url || s.result_image_url || s.notes ? (
+                {s.chart_image_url || s.notes ? (
                   <button
                     onClick={() => setAnalysisSignal(s)}
                     className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"

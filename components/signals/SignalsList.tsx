@@ -322,7 +322,7 @@ export function SignalsList({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1.5">
-                      {s.chart_image_url || s.result_image_url || s.notes || (updatesBySignal[s.id]?.length ?? 0) > 0 ? (
+                      {s.chart_image_url || s.notes || (updatesBySignal[s.id]?.length ?? 0) > 0 ? (
                         <button
                           onClick={() => setAnalysisSignal(s)}
                           className="flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline"
