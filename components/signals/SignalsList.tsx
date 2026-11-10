@@ -236,7 +236,7 @@ export function SignalsList({
         </div>
       ) : (
         <div className="card overflow-x-auto !p-0">
-          <table className="w-full min-w-[920px] border-collapse">
+          <table className="w-full min-w-[1000px] border-collapse">
             <thead>
               <tr className="border-b border-border bg-surface text-left">
                 {(
@@ -250,6 +250,7 @@ export function SignalsList({
                     "signals.col.status",
                     "signals.col.opened",
                     "signals.col.analysis",
+                    "signals.col.resultAnalysis",
                   ] as DictKey[]
                 ).map(
                   (h) => (
@@ -283,16 +284,6 @@ export function SignalsList({
                         </span>
                       ) : (
                         <span className="text-body-sm text-text-muted">—</span>
-                      )}
-                      {s.result_image_url && (
-                        <button
-                          type="button"
-                          onClick={() => setAnalysisSignal(s)}
-                          className="btn-fx mt-1.5 block overflow-hidden rounded-md border border-border"
-                          aria-label={t("Foto hasil {symbol}", { symbol: s.symbol })}
-                        >
-                          <img src={s.result_image_url} alt="" loading="lazy" className="h-10 w-16 object-cover" />
-                        </button>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -356,6 +347,20 @@ export function SignalsList({
                         </Link>
                       )}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.result_image_url ? (
+                        <button
+                          type="button"
+                          onClick={() => setAnalysisSignal(s)}
+                          className="btn-fx block overflow-hidden rounded-md border border-border"
+                          aria-label={t("Foto hasil {symbol}", { symbol: s.symbol })}
+                        >
+                          <img src={s.result_image_url} alt="" loading="lazy" className="h-10 w-16 object-cover" />
+                        </button>
+                      ) : (
+                        <span className="text-body-sm text-text-muted">—</span>
+                      )}
                     </td>
                   </tr>
                 );
