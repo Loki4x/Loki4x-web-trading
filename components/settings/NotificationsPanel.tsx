@@ -135,9 +135,9 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
           <div className="flex gap-3">
             <BarChart3 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <div>
-              <p className="text-body-sm font-semibold text-text-primary">{t("Laporan mingguan")}</p>
+              <p className="text-body-sm font-semibold text-text-primary">{t("Laporan mingguan & bulanan")}</p>
               <p className="text-caption text-text-muted">
-                {t("Ringkasan performa trading dan sinyal setiap Sabtu pagi lewat email.")}
+                {t("Ringkasan performa trading dan sinyal lewat email: setiap Sabtu pagi, dan rekap bulanan tiap tanggal 1.")}
               </p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export function NotificationsPanel({ profile }: { profile: Profile | null }) {
               setNotifyWeekly(v);
               save({ notifyWeekly: v });
             }}
-            label={t("Laporan mingguan")}
+            label={t("Laporan mingguan & bulanan")}
           />
         </div>
 

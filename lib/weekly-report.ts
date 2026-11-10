@@ -48,6 +48,25 @@ function isoWeekKey(d: Date): string {
   return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
+export type ReportPeriod = "week" | "month";
+
+const WIB_MS = 7 * 60 * 60 * 1000;
+
+/** Bulan kalender sebelumnya (zona WIB): [start, end) dan label "2026-10". */
+function previousMonthWib(now: Date): { start: Date; end: Date; key: string; label: Date } {
+  const wib = new Date(now.getTime() + WIB_MS);
+  const y = wib.getUTCFullYear();
+  const m = wib.getUTCMonth();
+  const start = new Date(Date.UTC(y, m - 1, 1) - WIB_MS);
+  const end = new Date(Date.UTC(y, m, 1) - WIB_MS);
+  const ref = new Date(Date.UTC(y, m - 1, 1));
+  return { start, end, key: `${ref.getUTCFullYear()}-${String(ref.getUTCMonth() + 1).padStart(2, "0")}`, label: ref };
+}
+
+function monthLabel(locale: Locale, d: Date): string {
+  return d.toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
 function money(locale: Locale, currency: string, value: number): string {
   try {
     return new Intl.NumberFormat(locale === "en" ? "en-US" : "id-ID", {
@@ -74,8 +93,11 @@ function buildEmail(
   recipient: Recipient,
   trades: TradeSummary | null,
   signals: ReturnType<typeof computeSignalStats> | null,
-  signalsClosed: number
+  signalsClosed: number,
+  period: ReportPeriod = "week",
+  monthName = ""
 ) {
+  const monthly = period === "month";
   const locale = recipient.locale;
   const t = (k: string, v?: Vars) => translate(locale, k, v);
   let body = "";
@@ -100,7 +122,7 @@ function buildEmail(
     rows += row(t("signals.pipsProfit"), `${signed(signals.profitPips)} pips`, "#2fbf8f");
     rows += row(t("signals.pipsLoss"), `${signals.lossPips > 0 ? "-" : ""}${signals.lossPips.toFixed(1)} pips`, "#ef5b5b");
     rows += row(t("signals.chart.growth"), `${signed(signals.totalGrowthPercent, 2)}%`, pnlColor(signals.totalGrowthPercent));
-    body += section(t("Sinyal Minggu Ini"), rows);
+    body += section(monthly ? t("Sinyal {month}", { month: monthName }) : t("Sinyal Minggu Ini"), rows);
   }
 
   const buttons: string[] = [];
@@ -112,14 +134,14 @@ function buildEmail(
     <div style="background-color:#0d0f14; padding:40px 20px; font-family:Arial, sans-serif;">
       <div style="max-width:480px; margin:0 auto; background-color:#161920; border-radius:12px; padding:32px; border:1px solid #2a2e38;">
         <p style="font-size:20px; font-weight:800; color:#ffffff;">Loki4x Academy</p>
-        <h2 style="color:#ffffff; font-size:18px;">${t("Ringkasan Mingguan Kamu")}</h2>
-        <p style="color:#c5c9d3; font-size:14px;">${greeting} ${t("Ini rangkuman 7 hari terakhir.")}</p>
+        <h2 style="color:#ffffff; font-size:18px;">${monthly ? t("Ringkasan Bulanan Kamu") : t("Ringkasan Mingguan Kamu")}</h2>
+        <p style="color:#c5c9d3; font-size:14px;">${greeting} ${monthly ? t("Ini rangkuman bulan {month}.", { month: monthName }) : t("Ini rangkuman 7 hari terakhir.")}</p>
         ${body}
         <p style="margin:24px 0 0;">${buttons.join("")}</p>
-        <p style="color:#6b7080;font-size:12px;margin-top:24px;">${t("Kamu menerima email ini karena laporan mingguan aktif. Matikan di Settings → Notifikasi.")}</p>
+        <p style="color:#6b7080;font-size:12px;margin-top:24px;">${monthly ? t("Kamu menerima email ini karena laporan berkala aktif. Matikan di Settings → Notifikasi.") : t("Kamu menerima email ini karena laporan mingguan aktif. Matikan di Settings → Notifikasi.")}</p>
       </div>
     </div>`;
-  return { subject: t("📊 Ringkasan mingguan trading kamu"), html };
+  return { subject: monthly ? t("📊 Ringkasan bulanan trading kamu — {month}", { month: monthName }) : t("📊 Ringkasan mingguan trading kamu"), html };
 }
 
 /**
@@ -128,7 +150,7 @@ function buildEmail(
  */
 export async function sendWeeklyReports(
   now = new Date(),
-  opts: { force?: boolean; dryRun?: boolean } = {}
+  opts: { force?: boolean; dryRun?: boolean; period?: ReportPeriod } = {}
 ): Promise<{
   week: string;
   recipients: number;
@@ -140,13 +162,16 @@ export async function sendWeeklyReports(
   usersWithTrades?: number;
 }> {
   const service = createServiceClient();
-  const week = isoWeekKey(now);
+  const period = opts.period ?? "week";
+  const prevMonth = previousMonthWib(now);
+  const week = period === "month" ? prevMonth.key : isoWeekKey(now);
 
-  if (!opts.dryRun && !opts.force && !(await claimMarker(service, `weekly:${week}`))) {
-    return { week, recipients: 0, sent: 0, skipped: "sudah dikirim untuk minggu ini" };
+  if (!opts.dryRun && !opts.force && !(await claimMarker(service, period === "month" ? `monthly:${week}` : `weekly:${week}`))) {
+    return { week, recipients: 0, sent: 0, skipped: period === "month" ? "sudah dikirim untuk bulan ini" : "sudah dikirim untuk minggu ini" };
   }
 
-  const since = new Date(now.getTime() - WEEK_MS).toISOString();
+  const since = (period === "month" ? prevMonth.start : new Date(now.getTime() - WEEK_MS)).toISOString();
+  const until = period === "month" ? prevMonth.end.toISOString() : null;
   const recipients = await fetchRecipients(service, "notify_weekly", { requireEmail: true });
 
   // ---- trades 7 hari terakhir (closed, ada pnl)
@@ -157,6 +182,7 @@ export async function sendWeeklyReports(
       .eq("status", "CLOSED")
       .not("pnl", "is", null)
       .gte("trade_date", since)
+      .lt("trade_date", until ?? "9999-12-31")
       .order("id")
       .range(from, to)
   );
@@ -184,11 +210,13 @@ export async function sendWeeklyReports(
   }
 
   // ---- sinyal yang ditutup 7 hari terakhir
-  const { data: signalRows, error: signalError } = await service
+  let signalQuery = service
     .from("signals")
     .select("id, symbol, side, entry_price, current_price, current_price_at, take_profit, stop_loss, status, result_pips, risk_percent, posted_at, closed_at")
     .in("status", ["TP", "SL", "PARTIAL"])
     .gte("closed_at", since);
+  if (until) signalQuery = signalQuery.lt("closed_at", until);
+  const { data: signalRows, error: signalError } = await signalQuery;
   if (signalError) console.error("[weekly-report] gagal ambil sinyal:", signalError.message);
   const weekSignals = (signalRows ?? []) as unknown as Signal[];
   const signalStats = weekSignals.length > 0 ? computeSignalStats(weekSignals) : null;
@@ -199,7 +227,7 @@ export async function sendWeeklyReports(
     const trades = tradesByUser.get(r.id) ?? null;
     const signals = signalStats && tierAtLeast(r.tier, "VIP") ? signalStats : null;
     if (!trades && !signals) continue; // tidak ada yang dilaporkan
-    const mail = buildEmail(r, trades, signals, weekSignals.length);
+    const mail = buildEmail(r, trades, signals, weekSignals.length, period, monthLabel(r.locale, prevMonth.label));
     messages.push({ to: r.email, ...mail });
   }
 
