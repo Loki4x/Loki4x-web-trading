@@ -284,6 +284,16 @@ export function SignalsList({
                       ) : (
                         <span className="text-body-sm text-text-muted">—</span>
                       )}
+                      {s.result_image_url && (
+                        <button
+                          type="button"
+                          onClick={() => setAnalysisSignal(s)}
+                          className="btn-fx mt-1.5 block overflow-hidden rounded-md border border-border"
+                          aria-label={t("Foto hasil {symbol}", { symbol: s.symbol })}
+                        >
+                          <img src={s.result_image_url} alt="" loading="lazy" className="h-10 w-16 object-cover" />
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {s.stop_loss !== null ? (
