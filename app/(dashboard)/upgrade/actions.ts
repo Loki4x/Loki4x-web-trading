@@ -8,6 +8,7 @@ import { SITE_URL } from "@/lib/site-url";
 import { finalizePayment } from "@/lib/payment-fulfillment";
 import { uploadPrivateToR2, UPLOAD_MAX_BYTES, isAllowedUploadType } from "@/lib/r2";
 import { isEmail } from "@/lib/validation";
+import { isIbBroker } from "@/lib/brokers";
 import { PLAN_PRICE_IDR, purchasablePlans, type Plan } from "@/lib/payment-constants";
 import { getMembershipStatus } from "@/lib/tier";
 import { getT } from "@/lib/i18n/server";
@@ -47,6 +48,9 @@ async function submitVipRequestImpl(formData: FormData) {
     return fail(t("Kamu harus menyetujui Syarat & Ketentuan VIP via IB."));
   }
 
+  const broker = formData.get("broker");
+  if (!isIbBroker(broker)) return fail(t("Pilih broker terlebih dahulu."));
+
   const brokerEmail = String(formData.get("broker_email") ?? "").trim().slice(0, 254);
   const tradingAccountId = String(formData.get("trading_account_id") ?? "").trim().slice(0, 64);
   const firstDeposit = Number(formData.get("first_deposit"));
@@ -69,6 +73,7 @@ async function submitVipRequestImpl(formData: FormData) {
     user_id: user.id,
     broker_email: brokerEmail,
     trading_account_id: tradingAccountId,
+    broker,
     first_deposit: firstDeposit,
     status: "PENDING",
   });

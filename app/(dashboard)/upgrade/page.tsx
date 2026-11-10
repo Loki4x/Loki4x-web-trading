@@ -7,8 +7,6 @@ import type { VipIbRequest } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 import { dateLocale, type Locale } from "@/lib/i18n/dictionary";
 
-const IB_LINK = "https://one.exnessonelink.com/a/vkmgfauvyh";
-
 function formatDate(iso: string, locale: Locale) {
   return new Date(iso).toLocaleDateString(dateLocale(locale), {
     day: "numeric",
@@ -82,7 +80,6 @@ export default async function UpgradePage({ searchParams }: { searchParams: { pa
             </p>
           )}
           <VipRequestForm
-            ibLink={IB_LINK}
             existingRequest={(existingRequest as VipIbRequest) ?? null}
             plans={plans}
             activeTier={status.tier}

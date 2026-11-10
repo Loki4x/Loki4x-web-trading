@@ -646,4 +646,7 @@ export const EN_STRINGS: Record<string, string> = {
   "Membuat gambar...": "Creating image...",
   "Bagikan rekap bulan ini": "Share this month's recap",
   "Tampilkan nominal P&L": "Show P&L amount",
+  "Pilih broker": "Choose broker",
+  "Pilih broker terlebih dahulu.": "Please choose a broker first.",
+  "Daftar Akun {broker}": "Register {broker} Account",
 };
