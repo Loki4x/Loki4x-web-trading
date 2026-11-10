@@ -1,0 +1,26 @@
+name: Monthly Report
+
+on:
+  schedule:
+    - cron: "0 2 1 * *" # Tanggal 1 02:00 UTC = 09:00 WIB
+  workflow_dispatch: {}
+
+jobs:
+  monthly-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Kalau secret SITE_URL belum diisi, otomatis pakai domain produksi.
+      SITE_URL: ${{ secrets.SITE_URL || 'https://www.loki4xacademy.web.id' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Kirim laporan bulanan
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Secret CRON_SECRET belum diisi (Settings > Secrets and variables > Actions > Secrets). Nilainya harus sama dengan CRON_SECRET di Vercel."
+            exit 1
+          fi
+          # Sengaja tanpa --retry: pengiriman email massal tidak boleh diulang otomatis.
+          curl --fail-with-body -sS --max-time 240 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${SITE_URL%/}/api/cron/monthly-report"

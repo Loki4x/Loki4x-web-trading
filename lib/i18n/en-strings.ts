@@ -413,6 +413,8 @@ export const EN_STRINGS: Record<string, string> = {
   "Daftar gratis, lalu upgrade ke VIP atau Membership untuk melihat setiap sinyal, entry, TP, SL, dan analisanya.": "Sign up for free, then upgrade to VIP or Membership to see every signal, entry, TP, SL, and its analysis.",
   "Daftar Sekarang": "Sign Up Now",
   "Laporan mingguan": "Weekly report",
+  "Laporan mingguan & bulanan": "Weekly & monthly report",
+  "Ringkasan performa trading dan sinyal lewat email: setiap Sabtu pagi, dan rekap bulanan tiap tanggal 1.": "A summary of your trading and signal performance by email: every Saturday morning, plus a monthly recap on the 1st.",
   "Ringkasan performa trading dan sinyal setiap Sabtu pagi lewat email.": "A summary of your trading and signal performance by email every Saturday morning.",
   "Pengingat berita high-impact": "High-impact news reminders",
   "Notifikasi di web sebelum berita high-impact rilis. Khusus member Membership.": "A web notification before high-impact news is released. For Membership members only.",
@@ -649,4 +651,9 @@ export const EN_STRINGS: Record<string, string> = {
   "Pilih broker": "Choose broker",
   "Pilih broker terlebih dahulu.": "Please choose a broker first.",
   "Daftar Akun {broker}": "Register {broker} Account",
+  "Sinyal {month}": "Signals {month}",
+  "Ringkasan Bulanan Kamu": "Your Monthly Summary",
+  "Ini rangkuman bulan {month}.": "Here is your summary for {month}.",
+  "Kamu menerima email ini karena laporan berkala aktif. Matikan di Settings → Notifikasi.": "You are receiving this email because periodic reports are enabled. Turn them off in Settings → Notifications.",
+  "📊 Ringkasan bulanan trading kamu — {month}": "📊 Your monthly trading summary — {month}",
 };
