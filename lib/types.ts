@@ -11,6 +11,12 @@ export interface TradingAccount {
   initial_balance: number;
   currency: AccountCurrency;
   created_at: string;
+  // Aturan risiko & target (supabase/discipline-import.sql). null/undefined = tidak dipakai.
+  max_daily_loss_pct?: number | null;
+  max_trades_per_day?: number | null;
+  max_consecutive_losses?: number | null;
+  monthly_profit_target?: number | null;
+  target_win_rate?: number | null;
 }
 
 export interface Profile {
@@ -65,6 +71,8 @@ export interface Trade {
   followed_plan: boolean | null;
   before_photo_url: string | null;
   after_photo_url: string | null;
+  /** ID tiket/posisi MT4/MT5 untuk trade hasil import. */
+  external_id?: string | null;
   created_at: string;
 }
 

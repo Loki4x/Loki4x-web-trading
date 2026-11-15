@@ -15,8 +15,10 @@ import { EquityChart } from "@/components/dashboard/EquityChart";
 import { TopPairsList } from "@/components/reports/TopPairsList";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { MarketSessionsClock } from "@/components/dashboard/MarketSessionsClock";
+import { DisciplinePanel } from "@/components/discipline/DisciplinePanel";
+import { computeDiscipline, type DisciplineSummary } from "@/lib/discipline";
 import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
-import type { VipIbRequest, Trade, NewsEvent } from "@/lib/types";
+import type { VipIbRequest, Trade, NewsEvent, TradingAccount } from "@/lib/types";
 import type { Tier } from "@/lib/tier";
 import { hasAccess } from "@/lib/tier";
 import Link from "next/link";
@@ -75,20 +77,22 @@ export default async function DashboardOverviewPage() {
     totalTrades: number;
     equityData: { date: string; balance: number }[];
     topPairs: { symbol: string; pnl: number }[];
+    account: TradingAccount;
+    discipline: DisciplineSummary;
   } | null = null;
   let highImpactNews: NewsEvent[] = [];
 
   if (tier === "MEMBERSHIP" && user) {
     const { activeAccount } = await resolveActiveAccount(supabase, user.id);
-    const { data: closedTradesRaw } = await supabase
+    const { data: accountTradesRaw } = await supabase
       .from("trades")
       .select("*")
       .eq("user_id", user.id)
       .eq("account_id", activeAccount.id)
-      .eq("status", "CLOSED")
       .order("trade_date", { ascending: true });
 
-    const closedTrades = (closedTradesRaw ?? []) as Trade[];
+    const accountTrades = (accountTradesRaw ?? []) as Trade[];
+    const closedTrades = accountTrades.filter((t) => t.status === "CLOSED");
     const wins = closedTrades.filter((t) => (t.pnl ?? 0) > 0);
     const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
     const winRate = closedTrades.length > 0 ? (wins.length / closedTrades.length) * 100 : 0;
@@ -120,6 +124,8 @@ export default async function DashboardOverviewPage() {
       totalTrades: closedTrades.length,
       equityData,
       topPairs,
+      account: activeAccount,
+      discipline: computeDiscipline(activeAccount, accountTrades),
     };
 
     const calendarEvents = await getEconomicCalendarRange();
@@ -219,6 +225,10 @@ export default async function DashboardOverviewPage() {
               />
               <KpiCard label="Win Rate" value={`${tradingSnapshot.winRate.toFixed(1)}%`} icon={Percent} />
               <KpiCard label="Total Trades" value={String(tradingSnapshot.totalTrades)} icon={Hash} />
+            </div>
+
+            <div className="mb-4">
+              <DisciplinePanel summary={tradingSnapshot.discipline} account={tradingSnapshot.account} />
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -1,14 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Plus, Wallet, TrendingUp, Percent, Hash, Target, Trophy } from "lucide-react";
+import { Search, Plus, Wallet, TrendingUp, Percent, Hash, Target, Trophy, Upload, Download } from "lucide-react";
 import { TradesTable } from "@/components/trades/TradesTable";
 import { AddTradeModal } from "@/components/trades/AddTradeModal";
+import { ImportTradesModal } from "@/components/trades/ImportTradesModal";
+import { tradesToCsv } from "@/lib/trade-import";
+import { useT } from "@/lib/i18n/client";
 import { AccountControl } from "@/components/accounts/AccountControl";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { EquityChart } from "@/components/dashboard/EquityChart";
 import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
 import type { Trade, TradeSide, TradeStatus, TradingAccount, AccountCurrency } from "@/lib/types";
+import type { DisciplineSummary } from "@/lib/discipline";
+import { DisciplinePanel } from "@/components/discipline/DisciplinePanel";
 
 type SideFilter = "ALL" | TradeSide;
 type StatusFilter = "ALL" | TradeStatus;
@@ -38,6 +43,8 @@ export function TradesClient({
   allTradesSummary,
   stats,
   equityData,
+  activeAccount,
+  discipline,
 }: {
   trades: Trade[];
   openModal?: boolean;
@@ -47,11 +54,27 @@ export function TradesClient({
   allTradesSummary: TradeSummary[];
   stats: Stats;
   equityData: { date: string; balance: number }[];
+  activeAccount: TradingAccount;
+  discipline: DisciplineSummary;
 }) {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<SideFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [modalOpen, setModalOpen] = useState(!!openModal);
+  const [importOpen, setImportOpen] = useState(false);
+  const t = useT();
+
+  function exportCsv() {
+    const sorted = [...trades].sort((a, b) => a.trade_date.localeCompare(b.trade_date) || a.created_at.localeCompare(b.created_at));
+    const blob = new Blob([tradesToCsv(sorted as unknown as Record<string, unknown>[])], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeName = activeAccount.name.replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "") || "akun";
+    a.href = url;
+    a.download = `loki4x-journal-${safeName}-${new Date().toLocaleDateString("en-CA")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Strategi yang pernah dipakai, jadi saran di form.
   const strategyOptions = useMemo(
@@ -70,19 +93,38 @@ export function TradesClient({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-h2 text-text-primary">Trades Journal</h1>
           <p className="text-body-sm text-text-secondary">Every position, logged with discipline.</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn-primary text-body-sm">
-          <Plus className="h-4 w-4" />
-          Add Manual Trade
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button onClick={() => setImportOpen(true)} className="btn-secondary text-body-sm">
+            <Upload className="h-4 w-4" />
+            {t("Import")}
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={trades.length === 0}
+            className="btn-secondary text-body-sm disabled:opacity-50"
+            title={t("Download semua trade akun ini sebagai CSV")}
+          >
+            <Download className="h-4 w-4" />
+            {t("Export CSV")}
+          </button>
+          <button onClick={() => setModalOpen(true)} className="btn-primary text-body-sm">
+            <Plus className="h-4 w-4" />
+            Add Manual Trade
+          </button>
+        </div>
       </div>
 
       <div className="mb-6 max-w-xs">
         <AccountControl accounts={accounts} tradesSummary={allTradesSummary} activeAccountId={accountId} />
+      </div>
+
+      <div className="mb-6">
+        <DisciplinePanel summary={discipline} account={activeAccount} />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -137,7 +179,16 @@ export function TradesClient({
       <TradesTable trades={filtered} currency={accountCurrency} strategyOptions={strategyOptions} />
 
       {modalOpen && (
-        <AddTradeModal onClose={() => setModalOpen(false)} accountId={accountId} accountCurrency={accountCurrency} strategyOptions={strategyOptions} />
+        <AddTradeModal onClose={() => setModalOpen(false)} ruleLevel={discipline.overall} accountId={accountId} accountCurrency={accountCurrency} strategyOptions={strategyOptions} />
+      )}
+
+      {importOpen && (
+        <ImportTradesModal
+          onClose={() => setImportOpen(false)}
+          accountId={accountId}
+          accountName={activeAccount.name}
+          accountCurrency={accountCurrency}
+        />
       )}
     </div>
   );

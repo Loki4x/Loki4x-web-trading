@@ -4,6 +4,7 @@ import { TradesClient } from "@/components/trades/TradesClient";
 import type { Trade } from "@/lib/types";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { computeDiscipline, todayWib } from "@/lib/discipline";
 
 export default async function TradesPage({
   searchParams,
@@ -46,7 +47,7 @@ export default async function TradesPage({
   const winRate = closedTrades.length > 0 ? (wins.length / closedTrades.length) * 100 : 0;
   const bestDay = closedTrades.reduce((max, t) => Math.max(max, t.pnl ?? 0), 0);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayWib();
   const todayPnl = closedTrades.filter((t) => t.trade_date === today).reduce((sum, t) => sum + (t.pnl ?? 0), 0);
 
   const totalBalance = activeAccount.initial_balance + totalPnl;
@@ -71,6 +72,8 @@ export default async function TradesPage({
         allTradesSummary={allTradesSummary ?? []}
         stats={{ todayPnl, totalBalance, totalPnl, winRate, totalTrades: allTrades.length, profitFactor, bestDay }}
         equityData={equityData}
+        activeAccount={activeAccount}
+        discipline={computeDiscipline(activeAccount, allTrades, today)}
       />
     </main>
   );

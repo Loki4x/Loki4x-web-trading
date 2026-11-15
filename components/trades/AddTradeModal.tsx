@@ -2,11 +2,12 @@
 
 import { ImageFileInput } from "@/components/ui/ImageFileInput";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { addTrade } from "@/app/(dashboard)/trades/actions";
 import type { AccountCurrency } from "@/lib/types";
+import type { RuleLevel } from "@/lib/discipline";
 import { useT } from "@/lib/i18n/client";
 import { TradeTagFields } from "@/components/trades/TradeTagFields";
 
@@ -15,8 +16,10 @@ export function AddTradeModal({
   accountId,
   accountCurrency = "USD",
   strategyOptions = [],
+  ruleLevel = "ok",
 }: {
   onClose: () => void;
+  ruleLevel?: RuleLevel;
   accountId: string;
   accountCurrency?: AccountCurrency;
   strategyOptions?: string[];
@@ -39,6 +42,13 @@ export function AddTradeModal({
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {ruleLevel === "breached" && (
+          <div className="mb-4 flex items-start gap-2 rounded-lg bg-error-subtle px-3 py-2.5 text-body-sm font-medium text-error">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            {t("Kamu sudah mencapai batas aturan risiko hari ini. Yakin mau trade lagi?")}
+          </div>
+        )}
 
         <form action={handleSubmit} className="flex flex-col gap-4">
           <input type="hidden" name="account_id" value={accountId} />
@@ -85,7 +95,7 @@ export function AddTradeModal({
             </select>
           </div>
 
-          <Input name="trade_date" type="date" label="Trade Date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+          <Input name="trade_date" type="date" label="Trade Date" required defaultValue={new Date().toLocaleDateString("en-CA")} />
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
