@@ -12,6 +12,10 @@ import type { Trade, TradeSession } from "@/lib/types";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { AccessDenied } from "@/components/ui/AccessDenied";
 import { getT } from "@/lib/i18n/server";
+import { AiReviewCard } from "@/components/reports/AiReviewCard";
+
+// Review AI (server action di halaman ini) bisa butuh puluhan detik.
+export const maxDuration = 60;
 
 function parseDateParts(dateStr: string) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -156,6 +160,10 @@ export default async function ReportsPage({
         <KpiCard label="Avg Loss" value={formatCurrency(-avgLoss, activeAccount.currency)} valueClassName="text-error" />
         <KpiCard label="Expectancy / Trade" value={formatCurrency(expectancy, activeAccount.currency)} />
         <KpiCard label="Closed Trades" value={String(closed.length)} />
+      </div>
+
+      <div className="mb-6">
+        <AiReviewCard accountId={activeAccount.id} closedTrades={closed.length} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
