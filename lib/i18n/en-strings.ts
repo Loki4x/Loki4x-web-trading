@@ -662,4 +662,13 @@ export const EN_STRINGS: Record<string, string> = {
   "Screenshot hasil closing/profit. Tampil di Track Record untuk member VIP dan Membership.": "Screenshot of the closing/profit result. Shown in the Track Record for VIP and Membership members.",
   "Foto hasil": "Result photo",
   "Foto hasil {symbol}": "{symbol} result photo",
+  "Jam Sesi Pasar": "Market Sessions",
+  "Semua jam dalam WIB (UTC+7)": "All times in WIB (UTC+7)",
+  "Pasar tutup (weekend) · buka dalam {time}": "Market closed (weekend) · opens in {time}",
+  "Overlap London–New York · volatilitas tertinggi": "London–New York overlap · highest volatility",
+  "{count} sesi sedang overlap": "{count} sessions overlapping",
+  "Sesi {name} sedang aktif": "{name} session is active",
+  "Tidak ada sesi utama yang aktif": "No major session is active",
+  "Tutup dalam {time}": "Closes in {time}",
+  "Buka dalam {time}": "Opens in {time}",
 };
