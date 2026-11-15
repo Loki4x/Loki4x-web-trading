@@ -5,7 +5,8 @@ import { claimMarker } from "@/lib/cron-marker";
 import { fetchRecipients, tierAtLeast, type Recipient } from "@/lib/recipients";
 import { computeSignalStats } from "@/lib/signal-metrics";
 import { translate, type Locale } from "@/lib/i18n/dictionary";
-import type { Signal } from "@/lib/types";
+import type { Signal, TradingAccount } from "@/lib/types";
+import { computeDiscipline, dailyDiscipline, todayWib, type DisciplineTrade } from "@/lib/discipline";
 
 type Vars = Record<string, string | number>;
 
@@ -27,6 +28,27 @@ interface TradeSummary {
   best: { symbol: string; pnl: number; currency: string } | null;
   worst: { symbol: string; pnl: number; currency: string } | null;
 }
+
+interface GoalLine {
+  account: string;
+  currency: string;
+  profit: { current: number; target: number } | null;
+  winRate: { current: number; target: number } | null;
+}
+
+interface DisciplineReport {
+  tradingDays: number;
+  disciplinedDays: number;
+  overLossDays: number;
+  overTradesDays: number;
+  afterLossLimitDays: number;
+  offPlanTrades: number;
+  streak: number;
+  hasRules: boolean;
+  goals: GoalLine[];
+}
+
+type DisciplineTradeRow = DisciplineTrade & { user_id: string; account_id: string | null };
 
 async function fetchAll<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
   const out: T[] = [];
@@ -80,6 +102,18 @@ function money(locale: Locale, currency: string, value: number): string {
   }
 }
 
+function moneyPlain(locale: Locale, currency: string, value: number): string {
+  try {
+    return new Intl.NumberFormat(locale === "en" ? "en-US" : "id-ID", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: currency === "IDR" ? 0 : 2,
+    }).format(value);
+  } catch {
+    return `${value.toFixed(2)} ${currency}`;
+  }
+}
+
 const signed = (n: number, digits = 1) => `${n > 0 ? "+" : ""}${n.toFixed(digits)}`;
 
 function row(label: string, value: string, color = "#ffffff") {
@@ -95,7 +129,8 @@ function buildEmail(
   signals: ReturnType<typeof computeSignalStats> | null,
   signalsClosed: number,
   period: ReportPeriod = "week",
-  monthName = ""
+  monthName = "",
+  discipline: DisciplineReport | null = null
 ) {
   const monthly = period === "month";
   const locale = recipient.locale;
@@ -112,6 +147,47 @@ function buildEmail(
     if (trades.worst && trades.worst.pnl < 0)
       rows += row(t("Trade terburuk"), `${esc(trades.worst.symbol)} ${money(locale, trades.worst.currency, trades.worst.pnl)}`, "#ef5b5b");
     body += section(t("Journal Trading Kamu"), rows);
+  }
+
+  if (discipline) {
+    const d = discipline;
+    const days = (n: number) => t("{n} hari", { n });
+    let rows = row(
+      t("Hari disiplin"),
+      `${d.disciplinedDays} / ${days(d.tradingDays)}`,
+      d.disciplinedDays === d.tradingDays ? "#2fbf8f" : "#ffffff"
+    );
+    if (d.hasRules) {
+      rows += row(t("Melewati batas rugi harian"), days(d.overLossDays), d.overLossDays > 0 ? "#ef5b5b" : "#ffffff");
+      rows += row(t("Melewati batas jumlah trade"), days(d.overTradesDays), d.overTradesDays > 0 ? "#ef5b5b" : "#ffffff");
+      rows += row(t("Tetap trade setelah batas loss beruntun"), days(d.afterLossLimitDays), d.afterLossLimitDays > 0 ? "#ef5b5b" : "#ffffff");
+    }
+    rows += row(t("Trade tidak sesuai rencana"), String(d.offPlanTrades), d.offPlanTrades > 0 ? "#ef5b5b" : "#ffffff");
+    rows += row(t("Streak disiplin saat ini"), `🔥 ${days(d.streak)}`);
+    for (const g of d.goals) {
+      const label = (name: string) => `${name} <span style="color:#6b7080;">(${esc(g.account)})</span>`;
+      if (g.profit) {
+        const pct = Math.round((g.profit.current / g.profit.target) * 100);
+        rows += row(
+          label(monthly ? t("Target profit") : t("Progres target profit")),
+          `${money(locale, g.currency, g.profit.current)} / ${moneyPlain(locale, g.currency, g.profit.target)} (${pct}%)`,
+          g.profit.current >= g.profit.target ? "#2fbf8f" : "#ffffff"
+        );
+      }
+      if (g.winRate) {
+        rows += row(
+          label(monthly ? t("Target win rate") : t("Progres target win rate")),
+          `${g.winRate.current.toFixed(0)}% / ${g.winRate.target}%`,
+          g.winRate.current >= g.winRate.target ? "#2fbf8f" : "#ffffff"
+        );
+      }
+    }
+    body += section(t("Disiplin & Target"), rows);
+    if (!d.hasRules) {
+      body += `<p style="color:#8b90a0;font-size:12px;margin:8px 0 0;">${esc(
+        t("Belum pasang aturan risiko harian? Atur di halaman Journal → Disiplin & Target.")
+      )}</p>`;
+    }
   }
 
   if (signals) {
@@ -209,6 +285,20 @@ export async function sendWeeklyReports(
     tradesByUser.set(tr.user_id, s);
   }
 
+  // ---- disiplin & target (hanya user yang punya trade di periode ini)
+  const refDay = period === "month" ? lastDayOfMonth(prevMonth.key) : todayWib(now);
+  const inPeriod =
+    period === "month"
+      ? (day: string) => day.startsWith(prevMonth.key)
+      : (day: string) => day > todayWib(new Date(now.getTime() - WEEK_MS)) && day <= refDay;
+  let disciplineByUser = new Map<string, DisciplineReport>();
+  try {
+    disciplineByUser = await buildDisciplineReports(service, Array.from(tradesByUser.keys()), inPeriod, refDay);
+  } catch (err) {
+    // Laporan tetap dikirim tanpa bagian disiplin (mis. SQL discipline-import belum dijalankan).
+    console.error("[weekly-report] gagal hitung disiplin:", err instanceof Error ? err.message : err);
+  }
+
   // ---- sinyal yang ditutup 7 hari terakhir
   let signalQuery = service
     .from("signals")
@@ -227,7 +317,15 @@ export async function sendWeeklyReports(
     const trades = tradesByUser.get(r.id) ?? null;
     const signals = signalStats && tierAtLeast(r.tier, "VIP") ? signalStats : null;
     if (!trades && !signals) continue; // tidak ada yang dilaporkan
-    const mail = buildEmail(r, trades, signals, weekSignals.length, period, monthLabel(r.locale, prevMonth.label));
+    const mail = buildEmail(
+      r,
+      trades,
+      signals,
+      weekSignals.length,
+      period,
+      monthLabel(r.locale, prevMonth.label),
+      disciplineByUser.get(r.id) ?? null
+    );
     messages.push({ to: r.email, ...mail });
   }
 
@@ -240,4 +338,89 @@ export async function sendWeeklyReports(
     closedSignals: weekSignals.length,
     usersWithTrades: tradesByUser.size,
   };
+}
+
+/** "2026-10" -> "2026-10-31" */
+function lastDayOfMonth(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  return `${key}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Ringkasan disiplin per user untuk periode laporan: hari disiplin, pelanggaran aturan,
+ * streak, dan progres target bulanan per akun yang punya trade di periode itu.
+ */
+async function buildDisciplineReports(
+  service: ReturnType<typeof createServiceClient>,
+  userIds: string[],
+  inPeriod: (day: string) => boolean,
+  refDay: string
+): Promise<Map<string, DisciplineReport>> {
+  const out = new Map<string, DisciplineReport>();
+  for (let i = 0; i < userIds.length; i += 100) {
+    const chunk = userIds.slice(i, i + 100);
+    const [accounts, trades] = await Promise.all([
+      fetchAll<TradingAccount>((from, to) =>
+        service.from("trading_accounts").select("*").in("user_id", chunk).order("id").range(from, to)
+      ),
+      fetchAll<DisciplineTradeRow>((from, to) =>
+        service
+          .from("trades")
+          .select("user_id, account_id, trade_date, pnl, status, followed_plan, created_at")
+          .in("user_id", chunk)
+          .order("id")
+          .range(from, to)
+      ),
+    ]);
+
+    const tradesByAccount = new Map<string, DisciplineTradeRow[]>();
+    for (const tr of trades) {
+      if (!tr.account_id) continue;
+      const list = tradesByAccount.get(tr.account_id) ?? [];
+      list.push(tr);
+      tradesByAccount.set(tr.account_id, list);
+    }
+
+    for (const acc of accounts) {
+      const accTrades = tradesByAccount.get(acc.id) ?? [];
+      const days = dailyDiscipline(acc, accTrades).filter((d) => inPeriod(d.day));
+      if (days.length === 0) continue;
+      const summary = computeDiscipline(acc, accTrades, refDay);
+      const markedPlan = accTrades.some((t) => inPeriod(t.trade_date) && t.followed_plan !== null);
+      // Bagian disiplin hanya relevan kalau user memakai aturan, target, atau tanda "sesuai rencana".
+      if (!summary.hasRules && !summary.hasGoals && !markedPlan) continue;
+
+      const r =
+        out.get(acc.user_id) ??
+        ({
+          tradingDays: 0,
+          disciplinedDays: 0,
+          overLossDays: 0,
+          overTradesDays: 0,
+          afterLossLimitDays: 0,
+          offPlanTrades: 0,
+          streak: 0,
+          hasRules: false,
+          goals: [],
+        } as DisciplineReport);
+      r.tradingDays += days.length;
+      r.disciplinedDays += days.filter((d) => d.disciplined).length;
+      r.overLossDays += days.filter((d) => d.overLoss).length;
+      r.overTradesDays += days.filter((d) => d.overTrades).length;
+      r.afterLossLimitDays += days.filter((d) => d.tradedAfterLossLimit).length;
+      r.offPlanTrades += days.reduce((sum, d) => sum + d.offPlanTrades, 0);
+      r.streak = Math.max(r.streak, summary.streak);
+      r.hasRules ||= summary.hasRules;
+      if (summary.profitGoal || summary.winRateGoal) {
+        r.goals.push({
+          account: acc.name,
+          currency: acc.currency,
+          profit: summary.profitGoal ? { current: summary.profitGoal.current, target: summary.profitGoal.target } : null,
+          winRate: summary.winRateGoal ? { current: summary.winRateGoal.current, target: summary.winRateGoal.target } : null,
+        });
+      }
+      out.set(acc.user_id, r);
+    }
+  }
+  return out;
 }

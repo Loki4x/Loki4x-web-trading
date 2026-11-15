@@ -54,9 +54,9 @@ export function todayWib(date: Date = new Date()): string {
 const positive = (v: number | null | undefined): number | null =>
   typeof v === "number" && Number.isFinite(v) && v > 0 ? Number(v) : null;
 
-const isClosed = (t: Trade) => t.status === "CLOSED" && t.pnl !== null;
+const isClosed = (t: DisciplineTrade) => t.status === "CLOSED" && t.pnl !== null;
 
-function sortTrades(trades: Trade[]): Trade[] {
+function sortTrades<T extends DisciplineTrade>(trades: T[]): T[] {
   return [...trades].sort(
     (a, b) => a.trade_date.localeCompare(b.trade_date) || (a.created_at ?? "").localeCompare(b.created_at ?? "")
   );
@@ -74,7 +74,7 @@ interface DayStats {
   brokePlan: boolean;
 }
 
-function dayStats(dayTrades: Trade[], startBalance: number, maxConsecutive: number | null): DayStats {
+function dayStats(dayTrades: DisciplineTrade[], startBalance: number, maxConsecutive: number | null): DayStats {
   let pnl = 0;
   let run = 0;
   let tradedAfterLossLimit = false;
@@ -113,36 +113,98 @@ function goal(current: number, target: number | null): GoalProgress | null {
   };
 }
 
-export function computeDiscipline(
-  account: TradingAccount,
-  trades: Trade[],
-  today: string = todayWib()
-): DisciplineSummary {
+/** Kolom trade yang dibutuhkan untuk menghitung disiplin (cukup untuk query ringan di laporan email). */
+export type DisciplineTrade = Pick<Trade, "trade_date" | "pnl" | "status" | "followed_plan" | "created_at">;
+type DisciplineAccount = Pick<
+  TradingAccount,
+  "initial_balance" | "max_daily_loss_pct" | "max_trades_per_day" | "max_consecutive_losses" | "monthly_profit_target" | "target_win_rate"
+>;
+
+export interface DayReport {
+  day: string;
+  trades: number;
+  pnl: number;
+  lossPct: number;
+  /** melewati batas jumlah trade */
+  overTrades: boolean;
+  /** rugi melewati batas rugi harian */
+  overLoss: boolean;
+  /** tetap trade setelah batas loss beruntun tercapai */
+  tradedAfterLossLimit: boolean;
+  /** jumlah trade yang ditandai "tidak sesuai rencana" */
+  offPlanTrades: number;
+  disciplined: boolean;
+}
+
+interface Analysis {
+  days: DayReport[];
+  sorted: DisciplineTrade[];
+  endBalance: number;
+  maxConsecutive: number | null;
+}
+
+function analyze(account: DisciplineAccount, trades: DisciplineTrade[]): Analysis {
   const maxLoss = positive(account.max_daily_loss_pct);
   const maxTrades = positive(account.max_trades_per_day);
   const maxConsecutive = positive(account.max_consecutive_losses);
-  const profitTarget = positive(account.monthly_profit_target);
-  const winRateTarget = positive(account.target_win_rate);
 
   const sorted = sortTrades(trades);
-  const byDay = new Map<string, Trade[]>();
+  const byDay = new Map<string, DisciplineTrade[]>();
   for (const t of sorted) {
     const list = byDay.get(t.trade_date) ?? [];
     list.push(t);
     byDay.set(t.trade_date, list);
   }
 
-  // Statistik per hari, dengan saldo awal hari = saldo awal akun + P&L semua hari sebelumnya.
-  const days = Array.from(byDay.keys()).sort();
-  const stats = new Map<string, DayStats>();
+  // Saldo awal hari = saldo awal akun + P&L semua hari sebelumnya.
+  const days: DayReport[] = [];
   let balance = Number(account.initial_balance) || 0;
-  for (const day of days) {
-    const s = dayStats(byDay.get(day)!, balance, maxConsecutive);
-    stats.set(day, s);
+  for (const day of Array.from(byDay.keys()).sort()) {
+    const list = byDay.get(day)!;
+    const s = dayStats(list, balance, maxConsecutive);
+    const overTrades = maxTrades !== null && s.trades > maxTrades;
+    const overLoss = maxLoss !== null && s.lossPct > maxLoss;
+    days.push({
+      day,
+      trades: s.trades,
+      pnl: s.pnl,
+      lossPct: s.lossPct,
+      overTrades,
+      overLoss,
+      tradedAfterLossLimit: s.tradedAfterLossLimit,
+      offPlanTrades: list.filter((t) => t.followed_plan === false).length,
+      // Hari disiplin: tidak ada trade "tidak sesuai rencana" dan tidak ada aturan yang dilanggar (melewati batas).
+      disciplined: !s.brokePlan && !overTrades && !overLoss && !s.tradedAfterLossLimit,
+    });
     balance += s.pnl;
   }
+  return { days, sorted, endBalance: balance, maxConsecutive };
+}
 
-  const todayStats = stats.get(today) ?? dayStats([], balance, maxConsecutive);
+/** Laporan disiplin per hari trading (urut tanggal), dipakai di laporan email. */
+export function dailyDiscipline(account: DisciplineAccount, trades: DisciplineTrade[]): DayReport[] {
+  return analyze(account, trades).days;
+}
+
+export function computeDiscipline(
+  account: DisciplineAccount,
+  trades: DisciplineTrade[],
+  today: string = todayWib()
+): DisciplineSummary {
+  const maxLoss = positive(account.max_daily_loss_pct);
+  const maxTrades = positive(account.max_trades_per_day);
+  const profitTarget = positive(account.monthly_profit_target);
+  const winRateTarget = positive(account.target_win_rate);
+
+  const { days, sorted, maxConsecutive } = analyze(account, trades);
+  // Hari-hari setelah `today` diabaikan (mis. laporan bulan lalu dihitung per akhir bulan itu).
+  const pastDays = days.filter((d) => d.day <= today);
+  const startToday = (Number(account.initial_balance) || 0) + pastDays.filter((d) => d.day < today).reduce((s, d) => s + d.pnl, 0);
+  const todayStats = dayStats(
+    sorted.filter((t) => t.trade_date === today),
+    startToday,
+    maxConsecutive
+  );
 
   const rules: RuleStatus[] = [];
   if (maxLoss !== null) {
@@ -175,22 +237,15 @@ export function computeDiscipline(
       ? "warn"
       : "ok";
 
-  // Hari yang disiplin: tidak ada trade "tidak sesuai rencana" dan tidak ada aturan yang dilanggar (melewati batas).
-  const disciplined = (s: DayStats) =>
-    !s.brokePlan &&
-    !(maxTrades !== null && s.trades > maxTrades) &&
-    !(maxLoss !== null && s.lossPct > maxLoss) &&
-    !s.tradedAfterLossLimit;
-
   let streak = 0;
-  for (let i = days.length - 1; i >= 0; i--) {
-    if (!disciplined(stats.get(days[i])!)) break;
+  for (let i = pastDays.length - 1; i >= 0; i--) {
+    if (!pastDays[i].disciplined) break;
     streak++;
   }
   let bestStreak = 0;
   let run = 0;
-  for (const day of days) {
-    run = disciplined(stats.get(day)!) ? run + 1 : 0;
+  for (const d of pastDays) {
+    run = d.disciplined ? run + 1 : 0;
     bestStreak = Math.max(bestStreak, run);
   }
 
