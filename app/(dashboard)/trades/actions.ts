@@ -5,6 +5,125 @@ import { createClient } from "@/lib/supabase/server";
 import { uploadToR2 } from "@/lib/r2";
 import { STRATEGY_MAX_LEN, isEmotion, parseFollowedPlan } from "@/lib/journal-tags";
 import { SYMBOL_RE, cleanText, isUuid, isValidDate, ownedPhotoUrl } from "@/lib/validation";
+import { pipsBetween, round1 } from "@/lib/signal-pips";
+import type { ImportRow } from "@/lib/trade-import";
+
+/** Maksimal baris per panggilan importTrades (klien mengirim bertahap). */
+const IMPORT_BATCH = 500;
+const SESSIONS = ["LONDON", "NEW_YORK", "ASIA", "OVERLAP"];
+
+const finiteOrNull = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) && Math.abs(v) < 1e12 ? v : null;
+
+/**
+ * Import trade hasil parsing file MT4/MT5/CSV (lib/trade-import.ts) ke satu akun.
+ * Data dari klien divalidasi ulang di sini. Trade dengan external_id yang sudah ada di akun itu dilewati.
+ */
+export async function importTrades(accountId: string, rows: ImportRow[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false as const, message: "Not authenticated" };
+  if (!isUuid(accountId) || !Array.isArray(rows) || rows.length > IMPORT_BATCH) {
+    return { success: false as const, message: "Invalid request" };
+  }
+
+  const { data: ownedAccount } = await supabase
+    .from("trading_accounts")
+    .select("id")
+    .eq("id", accountId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!ownedAccount) return { success: false as const, message: "Invalid account" };
+
+  let invalid = 0;
+  const valid = rows.flatMap((r) => {
+    const symbol = String(r?.symbol ?? "").trim().toUpperCase();
+    const entry = finiteOrNull(r?.entry_price);
+    const exit = finiteOrNull(r?.exit_price);
+    const pnl = finiteOrNull(r?.pnl);
+    const side = r?.side;
+    const tradeDate = String(r?.trade_date ?? "");
+    if (
+      !SYMBOL_RE.test(symbol) ||
+      (side !== "BUY" && side !== "SELL") ||
+      entry === null ||
+      entry <= 0 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(tradeDate) ||
+      !isValidDate(tradeDate)
+    ) {
+      invalid++;
+      return [];
+    }
+    let pips = finiteOrNull(r.pips);
+    if (pips === null && exit !== null) pips = round1(pipsBetween(symbol, side, entry, exit));
+    const externalId = typeof r.external_id === "string" ? r.external_id.trim().slice(0, 64) || null : null;
+    const emotionRaw = String(r.emotion ?? "");
+    return [
+      {
+        user_id: user.id,
+        account_id: accountId,
+        symbol,
+        side,
+        entry_price: entry,
+        exit_price: exit,
+        pips,
+        pnl,
+        trade_date: tradeDate,
+        status: exit !== null || pnl !== null ? "CLOSED" : "OPEN",
+        session: SESSIONS.includes(String(r.session)) ? String(r.session) : null,
+        notes: cleanText(r.notes ?? "", 5000) || null,
+        confluence: cleanText(r.confluence ?? "", 2000) || null,
+        strategy: cleanText(r.strategy ?? "", STRATEGY_MAX_LEN) || null,
+        emotion: isEmotion(emotionRaw) ? emotionRaw : null,
+        followed_plan: typeof r.followed_plan === "boolean" ? r.followed_plan : null,
+        external_id: externalId,
+      },
+    ];
+  });
+
+  // Lewati trade yang sudah pernah di-import ke akun ini (dan duplikat di dalam file yang sama).
+  const ids = valid.map((v) => v.external_id).filter((id): id is string => !!id);
+  const existing = new Set<string>();
+  if (ids.length > 0) {
+    const { data, error } = await supabase
+      .from("trades")
+      .select("external_id")
+      .eq("account_id", accountId)
+      .in("external_id", ids);
+    if (error) {
+      const missingColumn = /external_id|column|schema cache/i.test(error.message);
+      return {
+        success: false as const,
+        message: missingColumn
+          ? "Database belum diperbarui. Admin perlu menjalankan supabase/discipline-import.sql."
+          : error.message,
+      };
+    }
+    for (const d of data ?? []) if (d.external_id) existing.add(d.external_id);
+  }
+  let duplicates = 0;
+  const toInsert = valid.filter((v) => {
+    if (!v.external_id) return true;
+    if (existing.has(v.external_id)) {
+      duplicates++;
+      return false;
+    }
+    existing.add(v.external_id);
+    return true;
+  });
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from("trades").insert(toInsert);
+    if (error) return { success: false as const, message: error.message };
+  }
+
+  revalidatePath("/trades");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  return { success: true as const, inserted: toInsert.length, duplicates, invalid };
+}
 
 export async function addTrade(formData: FormData) {
   const supabase = await createClient();
