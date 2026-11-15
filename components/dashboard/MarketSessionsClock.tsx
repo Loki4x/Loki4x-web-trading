@@ -5,23 +5,29 @@ import { Clock } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { useLocale, useT } from "@/lib/i18n/client";
 
-// Jam sesi didefinisikan dalam waktu lokal kota masing-masing, jadi perubahan
-// daylight saving (London, New York, Sydney) otomatis ikut. Tampilan dikonversi ke WIB.
+// Kill zone ICT: jam paling aktif tiap sesi, didefinisikan dalam waktu New York (sesuai konvensi ICT),
+// jadi perubahan daylight saving otomatis ikut. Tampilan dikonversi ke WIB.
 interface SessionDef {
   key: string;
   label: string;
   timeZone: string;
-  startMin: number; // menit sejak 00:00 waktu lokal kota
+  startMin: number; // menit sejak 00:00 waktu lokal zona di atas
   endMin: number;
+  /** hari (0=Minggu) di zona itu saat sesi berlangsung */
+  days: number[];
   bar: string; // kelas warna bar timeline
   dot: string;
 }
 
+const NY = "America/New_York";
+const WEEKDAYS = [1, 2, 3, 4, 5];
+
 const SESSIONS: SessionDef[] = [
-  { key: "SYDNEY", label: "Sydney", timeZone: "Australia/Sydney", startMin: 7 * 60, endMin: 16 * 60, bar: "bg-secondary", dot: "bg-secondary" },
-  { key: "TOKYO", label: "Tokyo", timeZone: "Asia/Tokyo", startMin: 9 * 60, endMin: 18 * 60, bar: "bg-warning", dot: "bg-warning" },
-  { key: "LONDON", label: "London", timeZone: "Europe/London", startMin: 8 * 60, endMin: 17 * 60, bar: "bg-primary", dot: "bg-primary" },
-  { key: "NEW_YORK", label: "New York", timeZone: "America/New_York", startMin: 8 * 60, endMin: 17 * 60, bar: "bg-success", dot: "bg-success" },
+  // Asia dimulai Minggu–Kamis malam waktu New York (= Senin–Jumat pagi WIB).
+  { key: "ASIA", label: "Asia", timeZone: NY, startMin: 19 * 60, endMin: 23 * 60, days: [0, 1, 2, 3, 4], bar: "bg-warning", dot: "bg-warning" },
+  { key: "LONDON", label: "London", timeZone: NY, startMin: 2 * 60, endMin: 5 * 60, days: WEEKDAYS, bar: "bg-primary", dot: "bg-primary" },
+  { key: "NY_AM", label: "New York AM", timeZone: NY, startMin: 7 * 60 + 30, endMin: 11 * 60, days: WEEKDAYS, bar: "bg-success", dot: "bg-success" },
+  { key: "NY_PM", label: "New York PM", timeZone: NY, startMin: 13 * 60 + 30, endMin: 16 * 60, days: WEEKDAYS, bar: "bg-secondary", dot: "bg-secondary" },
 ];
 
 const WIB_TZ = "Asia/Jakarta";
@@ -89,10 +95,10 @@ interface SessionState extends SessionDef {
   countdown: number;
 }
 
-/** Sesi aktif = hari kerja di kota itu, dalam jam sesi, dan pasar forex tidak sedang libur weekend. */
+/** Sesi aktif = hari sesi, dalam jam sesi, dan pasar forex tidak sedang libur weekend. */
 function isSessionOpen(s: SessionDef, date: Date) {
   const { dow, minutes } = zonedParts(date, s.timeZone);
-  return dow >= 1 && dow <= 5 && minutes >= s.startMin && minutes < s.endMin && !isWeekendClosed(date);
+  return s.days.includes(dow) && minutes >= s.startMin && minutes < s.endMin && !isWeekendClosed(date);
 }
 
 /** Menit sampai sesi benar-benar buka lagi (melewati weekend kalau perlu). */
@@ -100,9 +106,6 @@ function minutesUntilSessionOpen(s: SessionDef, now: Date) {
   const { minutes } = zonedParts(now, s.timeZone);
   const firstStart = (s.startMin - minutes + DAY) % DAY || DAY;
   const candidates = Array.from({ length: 8 }, (_, k) => firstStart + k * DAY);
-  // Saat pasar buka Minggu sore NY, sesi yang jamnya sedang berjalan (mis. Sydney) langsung aktif.
-  const untilMarketOpen = minutesUntilMarketOpen(now);
-  if (untilMarketOpen > 0) candidates.push(untilMarketOpen);
   return Math.min(
     ...candidates.filter((c) => isSessionOpen(s, new Date(now.getTime() + c * 60000))),
     8 * DAY
@@ -150,26 +153,19 @@ export function MarketSessionsClock() {
   const sessions = computeSessions(now);
   const weekend = isWeekendClosed(now);
   const wibNow = zonedParts(now, WIB_TZ).minutes;
-  const londonOpen = sessions.find((s) => s.key === "LONDON")?.open;
-  const nyOpen = sessions.find((s) => s.key === "NEW_YORK")?.open;
-  const openCount = sessions.filter((s) => s.open).length;
+  const active = sessions.find((s) => s.open);
+  const next = [...sessions].sort((a, b) => a.countdown - b.countdown)[0];
 
   let statusText: string;
   let statusClass: string;
   if (weekend) {
     statusText = t("Pasar tutup (weekend) · buka dalam {time}", { time: fmtDuration(minutesUntilMarketOpen(now), en) });
     statusClass = "bg-error-subtle text-error";
-  } else if (londonOpen && nyOpen) {
-    statusText = t("Overlap London–New York · volatilitas tertinggi");
+  } else if (active) {
+    statusText = t("Kill zone {name} sedang aktif · selesai dalam {time}", { name: active.label, time: fmtDuration(active.countdown, en) });
     statusClass = "bg-success-subtle text-success";
-  } else if (openCount > 1) {
-    statusText = t("{count} sesi sedang overlap", { count: openCount });
-    statusClass = "bg-primary-subtle text-primary";
-  } else if (openCount === 1) {
-    statusText = t("Sesi {name} sedang aktif", { name: sessions.find((s) => s.open)!.label });
-    statusClass = "bg-primary-subtle text-primary";
   } else {
-    statusText = t("Tidak ada sesi utama yang aktif");
+    statusText = t("Di luar kill zone · {name} mulai dalam {time}", { name: next.label, time: fmtDuration(next.countdown, en) });
     statusClass = "bg-surface-2 text-text-secondary";
   }
 
@@ -181,7 +177,7 @@ export function MarketSessionsClock() {
             <Clock className="h-4 w-4 text-primary" />
             {t("Jam Sesi Pasar")}
           </h3>
-          <p className="text-caption text-text-muted">{t("Semua jam dalam WIB (UTC+7)")}</p>
+          <p className="text-caption text-text-muted">{t("Kill zone ICT · semua jam dalam WIB (UTC+7)")}</p>
         </div>
         <div className="text-right">
           <p className="font-mono text-h3 font-semibold tabular-nums text-text-primary">{fmtClock(wibNow)}</p>
@@ -196,7 +192,7 @@ export function MarketSessionsClock() {
         <div className="relative flex flex-col gap-1.5">
           {sessions.map((s) => (
             <div key={s.key} className="flex items-center gap-3">
-              <span className="w-16 shrink-0 text-caption font-medium text-text-secondary">{s.label}</span>
+              <span className="w-24 shrink-0 text-caption font-medium text-text-secondary">{s.label}</span>
               <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-surface-2">
                 {segments(s.wibStart, s.wibEnd).map(([a, b]) => (
                   <div
@@ -209,7 +205,7 @@ export function MarketSessionsClock() {
             </div>
           ))}
           {/* Penanda waktu sekarang */}
-          <div className="pointer-events-none absolute inset-y-0 left-[76px] right-0">
+          <div className="pointer-events-none absolute inset-y-0 left-[108px] right-0">
             <div
               className="absolute -inset-y-1 w-0.5 rounded-full bg-text-primary"
               style={{ left: `${(wibNow / DAY) * 100}%` }}
@@ -217,7 +213,7 @@ export function MarketSessionsClock() {
             />
           </div>
         </div>
-        <div className="ml-[76px] mt-1 flex justify-between text-caption text-text-muted">
+        <div className="ml-[108px] mt-1 flex justify-between text-caption text-text-muted">
           <span>00</span>
           <span>06</span>
           <span>12</span>

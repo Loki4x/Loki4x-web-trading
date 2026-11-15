@@ -7,6 +7,9 @@ import { STRATEGY_MAX_LEN, isEmotion, parseFollowedPlan } from "@/lib/journal-ta
 import { SYMBOL_RE, cleanText, isUuid, isValidDate, ownedPhotoUrl } from "@/lib/validation";
 import { pipsBetween, round1 } from "@/lib/signal-pips";
 import type { ImportRow } from "@/lib/trade-import";
+import { loadRiskContext, notifyRiskLimit } from "@/lib/risk-alert";
+import { todayWib } from "@/lib/discipline";
+import { getT } from "@/lib/i18n/server";
 
 /** Maksimal baris per panggilan importTrades (klien mengirim bertahap). */
 const IMPORT_BATCH = 500;
@@ -114,9 +117,32 @@ export async function importTrades(accountId: string, rows: ImportRow[]) {
     return true;
   });
 
+  const today = todayWib();
+  const riskCtx = toInsert.some((v) => v.trade_date === today) ? await loadRiskContext(supabase, user.id, accountId) : null;
+
   if (toInsert.length > 0) {
     const { error } = await supabase.from("trades").insert(toInsert);
     if (error) return { success: false as const, message: error.message };
+  }
+
+  if (riskCtx) {
+    const { t } = await getT();
+    const now = Date.now();
+    await notifyRiskLimit(
+      user.id,
+      riskCtx,
+      [
+        ...riskCtx.trades,
+        ...toInsert.map((v, i) => ({
+          trade_date: v.trade_date,
+          pnl: v.pnl,
+          status: v.status as "OPEN" | "CLOSED",
+          followed_plan: v.followed_plan,
+          created_at: new Date(now + i).toISOString(),
+        })),
+      ],
+      t
+    );
   }
 
   revalidatePath("/trades");
@@ -189,7 +215,10 @@ export async function addTrade(formData: FormData) {
   const beforePhotoUrl = await uploadPhoto("before_photo", "before");
   const afterPhotoUrl = await uploadPhoto("after_photo", "after");
 
-  await supabase.from("trades").insert({
+  // Status aturan risiko sebelum trade ini (hanya kalau trade-nya untuk hari ini).
+  const riskCtx = tradeDate === todayWib() ? await loadRiskContext(supabase, user.id, accountId) : null;
+
+  const { error: insertError } = await supabase.from("trades").insert({
     user_id: user.id,
     account_id: accountId,
     symbol,
@@ -209,6 +238,16 @@ export async function addTrade(formData: FormData) {
     before_photo_url: beforePhotoUrl,
     after_photo_url: afterPhotoUrl,
   });
+
+  if (!insertError && riskCtx) {
+    const { t } = await getT();
+    await notifyRiskLimit(
+      user.id,
+      riskCtx,
+      [...riskCtx.trades, { trade_date: tradeDate, pnl, status, followed_plan: followedPlan, created_at: new Date().toISOString() }],
+      t
+    );
+  }
 
   revalidatePath("/trades");
   revalidatePath("/dashboard");
@@ -278,7 +317,20 @@ export async function updateTrade(tradeId: string, formData: FormData) {
     ownedPhotoUrl(String(formData.get("existing_after_photo_url") ?? "") || null, user.id)
   );
 
-  await supabase
+  // Status aturan risiko sebelum perubahan (hanya kalau trade lama/baru jatuh di hari ini).
+  const today = todayWib();
+  const { data: oldTrade } = await supabase
+    .from("trades")
+    .select("account_id, trade_date")
+    .eq("id", tradeId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const riskCtx =
+    oldTrade?.account_id && (oldTrade.trade_date === today || tradeDate === today)
+      ? await loadRiskContext(supabase, user.id, oldTrade.account_id)
+      : null;
+
+  const { error: updateError } = await supabase
     .from("trades")
     .update({
       symbol,
@@ -300,6 +352,18 @@ export async function updateTrade(tradeId: string, formData: FormData) {
     })
     .eq("id", tradeId)
     .eq("user_id", user.id);
+
+  if (!updateError && riskCtx) {
+    const { t } = await getT();
+    await notifyRiskLimit(
+      user.id,
+      riskCtx,
+      riskCtx.trades.map((tr) =>
+        tr.id === tradeId ? { ...tr, trade_date: tradeDate, pnl, status, followed_plan: followedPlan } : tr
+      ),
+      t
+    );
+  }
 
   revalidatePath("/trades");
   revalidatePath("/dashboard");
