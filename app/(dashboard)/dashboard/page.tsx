@@ -14,6 +14,7 @@ import { KpiCard } from "@/components/dashboard/KpiCard";
 import { EquityChart } from "@/components/dashboard/EquityChart";
 import { TopPairsList } from "@/components/reports/TopPairsList";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
+import { MarketSessionsClock } from "@/components/dashboard/MarketSessionsClock";
 import { formatCurrency, formatPlainCurrency } from "@/lib/utils";
 import type { VipIbRequest, Trade, NewsEvent } from "@/lib/types";
 import type { Tier } from "@/lib/tier";
@@ -175,6 +176,10 @@ export default async function DashboardOverviewPage() {
         <UpgradeBanner tier={tier} />
 
         {tier !== "FREE" && <PushPrompt />}
+
+        <div className="mb-6">
+          <MarketSessionsClock />
+        </div>
 
         {!onboardingDone && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
