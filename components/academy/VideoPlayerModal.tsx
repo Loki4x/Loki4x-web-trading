@@ -1,6 +1,6 @@
 "use client";
 
-import { X, ExternalLink } from "lucide-react";
+import { X, ExternalLink, CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { getVideoEmbed } from "@/lib/video-embed";
 import { useT } from "@/lib/i18n/client";
 
@@ -8,10 +8,19 @@ export function VideoPlayerModal({
   title,
   videoUrl,
   onClose,
+  watched,
+  onToggleWatched,
+  saving = false,
+  error = null,
 }: {
   title: string;
   videoUrl: string;
   onClose: () => void;
+  /** undefined = tombol "sudah ditonton" disembunyikan */
+  watched?: boolean;
+  onToggleWatched?: () => void;
+  saving?: boolean;
+  error?: string | null;
 }) {
   const t = useT();
   const embed = getVideoEmbed(videoUrl);
@@ -42,6 +51,31 @@ export function VideoPlayerModal({
             />
           )}
         </div>
+
+        {watched !== undefined && onToggleWatched && (
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleWatched}
+              disabled={saving}
+              className={
+                watched
+                  ? "inline-flex items-center gap-2 rounded-full bg-success px-5 py-2.5 text-body-sm font-semibold text-white disabled:opacity-60"
+                  : "inline-flex items-center gap-2 rounded-full border border-white/30 px-5 py-2.5 text-body-sm font-semibold text-white hover:bg-white/10 disabled:opacity-60"
+              }
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : watched ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <Circle className="h-4 w-4" />
+              )}
+              {watched ? t("Sudah ditonton") : t("Tandai sudah ditonton")}
+            </button>
+            {error && <p className="text-center text-caption text-red-300">{error}</p>}
+          </div>
+        )}
 
         {embed.kind === "unknown" && (
           <p className="text-center text-caption text-white/60">
