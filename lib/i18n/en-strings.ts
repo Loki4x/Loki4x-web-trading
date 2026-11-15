@@ -745,4 +745,9 @@ export const EN_STRINGS: Record<string, string> = {
   "Kill zone ICT · semua jam dalam WIB (UTC+7)": "ICT kill zones · all times in WIB (UTC+7)",
   "Kill zone {name} sedang aktif · selesai dalam {time}": "{name} kill zone is active · ends in {time}",
   "Di luar kill zone · {name} mulai dalam {time}": "Outside kill zones · {name} starts in {time}",
+  "Berita High Impact Minggu Ini": "This Week's High Impact News",
+  "Berikut {n} berita high impact untuk {range}. Semua jam dalam WIB. Berita ini bisa membuat market sangat volatil, jadi atur risiko dan hindari entry tepat saat rilis.": "Here are {n} high impact events for {range}. All times are in WIB. These releases can make the market very volatile, so manage your risk and avoid entering right at the release.",
+  "Lihat Kalender Lengkap": "View Full Calendar",
+  "Jadwal bisa berubah, cek kalender di web sebelum trading. Kamu menerima email ini karena notifikasi berita aktif. Matikan di Settings → Notifikasi.": "Schedules can change, so check the calendar on the site before trading. You're receiving this email because news notifications are on. Turn them off in Settings → Notifications.",
+  "📅 Berita high impact minggu ini ({range})": "📅 This week's high impact news ({range})",
 };
