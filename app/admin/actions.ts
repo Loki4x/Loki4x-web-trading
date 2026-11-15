@@ -635,6 +635,56 @@ export async function deleteAcademyVideo(id: string) {
   revalidatePath("/academy/psychology");
 }
 
+/** Tambah soal kuis Akademi. Opsi kosong dibuang; jawaban benar = indeks di antara opsi yang terisi. */
+export async function addQuizQuestion(formData: FormData) {
+  const supabase = await assertIsAdmin();
+  const category = String(formData.get("category") ?? "");
+  const question = String(formData.get("question") ?? "").trim().slice(0, 500);
+  const explanation = String(formData.get("explanation") ?? "").trim().slice(0, 1000) || null;
+  const rawOptions = formData.getAll("options").map((o) => String(o).trim().slice(0, 200));
+  const correctRaw = Number(formData.get("correct_index"));
+
+  // Hitung ulang indeks jawaban benar setelah opsi kosong dibuang.
+  const options: string[] = [];
+  let correctIndex = -1;
+  rawOptions.forEach((opt, i) => {
+    if (!opt) return;
+    if (i === correctRaw) correctIndex = options.length;
+    options.push(opt);
+  });
+
+  if (!["TECHNICAL", "FUNDAMENTAL", "PSYCHOLOGY"].includes(category)) {
+    return { success: false as const, message: "Kategori tidak valid." };
+  }
+  if (question.length < 5) return { success: false as const, message: "Pertanyaan minimal 5 karakter." };
+  if (options.length < 2) return { success: false as const, message: "Isi minimal 2 pilihan jawaban." };
+  if (correctIndex < 0) return { success: false as const, message: "Pilih jawaban yang benar (pilihan yang terisi)." };
+
+  const { error } = await supabase.from("academy_quiz_questions").insert({
+    category,
+    question,
+    options,
+    correct_index: correctIndex,
+    explanation,
+  });
+  if (error) {
+    return {
+      success: false as const,
+      message: /academy_quiz|relation|schema cache/i.test(error.message)
+        ? "Database belum diperbarui. Jalankan supabase/academy-progress-quiz.sql."
+        : error.message,
+    };
+  }
+  revalidatePath("/admin/academy");
+  return { success: true as const };
+}
+
+export async function deleteQuizQuestion(id: string) {
+  const supabase = await assertIsAdmin();
+  await supabase.from("academy_quiz_questions").delete().eq("id", id);
+  revalidatePath("/admin/academy");
+}
+
 export async function addNewsEvent(formData: FormData) {
   const supabase = await assertIsAdmin();
 
