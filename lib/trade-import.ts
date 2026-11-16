@@ -361,6 +361,14 @@ export function parseTradesCsv(text: string): ParseResult {
 }
 
 /** Pilih parser berdasarkan isi file. */
+/**
+ * Laporan statistik dari menu "Reports" MT5 (data di `window.__report`). Isinya hanya ringkasan
+ * (profit per bulan/simbol), tanpa daftar trade, jadi tidak bisa di-import.
+ */
+export function isMt5SummaryReport(text: string): boolean {
+  return /window\.__report\s*=/.test(text) && !/<(table|tr)\b/i.test(text);
+}
+
 export function parseImportFile(text: string): ParseResult {
   if (/<(table|tr)\b/i.test(text)) return parseStatementHtml(text);
   return parseTradesCsv(text);

@@ -794,4 +794,6 @@ export const EN_STRINGS: Record<string, string> = {
   "{n} soal · lulus minimal {p}%": "{n} questions · pass at {p}%",
   "{n}x percobaan · lulus minimal {p}%": "{n} attempts · pass at {p}%",
   "{s} dari {n} jawaban benar": "{s} of {n} answers correct",
+  "File ini adalah laporan statistik dari menu Reports MT5, isinya hanya ringkasan tanpa daftar trade. Gunakan laporan riwayat: Toolbox → tab History → klik kanan → Positions → klik kanan → Report → HTML.": "This file is a statistics report from the MT5 Reports menu. It only contains summaries, not a list of trades. Use the history report instead: Toolbox → History tab → right-click → Positions → right-click → Report → HTML.",
+  "(Bukan menu Reports, karena laporan itu hanya berisi ringkasan statistik.)": "(Not the Reports menu, which only contains summary statistics.)",
 };
