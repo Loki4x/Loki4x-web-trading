@@ -63,6 +63,76 @@
     box-shadow: 0 0 0 3px rgba(95, 133, 219, 0.4);
   }
 
+  /* ---- Dropdown <select> ----
+     Menu pilihan ikut tema web, bukan abu-abu bawaan browser.
+     1) Semua browser: warna latar & teks pilihan memakai warna tema.
+     2) Browser yang mendukung customizable select (Chrome/Edge 135+, termasuk Android):
+        menu dropdown digambar ulang penuh dengan gaya kartu web. Browser lain (mis. Safari iOS)
+        tetap memakai pemilih bawaannya. */
+  select option,
+  select optgroup {
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-text-primary));
+  }
+
+  @supports (appearance: base-select) {
+    select,
+    ::picker(select) {
+      appearance: base-select;
+    }
+
+    /* Select yang sengaja appearance-none (punya ikon panah sendiri) tetap pakai menu baru,
+       tapi ikon panah bawaan disembunyikan supaya tidak dobel. */
+    select.appearance-none {
+      appearance: base-select;
+    }
+
+    select.appearance-none::picker-icon {
+      display: none;
+    }
+
+    select::picker-icon {
+      color: rgb(var(--color-text-muted));
+      transition: rotate 0.15s ease;
+    }
+
+    select:open::picker-icon {
+      rotate: 180deg;
+    }
+
+    ::picker(select) {
+      margin-block: 6px;
+      padding: 6px;
+      border: 1px solid rgb(var(--color-border-strong));
+      border-radius: 12px;
+      background-color: rgb(var(--color-surface));
+      box-shadow: 0 16px 40px rgb(0 0 0 / 0.35);
+    }
+
+    select option {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: transparent;
+    }
+
+    select option:hover,
+    select option:focus-visible {
+      background-color: rgb(var(--color-surface-hover));
+      outline: none;
+      box-shadow: none;
+    }
+
+    select option:checked {
+      background-color: rgb(95 133 219 / 0.18);
+      font-weight: 600;
+    }
+
+    select option::checkmark {
+      color: #5f85db;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
