@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, FileUp, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { importTrades } from "@/app/(dashboard)/trades/actions";
-import { decodeFileBytes, parseImportFile, type ParseResult } from "@/lib/trade-import";
+import { decodeFileBytes, isMt5SummaryReport, parseImportFile, type ParseResult } from "@/lib/trade-import";
 import { cx, formatCurrency } from "@/lib/utils";
 import { useT } from "@/lib/i18n/client";
 import type { AccountCurrency } from "@/lib/types";
@@ -43,6 +43,12 @@ export function ImportTradesModal({
       return;
     }
     const text = decodeFileBytes(new Uint8Array(await file.arrayBuffer()));
+    if (isMt5SummaryReport(text)) {
+      setError(
+        t("File ini adalah laporan statistik dari menu Reports MT5, isinya hanya ringkasan tanpa daftar trade. Gunakan laporan riwayat: Toolbox → tab History → klik kanan → Positions → klik kanan → Report → HTML.")
+      );
+      return;
+    }
     const result = parseImportFile(text);
     if (result.rows.length === 0) {
       setError(
@@ -119,7 +125,8 @@ export function ImportTradesModal({
                 </p>
                 <p>
                   <span className="font-semibold text-text-primary">MT5:</span>{" "}
-                  {t("Toolbox → tab History → klik kanan → pilih Positions → klik kanan → Report → HTML.")}
+                  {t("Toolbox → tab History → klik kanan → pilih Positions → klik kanan → Report → HTML.")}{" "}
+                  {t("(Bukan menu Reports, karena laporan itu hanya berisi ringkasan statistik.)")}
                 </p>
                 <p>
                   <span className="font-semibold text-text-primary">CSV:</span>{" "}
