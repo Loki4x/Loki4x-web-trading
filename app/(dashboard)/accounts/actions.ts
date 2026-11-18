@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { ACTIVE_ACCOUNT_COOKIE } from "@/lib/accounts";
+import { formGetter, updateAccountRulesCore } from "@/lib/journal-core";
 
 /**
  * Diipanggil setiap kali user ganti akun aktif dari AccountControl,
@@ -113,41 +114,10 @@ export async function updateAccountRules(accountId: string, formData: FormData) 
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, message: "Not authenticated" };
 
-  function num(field: string, max: number, integer = false): number | null | "invalid" {
-    const raw = String(formData.get(field) ?? "").trim().replace(",", ".");
-    if (raw === "") return null;
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0 || n > max || (integer && !Number.isInteger(n))) return "invalid";
-    return n;
+  const result = await updateAccountRulesCore(supabase, user.id, accountId, formGetter(formData), t);
+  if (result.success) {
+    revalidatePath("/dashboard");
+    revalidatePath("/trades");
   }
-
-  const values = {
-    max_daily_loss_pct: num("max_daily_loss_pct", 100),
-    max_trades_per_day: num("max_trades_per_day", 100, true),
-    max_consecutive_losses: num("max_consecutive_losses", 50, true),
-    monthly_profit_target: num("monthly_profit_target", 1_000_000_000),
-    target_win_rate: num("target_win_rate", 100),
-  };
-  if (Object.values(values).some((v) => v === "invalid")) {
-    return { success: false as const, message: t("Ada angka yang tidak valid. Isi angka lebih dari 0, atau kosongkan.") };
-  }
-
-  const { error } = await supabase
-    .from("trading_accounts")
-    .update(values)
-    .eq("id", accountId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    // Kolom belum ada = SQL supabase/discipline-import.sql belum dijalankan.
-    const missingColumn = /column|schema cache/i.test(error.message);
-    return {
-      success: false as const,
-      message: missingColumn ? t("Database belum diperbarui. Admin perlu menjalankan supabase/discipline-import.sql.") : error.message,
-    };
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/trades");
-  return { success: true as const };
+  return result;
 }
