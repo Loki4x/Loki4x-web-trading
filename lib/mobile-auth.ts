@@ -39,3 +39,23 @@ export async function getMobileTier(supabase: SupabaseClient, userId: string): P
   const expired = !!profile?.vip_expires_at && new Date(profile.vip_expires_at) < new Date();
   return expired ? "FREE" : stored;
 }
+
+/**
+ * Login + tier minimal untuk API data aplikasi. Mengembalikan konteks, atau Response error
+ * (401 unauthorized / 403 "<tier>_required") yang bisa langsung di-return.
+ */
+export async function mobileTierAuth(
+  request: Request,
+  required: Tier
+): Promise<{ user: User; supabase: SupabaseClient } | Response> {
+  const auth = await getMobileUser(request);
+  if (!auth) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (required !== "FREE") {
+    const rank: Record<Tier, number> = { FREE: 0, VIP: 1, MEMBERSHIP: 2 };
+    const tier = await getMobileTier(auth.supabase, auth.user.id);
+    if (rank[tier] < rank[required]) {
+      return Response.json({ error: required === "VIP" ? "vip_required" : "membership_required" }, { status: 403 });
+    }
+  }
+  return auth;
+}

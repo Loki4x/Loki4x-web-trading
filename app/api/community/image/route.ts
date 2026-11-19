@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPrivateR2Object } from "@/lib/r2";
+import { getMobileUser } from "@/lib/mobile-auth";
 import { COMMUNITY_IMAGE_KEY_RE } from "@/lib/community";
 
 // Foto komunitas hanya bisa dibuka oleh member yang boleh membaca ruangnya. Pengecekan akses memakai RLS:
 // kalau pesan berisi foto ini tidak terlihat oleh user yang login, fotonya juga tidak diberikan.
 export async function GET(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Web memakai cookie login; aplikasi Android mengirim Authorization: Bearer (RLS tetap berlaku).
+  const mobile = request.headers.get("authorization") ? await getMobileUser(request) : null;
+  const supabase = mobile ? mobile.supabase : await createClient();
+  const user = mobile ? mobile.user : (await supabase.auth.getUser()).data.user;
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
   const key = new URL(request.url).searchParams.get("key") ?? "";
