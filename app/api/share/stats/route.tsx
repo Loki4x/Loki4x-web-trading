@@ -5,6 +5,7 @@ import { resolveActiveAccount } from "@/lib/accounts";
 import { getCurrentUserTier, hasAccess } from "@/lib/tier";
 import { formatCurrency } from "@/lib/utils";
 import { isUuid } from "@/lib/validation";
+import { getMobileTier, getMobileUser } from "@/lib/mobile-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,17 @@ const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", 
  * Parameter: month=YYYY-MM, account=<uuid>, pnl=1 untuk menampilkan P&L (bawaan: disembunyikan).
  */
 export async function GET(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Web memakai cookie login; aplikasi Android mengirim header Authorization: Bearer.
+  const mobile = req.headers.get("authorization") ? await getMobileUser(req) : null;
+  const supabase = mobile ? mobile.supabase : await createClient();
+  const user = mobile
+    ? mobile.user
+    : (
+        await supabase.auth.getUser()
+      ).data.user;
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!hasAccess(await getCurrentUserTier(), "MEMBERSHIP")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const tier = mobile ? await getMobileTier(mobile.supabase, user.id) : await getCurrentUserTier();
+  if (!hasAccess(tier, "MEMBERSHIP")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const url = new URL(req.url);
   const monthParam = url.searchParams.get("month") ?? "";
