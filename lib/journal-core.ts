@@ -362,3 +362,55 @@ export async function updateAccountRulesCore(
   }
   return { success: true };
 }
+
+/** Maksimal akun journaling per user. */
+export const MAX_ACCOUNTS = 5;
+
+/** Buat akun journaling baru (maks 5 per user). */
+export async function createAccountCore(
+  supabase: SupabaseClient,
+  userId: string,
+  get: FieldGetter,
+  t: T
+): Promise<CoreResult<{ id: string | null }>> {
+  const { count } = await supabase
+    .from("trading_accounts")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if ((count ?? 0) >= MAX_ACCOUNTS) return { success: false, message: t("Maksimal 5 akun journaling per user.") };
+
+  const name = asText(get("name")).trim().slice(0, 60);
+  const initialBalance = Number(asText(get("initial_balance")).trim().replace(",", ".") || 0);
+  const currency = asText(get("currency")).toUpperCase() === "IDR" ? "IDR" : "USD";
+
+  if (!name) return { success: false, message: t("Nama akun tidak boleh kosong.") };
+  if (!Number.isFinite(initialBalance) || Math.abs(initialBalance) > 1_000_000_000) {
+    return { success: false, message: t("Saldo awal tidak valid.") };
+  }
+
+  const { data, error } = await supabase
+    .from("trading_accounts")
+    .insert({ user_id: userId, name, initial_balance: initialBalance, currency })
+    .select("id")
+    .maybeSingle();
+  if (error) return { success: false, message: error.message };
+  return { success: true, id: (data?.id as string | undefined) ?? null };
+}
+
+/** Hapus akun journaling milik user (minimal harus tersisa 1 akun). */
+export async function deleteAccountCore(
+  supabase: SupabaseClient,
+  userId: string,
+  accountId: string,
+  t: T
+): Promise<CoreResult> {
+  const { count } = await supabase
+    .from("trading_accounts")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if ((count ?? 0) <= 1) return { success: false, message: t("Minimal harus ada 1 akun journaling.") };
+
+  const { error } = await supabase.from("trading_accounts").delete().eq("id", accountId).eq("user_id", userId);
+  if (error) return { success: false, message: error.message };
+  return { success: true };
+}
