@@ -2,24 +2,34 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
-import { createPoketoInvoice, POKETO_MIN_AMOUNT } from "@/lib/poketo";
-import { SITE_URL } from "@/lib/site-url";
-import { finalizePayment } from "@/lib/payment-fulfillment";
-import { uploadPrivateToR2, UPLOAD_MAX_BYTES, isAllowedUploadType } from "@/lib/r2";
-import { isEmail } from "@/lib/validation";
-import { isIbBroker } from "@/lib/brokers";
-import { PLAN_PRICE_IDR, purchasablePlans, type Plan } from "@/lib/payment-constants";
-import { getMembershipStatus } from "@/lib/tier";
 import { getT } from "@/lib/i18n/server";
-import { rateLimit } from "@/lib/rate-limit";
-import { USDT_PRICE, type UsdtNetwork } from "@/lib/usdt";
-import { quotePromo, type PromoError, type PromoQuote } from "@/lib/promo";
+import type { Plan } from "@/lib/payment-constants";
+import {
+  checkPaymentStatusCore,
+  createPoketoPaymentCore,
+  fail,
+  previewPromoCore,
+  submitUsdtPaymentCore,
+  submitVipRequestCore,
+  type PromoPreview,
+  type UpgradeCtx,
+} from "@/lib/upgrade-core";
 
-// Di produksi, Next.js menyamarkan pesan dari `throw new Error(...)` di server action menjadi teks umum
-// ("An error occurred in the Server Components render..."), jadi user tidak pernah melihat alasannya.
-// Karena itu aksi di bawah MENGEMBALIKAN { ok: false, message } untuk error yang bisa dijelaskan ke user.
-const fail = (message: string) => ({ ok: false as const, message });
+export type { PromoPreview };
+
+// Logika pembayaran ada di lib/upgrade-core.ts, dipakai bersama oleh API aplikasi Android.
+// Di produksi, Next.js menyamarkan pesan dari `throw new Error(...)` di server action menjadi teks umum,
+// jadi aksi di bawah MENGEMBALIKAN { ok: false, message } untuk error yang bisa dijelaskan ke user.
+
+async function upgradeCtx(): Promise<UpgradeCtx | ReturnType<typeof fail>> {
+  const { t } = await getT();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fail(t("Sesi kamu berakhir. Silakan masuk lagi."));
+  return { supabase, userId: user.id, email: user.email ?? null, t };
+}
 
 async function safely<T>(label: string, fn: () => Promise<T>): Promise<T | ReturnType<typeof fail>> {
   try {
@@ -31,288 +41,47 @@ async function safely<T>(label: string, fn: () => Promise<T>): Promise<T | Retur
   }
 }
 
-async function submitVipRequestImpl(formData: FormData) {
-  const { t } = await getT();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return fail(t("Sesi kamu berakhir. Silakan masuk lagi."));
-
-  if (!(await rateLimit(`vip-request:${user.id}`, 3, 86400))) {
-    return fail(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
-  }
-
-  if (formData.get("agree_terms") !== "on") {
-    return fail(t("Kamu harus menyetujui Syarat & Ketentuan VIP via IB."));
-  }
-
-  const broker = formData.get("broker");
-  if (!isIbBroker(broker)) return fail(t("Pilih broker terlebih dahulu."));
-
-  const brokerEmail = String(formData.get("broker_email") ?? "").trim().slice(0, 254);
-  const tradingAccountId = String(formData.get("trading_account_id") ?? "").trim().slice(0, 64);
-  const firstDeposit = Number(formData.get("first_deposit"));
-
-  if (!brokerEmail || !tradingAccountId || !firstDeposit) {
-    return fail(t("Semua kolom wajib diisi"));
-  }
-
-  if (firstDeposit < 15) {
-    return fail(t("Deposit pertama minimal $15"));
-  }
-
-  if (!isEmail(brokerEmail)) return fail(t("Format email broker tidak valid."));
-  if (!/^[A-Za-z0-9._-]{3,64}$/.test(tradingAccountId)) {
-    return fail(t("ID akun trading hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung (3-64 karakter)."));
-  }
-  if (!Number.isFinite(firstDeposit) || firstDeposit > 10_000_000) return fail(t("Jumlah deposit tidak valid."));
-
-  const { error: insertError } = await supabase.from("vip_ib_requests").insert({
-    user_id: user.id,
-    broker_email: brokerEmail,
-    trading_account_id: tradingAccountId,
-    broker,
-    first_deposit: firstDeposit,
-    status: "PENDING",
-  });
-  if (insertError) {
-    console.error("[upgrade/submitVipRequest] gagal menyimpan:", insertError.message);
-    return fail(t("Gagal mengirim pengajuan"));
-  }
-
-  revalidatePath("/upgrade");
-  return { ok: true as const };
-}
-
 export async function submitVipRequest(formData: FormData) {
-  return safely("submitVipRequest", () => submitVipRequestImpl(formData));
+  return safely("submitVipRequest", async () => {
+    const ctx = await upgradeCtx();
+    if ("ok" in ctx) return ctx;
+    const res = await submitVipRequestCore(ctx, (k) => formData.get(k));
+    if (res.ok) revalidatePath("/upgrade");
+    return res;
+  });
 }
-
-const PROMO_MESSAGE: Record<PromoError, string> = {
-  INVALID: "Kode promo tidak valid atau sudah tidak berlaku.",
-  PLAN_NOT_ALLOWED: "Kode ini tidak berlaku untuk paket yang dipilih.",
-  ALREADY_USED: "Kamu sudah pernah memakai kode ini.",
-  TOO_LOW: "Kode ini tidak bisa dipakai untuk paket ini.",
-};
-
-export type PromoPreview =
-  | { ok: true; code: string; idr: PromoQuote["idr"]; usdt: PromoQuote["usdt"] }
-  | { ok: false; message: string };
 
 /** Cek kode promo untuk ditampilkan di modal pembayaran. Harga final selalu dihitung ulang saat order dibuat. */
 export async function previewPromoCode({ plan, code }: { plan: Plan; code: string }): Promise<PromoPreview> {
-  const { t } = await getT();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: t("Sesi kamu berakhir. Silakan masuk lagi.") };
-
-  // Batasi percobaan supaya kode tidak bisa ditebak-tebak.
-  if (!(await rateLimit(`promo-preview:${user.id}`, 20, 600))) {
-    return { ok: false, message: t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit.") };
-  }
-  if (plan !== "VIP" && plan !== "MEMBERSHIP" && plan !== "MEMBERSHIP_LIFETIME") {
-    return { ok: false, message: t("Paket tidak valid") };
-  }
-  const status = await getMembershipStatus();
-  if (!purchasablePlans(status).includes(plan)) {
-    return { ok: false, message: t("Paket ini tidak tersedia untuk akun kamu saat ini.") };
-  }
-
-  const result = await quotePromo(createServiceClient(), { code, plan, userId: user.id });
-  if (!result.ok) return { ok: false, message: t(PROMO_MESSAGE[result.error]) };
-  return { ok: true, code: result.quote.code, idr: result.quote.idr, usdt: result.quote.usdt };
+  const ctx = await upgradeCtx();
+  if ("ok" in ctx) return ctx;
+  return previewPromoCore(ctx, plan, code);
 }
-
-const PLAN_TITLE: Record<Plan, string> = {
-  VIP: "VIP",
-  MEMBERSHIP: "Membership",
-  MEMBERSHIP_LIFETIME: "Membership Lifetime",
-};
 
 /**
  * Bayar QRIS / Virtual Account lewat Poketo. Server membuat tagihan (invoice), lalu user membayar
  * di halaman Poketo (paymentUrl). Akses diaktifkan oleh webhook / pengecekan status.
  */
-async function createPoketoPaymentImpl({ plan, promoCode }: { plan: Plan; promoCode?: string | null }) {
-  const { t } = await getT();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return fail(t("Sesi kamu berakhir. Silakan masuk lagi."));
-
-  if (!(await rateLimit(`pay-create:${user.id}`, 10, 3600))) {
-    return fail(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
-  }
-
-  // `plan` datang dari client: harus salah satu paket yang boleh dibeli akun ini.
-  const status = await getMembershipStatus();
-  if (!purchasablePlans(status).includes(plan)) {
-    return fail(t("Paket ini tidak tersedia untuk akun kamu saat ini."));
-  }
-
-  // Harga SELALU dihitung di server; kode promo divalidasi ulang di sini.
-  let amount = PLAN_PRICE_IDR[plan];
-  let promo: { id: string; code: string; original: number; discount: number } | null = null;
-  if (promoCode && promoCode.trim()) {
-    const quoted = await quotePromo(createServiceClient(), { code: promoCode, plan, userId: user.id });
-    if (!quoted.ok) return fail(t(PROMO_MESSAGE[quoted.error]));
-    amount = quoted.quote.idr.final;
-    promo = {
-      id: quoted.quote.codeId,
-      code: quoted.quote.code,
-      original: quoted.quote.idr.original,
-      discount: quoted.quote.idr.discount,
-    };
-  }
-  if (amount < POKETO_MIN_AMOUNT) return fail(t("Nominal pembayaran terlalu kecil."));
-
-  const service = createServiceClient();
-  const { data: profile } = await service.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
-
-  const orderId = `LOKI4X-${user.id.slice(0, 8)}-${Date.now()}`;
-  const invoice = await createPoketoInvoice({
-    orderId,
-    amount,
-    title: `Loki4x Academy - ${PLAN_TITLE[plan]}`,
-    description: `Akses ${PLAN_TITLE[plan]} Loki4x Academy`,
-    customer: { name: profile?.full_name ?? null, email: user.email ?? profile?.email ?? null },
-    redirectUrl: `${SITE_URL}/upgrade`,
-    expiresInMinutes: 1440,
-  });
-  if (!invoice) return fail(t("Gagal membuat transaksi pembayaran, coba lagi."));
-
-  const { error } = await service.from("payments").insert({
-    user_id: user.id,
-    order_id: orderId,
-    plan,
-    amount,
-    status: "PENDING",
-    payment_method: "poketo",
-    payment_number: invoice.paymentUrl, // URL halaman bayar
-    pakasir_txn_id: invoice.id, // nama kolom warisan; berisi ID tagihan Poketo
-    expired_at: invoice.expiresAt || null,
-    currency: "IDR",
-    promo_code_id: promo?.id ?? null,
-    promo_code: promo?.code ?? null,
-    original_amount: promo?.original ?? amount,
-    discount_amount: promo?.discount ?? 0,
-  });
-  if (error) {
-    console.error("[upgrade/createPoketoPayment] gagal menyimpan order:", error.message);
-    return fail(t("Gagal menyimpan order pembayaran"));
-  }
-
-  return {
-    ok: true as const,
-    orderId,
-    amount,
-    paymentUrl: invoice.paymentUrl,
-    expiredAt: invoice.expiresAt ?? "",
-  };
-}
-
 export async function createPoketoPayment(args: { plan: Plan; promoCode?: string | null }) {
-  return safely("createPoketoPayment", () => createPoketoPaymentImpl(args));
+  return safely("createPoketoPayment", async () => {
+    const ctx = await upgradeCtx();
+    if ("ok" in ctx) return ctx;
+    return createPoketoPaymentCore(ctx, args.plan, args.promoCode);
+  });
 }
 
 export async function checkInstantPaymentStatus(orderId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  // RLS di tabel payments cuma izinin user lihat order miliknya sendiri —
-  // kalau order_id ini bukan punya dia, query ini balikin null.
-  const { data: owned } = await supabase.from("payments").select("id").eq("order_id", orderId).single();
-  if (!owned) return null;
-
-  try {
-    const result = await finalizePayment(orderId);
-    return result.status;
-  } catch (err) {
-    console.error("[upgrade/checkInstantPaymentStatus]", err);
-    return null;
-  }
-}
-
-async function submitUsdtPaymentImpl(formData: FormData) {
-  const { t } = await getT();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return fail(t("Sesi kamu berakhir. Silakan masuk lagi."));
-
-  if (!(await rateLimit(`usdt-proof:${user.id}`, 3, 3600))) {
-    return fail(t("Terlalu banyak percobaan. Coba lagi dalam beberapa menit."));
-  }
-
-  const plan = String(formData.get("plan"));
-  if (plan !== "VIP" && plan !== "MEMBERSHIP" && plan !== "MEMBERSHIP_LIFETIME") return fail(t("Paket tidak valid"));
-
-  const status = await getMembershipStatus();
-  if (!purchasablePlans(status).includes(plan)) {
-    return fail(t("Paket ini tidak tersedia untuk akun kamu saat ini."));
-  }
-
-  const network = String(formData.get("network")) as UsdtNetwork;
-  if (network !== "BEP20" && network !== "TRC20") return fail(t("Network tidak valid"));
-
-  const slip = formData.get("slip") as File | null;
-  if (!slip || slip.size === 0) return fail(t("Bukti transfer wajib diupload"));
-
-  const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
-
-  if (!isAllowedUploadType(slip.type)) return fail(t("Format bukti transfer harus JPG, PNG, WebP, GIF, atau PDF."));
-  if (slip.size > UPLOAD_MAX_BYTES) return fail(t("Ukuran bukti transfer maksimal 2 MB."));
-
-  const slipUrl = await uploadPrivateToR2(slip, `usdt-slips/${user.id}`);
-  if (!slipUrl) return fail(t("Gagal upload bukti transfer. Coba lagi, atau hubungi admin kalau terus gagal."));
-
-  let amount: number = USDT_PRICE[plan];
-  let promo: { id: string; code: string; original: number; discount: number } | null = null;
-  const promoCode = String(formData.get("promo_code") ?? "").trim();
-  if (promoCode) {
-    const quoted = await quotePromo(createServiceClient(), { code: promoCode, plan, userId: user.id });
-    if (!quoted.ok) return fail(t(PROMO_MESSAGE[quoted.error]));
-    amount = quoted.quote.usdt.final;
-    promo = {
-      id: quoted.quote.codeId,
-      code: quoted.quote.code,
-      original: quoted.quote.usdt.original,
-      discount: quoted.quote.usdt.discount,
-    };
-  }
-  const orderId = `USDT-${user.id.slice(0, 8)}-${Date.now()}`;
-
-  const service = createServiceClient();
-  const { error } = await service.from("payments").insert({
-    user_id: user.id,
-    order_id: orderId,
-    plan,
-    amount,
-    currency: "USDT",
-    status: "PENDING",
-    payment_method: `usdt_${network.toLowerCase()}`,
-    slip_url: slipUrl,
-    note,
-    promo_code_id: promo?.id ?? null,
-    promo_code: promo?.code ?? null,
-    original_amount: promo?.original ?? amount,
-    discount_amount: promo?.discount ?? 0,
-  });
-  if (error) return fail(t("Gagal menyimpan pengajuan pembayaran"));
-
-  revalidatePath("/upgrade");
-  return { ok: true as const };
+  const ctx = await upgradeCtx();
+  if ("ok" in ctx) return null;
+  return checkPaymentStatusCore(ctx, orderId);
 }
 
 export async function submitUsdtPayment(formData: FormData) {
-  return safely("submitUsdtPayment", () => submitUsdtPaymentImpl(formData));
+  return safely("submitUsdtPayment", async () => {
+    const ctx = await upgradeCtx();
+    if ("ok" in ctx) return ctx;
+    const res = await submitUsdtPaymentCore(ctx, (k) => formData.get(k), formData.get("slip") as File | null);
+    if (res.ok) revalidatePath("/upgrade");
+    return res;
+  });
 }
