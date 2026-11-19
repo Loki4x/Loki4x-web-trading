@@ -162,6 +162,7 @@ export async function addSignalCore(ctx: AdminCtx, get: Getter, chartImageFile: 
       await sendSignalNotifications({
         kind: "NEW",
         signal: {
+          id: created?.id ?? null,
           symbol,
           side,
           entry_price: entryPrice,
@@ -263,7 +264,7 @@ export async function updateSignalStatusCore(
       .select("symbol, side, entry_price, take_profit, stop_loss, status, result_pips")
       .eq("id", signalId)
       .single();
-    if (full) await sendSignalNotifications({ kind: "CLOSED", signal: full });
+    if (full) await sendSignalNotifications({ kind: "CLOSED", signal: { ...full, id: signalId } });
   }
   return { ok: true };
 }
@@ -308,7 +309,7 @@ export async function addSignalUpdateCore(ctx: AdminCtx, get: Getter): Promise<A
   });
 
   if (sendEmail) {
-    await sendSignalNotifications({ kind: "UPDATE", signal, updateType: type, message, price });
+    await sendSignalNotifications({ kind: "UPDATE", signal: { ...signal, id: signalId }, updateType: type, message, price });
   }
   return { ok: true };
 }

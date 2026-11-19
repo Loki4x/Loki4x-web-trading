@@ -5,6 +5,8 @@ import { sendPushToUsers } from "@/lib/push-send";
 type Vars = Record<string, string | number>;
 
 export interface SignalNotifyData {
+  /** id sinyal: notifikasi push membuka detail sinyal ini di aplikasi (web tetap ke /signals). */
+  id?: string | null;
   symbol: string;
   side: string;
   entry_price: number;
@@ -125,7 +127,7 @@ export async function sendSignalNotifications(event: SignalNotifyEvent): Promise
 
     // Push ke perangkat.
     const { sent: pushed } = await sendPushToUsers(
-      recipients.map((r) => ({ userId: r.id, payload: { title: text[r.locale].title, body: text[r.locale].body, url: "/signals" } })),
+      recipients.map((r) => ({ userId: r.id, payload: { title: text[r.locale].title, body: text[r.locale].body, url: event.signal.id ? `/signals?id=${event.signal.id}` : "/signals" } })),
       { urgency: "high", ttl: 6 * 3600 }
     );
     return { pushed, bell };
