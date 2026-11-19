@@ -12,7 +12,11 @@ export function AddVideoModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
-    await addAcademyVideo(formData);
+    const res = await addAcademyVideo(formData);
+    if (!res.ok) {
+      alert(res.message);
+      return;
+    }
     router.refresh();
     onClose();
   }

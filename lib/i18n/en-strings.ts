@@ -799,4 +799,12 @@ export const EN_STRINGS: Record<string, string> = {
   "Format foto harus JPG, PNG, WebP, atau GIF.": "Photo must be JPG, PNG, WebP, or GIF.",
   "Ukuran foto maksimal 2 MB.": "Photo size is limited to 2 MB.",
   "Gagal upload foto. Coba lagi.": "Photo upload failed. Please try again.",
+  "Judul dan pesan wajib diisi.": "Title and message are required.",
+  "Judul wajib diisi.": "Title is required.",
+  "Link video tidak valid.": "Invalid video link.",
+  "Kategori tidak valid.": "Invalid category.",
+  "Maksimal 6 pilihan jawaban.": "At most 6 answer options.",
+  "Pertanyaan minimal 5 karakter.": "Question must be at least 5 characters.",
+  "Isi minimal 2 pilihan jawaban.": "Fill in at least 2 answer options.",
+  "Pilih jawaban yang benar (pilihan yang terisi).": "Choose the correct answer (a filled option).",
 };

@@ -39,12 +39,15 @@ export async function getMembershipStatus(): Promise<MembershipStatus> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return FREE_STATUS;
+  return membershipStatusOf(supabase, user.id);
+}
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("tier, vip_expires_at")
-    .eq("id", user.id)
-    .single();
+/** Status membership user tertentu (dipakai juga oleh API aplikasi dengan klien Bearer). */
+export async function membershipStatusOf(
+  client: { from: (table: string) => any },
+  userId: string
+): Promise<MembershipStatus> {
+  const { data: profile } = await client.from("profiles").select("tier, vip_expires_at").eq("id", userId).single();
 
   if (!profile) return FREE_STATUS;
 

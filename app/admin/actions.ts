@@ -1,20 +1,29 @@
 "use server";
 
-import { SYMBOL_RE } from "@/lib/validation";
 
 import { getT, getUserT } from "@/lib/i18n/server";
 import { dateLocale } from "@/lib/i18n/dictionary";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { notifyUser, notifyAllUsers } from "@/lib/notifications";
+import { notifyUser } from "@/lib/notifications";
 import { type Plan } from "@/lib/payment-constants";
 import { computeGrant } from "@/lib/membership-grant";
 import { logAudit, getAuditActor } from "@/lib/audit";
-import { sendSignalNotifications } from "@/lib/signal-notify";
 import { redeemPromoForPayment, normalizePromoCode, PROMO_CODE_PATTERN } from "@/lib/promo";
 import { grantReferralReward } from "@/lib/referral";
-import { uploadToR2 } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
+import {
+  addAcademyVideoCore,
+  addQuizQuestionCore,
+  addSignalCore,
+  addSignalUpdateCore,
+  deleteAcademyVideoCore,
+  deleteQuizQuestionCore,
+  deleteSignalCore,
+  sendAdminNotificationCore,
+  updateSignalStatusCore,
+  type AdminCtx,
+} from "@/lib/admin-core";
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -129,167 +138,31 @@ export async function getUserStats(userId: string) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Helper tanggal sinyal. (Tidak di-export: file "use server" cuma boleh
-// meng-export fungsi async.)
-// ---------------------------------------------------------------------------
-
 type ActionResult = { ok: boolean; message?: string };
 
-// Email notifikasi hanya dikirim untuk kejadian yang baru terjadi (bukan input data lama).
-const FRESH_WINDOW_MS = 30 * 60 * 1000;
-
-const TERMINAL_SIGNAL_STATUSES = ["TP", "SL", "PARTIAL", "CANCEL", "MISS"];
-const ALL_SIGNAL_STATUSES = ["OPEN", "HIT_ENTRY", ...TERMINAL_SIGNAL_STATUSES];
-const RESULT_SIGNAL_STATUSES = ["TP", "SL", "PARTIAL"];
-const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
-
-/**
- * <input type="datetime-local"> mengirim "2026-09-15T14:30" tanpa zona waktu,
- * sedangkan server (Vercel) berjalan di UTC. Aplikasi ini untuk WIB (UTC+7),
- * jadi nilainya diartikan sebagai WIB. Tanpa ini jam sinyal bergeser 7 jam.
- * Return null kalau kosong; melempar error kalau formatnya salah.
- */
-function parseWibDateTime(raw: unknown): Date | null {
-  const value = typeof raw === "string" ? raw.trim() : "";
-  if (!value) return null;
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-    throw new Error("Format tanggal tidak valid.");
-  }
-  const date = new Date(`${value}:00+07:00`);
-  if (Number.isNaN(date.getTime())) throw new Error("Tanggal tidak valid.");
-  return date;
+/** Konteks admin untuk inti aksi di lib/admin-core.ts (dipakai bersama API admin aplikasi). */
+async function adminCtx(): Promise<AdminCtx> {
+  const supabase = await assertIsAdmin();
+  const { t } = await getT();
+  return { supabase, actor: await getAuditActor(supabase), t };
 }
 
-function optionalNumber(raw: unknown): number | null {
-  if (raw === null || raw === undefined || String(raw).trim() === "") return null;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) throw new Error("Ada angka yang tidak valid.");
-  return n;
+function revalidateSignals() {
+  revalidatePath("/admin/signals");
+  revalidatePath("/signals");
 }
 
-function failure(err: unknown, t: (key: string) => string): ActionResult {
-  return { ok: false, message: t(err instanceof Error ? err.message : "Terjadi kesalahan.") };
+function revalidateAcademy() {
+  revalidatePath("/admin/academy");
+  revalidatePath("/academy/technical");
+  revalidatePath("/academy/fundamental");
+  revalidatePath("/academy/psychology");
 }
 
 export async function addSignal(formData: FormData): Promise<ActionResult> {
-  const { t } = await getT();
-  const supabase = await assertIsAdmin();
-
-  try {
-    const symbol = String(formData.get("symbol") ?? "").trim().toUpperCase();
-    if (!SYMBOL_RE.test(symbol)) {
-      throw new Error("Symbol tidak valid (huruf/angka, maksimal 20 karakter)");
-    }
-    const side = String(formData.get("side") ?? "");
-    const status = String(formData.get("status") ?? "OPEN");
-    const entryPrice = optionalNumber(formData.get("entry_price"));
-    let takeProfit = optionalNumber(formData.get("take_profit"));
-    const stopLoss = optionalNumber(formData.get("stop_loss"));
-    const riskPercent = optionalNumber(formData.get("risk_percent")) ?? 0.5;
-    const signalType = String(formData.get("signal_type") ?? "REGULAR") === "NEWS" ? "NEWS" : "REGULAR";
-
-    if (!symbol) return { ok: false, message: t("Symbol wajib diisi.") };
-    if (side !== "BUY" && side !== "SELL") return { ok: false, message: t("Side harus BUY atau SELL.") };
-    if (entryPrice === null || entryPrice <= 0) return { ok: false, message: t("Entry price tidak valid.") };
-    if (!ALL_SIGNAL_STATUSES.includes(status)) return { ok: false, message: t("Status tidak valid.") };
-
-    // Tanggal sinyal: kosong = sekarang (perilaku lama). Isi untuk memasukkan sinyal lama.
-    const postedAt = parseWibDateTime(formData.get("posted_at")) ?? new Date();
-    if (postedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
-      return { ok: false, message: t("Tanggal sinyal tidak boleh di masa depan.") };
-    }
-
-    const isTerminal = TERMINAL_SIGNAL_STATUSES.includes(status);
-    let closedAt: Date | null = null;
-    let currentPrice: number | null = null;
-    let resultPips: number | null = null;
-
-    if (isTerminal) {
-      // Tanggal ditutup kosong = sama dengan tanggal sinyal (umumnya untuk sinyal lama).
-      closedAt = parseWibDateTime(formData.get("closed_at")) ?? postedAt;
-      if (closedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
-        return { ok: false, message: t("Tanggal ditutup tidak boleh di masa depan.") };
-      }
-      if (closedAt.getTime() < postedAt.getTime()) {
-        return { ok: false, message: t("Tanggal ditutup tidak boleh sebelum tanggal sinyal.") };
-      }
-    }
-
-    if (RESULT_SIGNAL_STATUSES.includes(status)) {
-      // Harga penutupan kosong: TP memakai Take Profit, SL memakai Stop Loss.
-      let closing = optionalNumber(formData.get("closing_price"));
-      if (closing === null) closing = status === "TP" ? takeProfit : status === "SL" ? stopLoss : null;
-      if (closing === null) {
-        return {
-          ok: false,
-          message:
-            status === "PARTIAL"
-              ? t("Harga penutupan wajib diisi untuk status PARTIAL.")
-              : t("Isi harga penutupan, atau isi {level} di atas.", { level: status === "TP" ? "Take Profit" : "Stop Loss" }),
-        };
-      }
-      currentPrice = closing;
-      resultPips = optionalNumber(formData.get("result_pips")) ?? 0;
-      // Sama seperti updateSignalStatus: kalau TP, harga penutupan jadi nilai Take Profit.
-      if (status === "TP") takeProfit = closing;
-    }
-
-    const chartImageFile = formData.get("chart_image") as File | null;
-    const chartImageUrl = await uploadToR2(chartImageFile, `signals/${symbol}-${Date.now()}`);
-
-    const { data: created, error } = await supabase
-      .from("signals")
-      .insert({
-      symbol,
-      side,
-      status,
-      entry_price: entryPrice,
-      take_profit: takeProfit,
-      stop_loss: stopLoss,
-      current_price: currentPrice,
-      current_price_at: currentPrice !== null && closedAt ? closedAt.toISOString() : null,
-      result_pips: resultPips,
-      risk_percent: riskPercent,
-      signal_type: signalType,
-      notes: String(formData.get("notes") ?? "") || null,
-      chart_image_url: chartImageUrl,
-      posted_at: postedAt.toISOString(),
-      closed_at: closedAt ? closedAt.toISOString() : null,
-      })
-      .select("id")
-      .single();
-    if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
-
-    await logAudit(supabase, {
-      actor: await getAuditActor(supabase),
-      action: "SIGNAL_CREATED",
-      targetId: created?.id ?? null,
-      details: { symbol, side, status, signal_type: signalType, entry_price: entryPrice, take_profit: takeProfit, stop_loss: stopLoss },
-    });
-
-    // Email hanya untuk sinyal BARU yang masih berjalan (diposting dalam 30 menit terakhir).
-    // Sinyal lama / riwayat yang diinput mundur tidak mengirim email.
-    if (!isTerminal && Date.now() - postedAt.getTime() < FRESH_WINDOW_MS) {
-      await sendSignalNotifications({
-        kind: "NEW",
-        signal: {
-          symbol,
-          side,
-          entry_price: entryPrice,
-          take_profit: takeProfit,
-          stop_loss: stopLoss,
-          notes: String(formData.get("notes") ?? "") || null,
-        },
-      });
-    }
-  } catch (err) {
-    return failure(err, t);
-  }
-
-  revalidatePath("/admin/signals");
-  revalidatePath("/signals");
-  return { ok: true };
+  const res = await addSignalCore(await adminCtx(), (k) => formData.get(k), formData.get("chart_image") as File | null);
+  if (res.ok) revalidateSignals();
+  return res;
 }
 
 export async function updateSignalStatus(
@@ -300,91 +173,17 @@ export async function updateSignalStatus(
   closedAtInput: string | null = null,
   extra: FormData | null = null
 ): Promise<ActionResult> {
-  const { t } = await getT();
-  const supabase = await assertIsAdmin();
-
-  if (!ALL_SIGNAL_STATUSES.includes(status)) return { ok: false, message: t("Status tidak valid.") };
-
-  const isTerminal = TERMINAL_SIGNAL_STATUSES.includes(status);
-  let closedAt: Date | null = null;
-
-  try {
-    if (isTerminal) {
-      // Kosong = sekarang (perilaku lama). Isi untuk sinyal lama yang ditutup di tanggal lain.
-      closedAt = parseWibDateTime(closedAtInput) ?? new Date();
-      if (closedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
-        return { ok: false, message: t("Tanggal ditutup tidak boleh di masa depan.") };
-      }
-      const { data: existing } = await supabase.from("signals").select("posted_at").eq("id", signalId).single();
-      if (existing && closedAt.getTime() < new Date(existing.posted_at).getTime()) {
-        return { ok: false, message: t("Tanggal ditutup tidak boleh sebelum tanggal sinyal dibuat.") };
-      }
-    }
-  } catch (err) {
-    return failure(err, t);
-  }
-
-  const updatePayload: Record<string, unknown> = {
+  const res = await updateSignalStatusCore(
+    await adminCtx(),
+    signalId,
     status,
-    current_price: currentPrice,
-    current_price_at: currentPrice !== null ? (closedAt ?? new Date()).toISOString() : null,
-    result_pips: resultPips,
-    closed_at: closedAt ? closedAt.toISOString() : null,
-  };
-
-  // Kalau admin nggak isi Take Profit waktu posting sinyal (dibiarkan kosong),
-  // begitu status di-set TP, harga penutupan yang diinput langsung dipakai
-  // sebagai nilai Take Profit — supaya tetap tampil di tabel, bukan cuma
-  // tersimpan di current_price.
-  if (status === "TP" && currentPrice !== null) {
-    updatePayload.take_profit = currentPrice;
-  }
-
-  // Foto hasil (opsional): hanya untuk status penutupan. Kosong = foto lama tidak diubah.
-  if (isTerminal && extra) {
-    const resultFile = extra.get("result_image") as File | null;
-    if (resultFile && resultFile.size > 0) {
-      const resultUrl = await uploadToR2(resultFile, `signal-results/${signalId}-${Date.now()}`);
-      if (!resultUrl) return { ok: false, message: t("Gagal upload foto hasil. Pakai JPG/PNG/WebP maksimal 2 MB.") };
-      updatePayload.result_image_url = resultUrl;
-    }
-  }
-
-  const { data: before } = await supabase
-    .from("signals")
-    .select("symbol, side, status")
-    .eq("id", signalId)
-    .single();
-
-  const { error } = await supabase.from("signals").update(updatePayload).eq("id", signalId);
-  if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
-
-  await logAudit(supabase, {
-    actor: await getAuditActor(supabase),
-    action: "SIGNAL_STATUS_CHANGED",
-    targetId: signalId,
-    details: {
-      symbol: before?.symbol ?? null,
-      from_status: before?.status ?? null,
-      to_status: status,
-      result_pips: resultPips,
-      closing_price: currentPrice,
-    },
-  });
-
-  // Email penutupan hanya kalau status berubah & penutupannya baru terjadi (30 menit terakhir).
-  if (isTerminal && closedAt && before?.status !== status && Date.now() - closedAt.getTime() < FRESH_WINDOW_MS) {
-    const { data: full } = await supabase
-      .from("signals")
-      .select("symbol, side, entry_price, take_profit, stop_loss, status, result_pips")
-      .eq("id", signalId)
-      .single();
-    if (full) await sendSignalNotifications({ kind: "CLOSED", signal: full });
-  }
-
-  revalidatePath("/admin/signals");
-  revalidatePath("/signals");
-  return { ok: true };
+    currentPrice,
+    resultPips,
+    closedAtInput,
+    (extra?.get("result_image") as File | null) ?? null
+  );
+  if (res.ok) revalidateSignals();
+  return res;
 }
 
 /**
@@ -516,71 +315,15 @@ export async function setPromoActive(promoId: string, active: boolean): Promise<
   return { ok: true };
 }
 
-const SIGNAL_UPDATE_TYPES = ["SL_TO_BE", "PARTIAL_CLOSE", "MOVE_SL", "MOVE_TP", "NOTE"];
-
 export async function addSignalUpdate(formData: FormData): Promise<ActionResult> {
-  const { t } = await getT();
-  const supabase = await assertIsAdmin();
-
-  const signalId = String(formData.get("signal_id") ?? "");
-  const type = String(formData.get("type") ?? "");
-  const message = String(formData.get("message") ?? "").trim().slice(0, 500) || null;
-  const price = optionalNumber(formData.get("price"));
-  const sendEmail = formData.get("send_email") === "1";
-
-  if (!signalId) return { ok: false, message: t("Terjadi kesalahan.") };
-  if (!SIGNAL_UPDATE_TYPES.includes(type)) return { ok: false, message: t("Jenis update tidak valid.") };
-  if (type === "NOTE" && !message) return { ok: false, message: t("Pesan wajib diisi untuk jenis Catatan.") };
-
-  const { data: signal } = await supabase
-    .from("signals")
-    .select("symbol, side, entry_price, take_profit, stop_loss, status, result_pips")
-    .eq("id", signalId)
-    .single();
-  if (!signal) return { ok: false, message: t("Sinyal tidak ditemukan.") };
-
-  const actor = await getAuditActor(supabase);
-  const { error } = await supabase.from("signal_updates").insert({
-    signal_id: signalId,
-    type,
-    message,
-    price,
-    created_by: actor.id,
-  });
-  if (error) return { ok: false, message: t("Gagal menyimpan: {detail}", { detail: error.message }) };
-
-  await logAudit(supabase, {
-    actor,
-    action: "SIGNAL_UPDATE_POSTED",
-    targetId: signalId,
-    details: { symbol: signal.symbol, type, price, message },
-  });
-
-  if (sendEmail) {
-    await sendSignalNotifications({ kind: "UPDATE", signal, updateType: type, message, price });
-  }
-
-  revalidatePath("/admin/signals");
-  revalidatePath("/signals");
-  return { ok: true };
+  const res = await addSignalUpdateCore(await adminCtx(), (k) => formData.get(k));
+  if (res.ok) revalidateSignals();
+  return res;
 }
 
 export async function deleteSignal(signalId: string) {
-  const supabase = await assertIsAdmin();
-  const { data: existing } = await supabase
-    .from("signals")
-    .select("symbol, side, status, entry_price")
-    .eq("id", signalId)
-    .single();
-  await supabase.from("signals").delete().eq("id", signalId);
-  await logAudit(supabase, {
-    actor: await getAuditActor(supabase),
-    action: "SIGNAL_DELETED",
-    targetId: signalId,
-    details: { ...(existing ?? {}) },
-  });
-  revalidatePath("/admin/signals");
-  revalidatePath("/signals");
+  await deleteSignalCore(await adminCtx(), signalId);
+  revalidateSignals();
 }
 
 export async function upsertPositioning(formData: FormData) {
@@ -610,78 +353,31 @@ export async function deletePositioning(id: string) {
 }
 
 export async function addAcademyVideo(formData: FormData) {
-  const supabase = await assertIsAdmin();
-
-  await supabase.from("academy_videos").insert({
-    category: String(formData.get("category")),
-    title: String(formData.get("title")),
-    description: String(formData.get("description") ?? "") || null,
-    thumbnail_url: String(formData.get("thumbnail_url")),
-    video_url: String(formData.get("video_url")),
-  });
-
-  revalidatePath("/admin/academy");
-  revalidatePath("/academy/technical");
-  revalidatePath("/academy/fundamental");
-  revalidatePath("/academy/psychology");
+  const res = await addAcademyVideoCore(await adminCtx(), (k) => formData.get(k));
+  if (res.ok) revalidateAcademy();
+  return res;
 }
 
 export async function deleteAcademyVideo(id: string) {
-  const supabase = await assertIsAdmin();
-  await supabase.from("academy_videos").delete().eq("id", id);
-  revalidatePath("/admin/academy");
-  revalidatePath("/academy/technical");
-  revalidatePath("/academy/fundamental");
-  revalidatePath("/academy/psychology");
+  await deleteAcademyVideoCore(await adminCtx(), id);
+  revalidateAcademy();
 }
 
 /** Tambah soal kuis Akademi. Opsi kosong dibuang; jawaban benar = indeks di antara opsi yang terisi. */
 export async function addQuizQuestion(formData: FormData) {
-  const supabase = await assertIsAdmin();
-  const category = String(formData.get("category") ?? "");
-  const question = String(formData.get("question") ?? "").trim().slice(0, 500);
-  const explanation = String(formData.get("explanation") ?? "").trim().slice(0, 1000) || null;
-  const rawOptions = formData.getAll("options").map((o) => String(o).trim().slice(0, 200));
-  const correctRaw = Number(formData.get("correct_index"));
-
-  // Hitung ulang indeks jawaban benar setelah opsi kosong dibuang.
-  const options: string[] = [];
-  let correctIndex = -1;
-  rawOptions.forEach((opt, i) => {
-    if (!opt) return;
-    if (i === correctRaw) correctIndex = options.length;
-    options.push(opt);
+  const res = await addQuizQuestionCore(await adminCtx(), {
+    category: formData.get("category"),
+    question: formData.get("question"),
+    options: formData.getAll("options"),
+    correctIndex: formData.get("correct_index"),
+    explanation: formData.get("explanation"),
   });
-
-  if (!["TECHNICAL", "FUNDAMENTAL", "PSYCHOLOGY"].includes(category)) {
-    return { success: false as const, message: "Kategori tidak valid." };
-  }
-  if (question.length < 5) return { success: false as const, message: "Pertanyaan minimal 5 karakter." };
-  if (options.length < 2) return { success: false as const, message: "Isi minimal 2 pilihan jawaban." };
-  if (correctIndex < 0) return { success: false as const, message: "Pilih jawaban yang benar (pilihan yang terisi)." };
-
-  const { error } = await supabase.from("academy_quiz_questions").insert({
-    category,
-    question,
-    options,
-    correct_index: correctIndex,
-    explanation,
-  });
-  if (error) {
-    return {
-      success: false as const,
-      message: /academy_quiz|relation|schema cache/i.test(error.message)
-        ? "Database belum diperbarui. Jalankan supabase/academy-progress-quiz.sql."
-        : error.message,
-    };
-  }
-  revalidatePath("/admin/academy");
-  return { success: true as const };
+  if (res.success) revalidatePath("/admin/academy");
+  return res;
 }
 
 export async function deleteQuizQuestion(id: string) {
-  const supabase = await assertIsAdmin();
-  await supabase.from("academy_quiz_questions").delete().eq("id", id);
+  await deleteQuizQuestionCore(await adminCtx(), id);
   revalidatePath("/admin/academy");
 }
 
@@ -802,61 +498,8 @@ export async function rejectVipRequest(requestId: string) {
 }
 
 export async function sendAdminNotification(formData: FormData) {
-  const { t } = await getT();
-  const supabase = await assertIsAdmin();
-
-  const target = String(formData.get("target"));
-  const title = String(formData.get("title") ?? "").trim();
-  const message = String(formData.get("message") ?? "").trim();
-  if (!title || !message) return { message: t("Terjadi kesalahan.") };
-
-  const channels = {
-    website: formData.get("ch_website") === "true",
-    email: formData.get("ch_email") === "true",
-    push: formData.get("ch_push") === "true",
-  };
-  if (!channels.website && !channels.email && !channels.push) {
-    return { message: t("Pilih minimal satu kanal pengiriman.") };
-  }
-  const channelLabel = [channels.push && "push", channels.website && "website", channels.email && "email"].filter(Boolean).join("+");
-
-  if (target === "ALL") {
-    const rawAudience = String(formData.get("audience") ?? "ALL");
-    const audience = rawAudience === "FREE" || rawAudience === "VIP" || rawAudience === "MEMBERSHIP" ? rawAudience : "ALL";
-    const { recipients } = await notifyAllUsers({ type: "ANNOUNCEMENT", title, message, channels, tier: audience });
-    await logAudit(supabase, {
-      actor: await getAuditActor(supabase),
-      action: "ANNOUNCEMENT_SENT",
-      details: { target: "ALL", audience, title, channel: channelLabel, recipients },
-    });
-    if (audience === "ALL") return { message: t("Notifikasi terkirim ke semua user.") };
-    return { message: t("Notifikasi terkirim ke {n} user tier {tier}.", { n: recipients, tier: audience }) };
-  }
-
-  const email = String(formData.get("email") ?? "");
-  const { data: targetProfile } = await supabase.from("profiles").select("id, email").eq("email", email).single();
-
-  if (!targetProfile) {
-    return { message: t("User dengan email itu nggak ketemu.") };
-  }
-
-  await notifyUser({
-    userId: targetProfile.id,
-    email: targetProfile.email,
-    type: "ANNOUNCEMENT",
-    title,
-    message,
-    channels,
-  });
-
-  await logAudit(supabase, {
-    actor: await getAuditActor(supabase),
-    action: "ANNOUNCEMENT_SENT",
-    targetUserId: targetProfile.id,
-    details: { target: email, title, channel: channelLabel },
-  });
-
-  return { message: t("Notifikasi terkirim ke {email}.", { email }) };
+  const res = await sendAdminNotificationCore(await adminCtx(), (k) => formData.get(k));
+  return { message: res.message };
 }
 
 // Parameter ke-2 dan ke-3 sengaja diabaikan: user_id dan plan diambil dari baris
