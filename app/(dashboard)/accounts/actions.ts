@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { ACTIVE_ACCOUNT_COOKIE } from "@/lib/accounts";
-import { formGetter, updateAccountRulesCore } from "@/lib/journal-core";
+import { createAccountCore, deleteAccountCore, formGetter, updateAccountRulesCore } from "@/lib/journal-core";
 
 /**
  * Diipanggil setiap kali user ganti akun aktif dari AccountControl,
@@ -21,6 +21,13 @@ export async function setActiveAccount(accountId: string) {
   });
 }
 
+function revalidateJournal() {
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
+  revalidatePath("/trades");
+  revalidatePath("/reports");
+}
+
 export async function createAccount(formData: FormData) {
   const { t } = await getT();
   const supabase = await createClient();
@@ -29,44 +36,9 @@ export async function createAccount(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, message: "Not authenticated" };
 
-  const { count } = await supabase
-    .from("trading_accounts")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
-
-  if ((count ?? 0) >= 5) {
-    return { success: false as const, message: t("Maksimal 5 akun journaling per user.") };
-  }
-
-  const name = String(formData.get("name") ?? "").trim().slice(0, 60);
-  const initialBalance = Number(formData.get("initial_balance") ?? 0);
-  const currencyInput = String(formData.get("currency") ?? "USD").toUpperCase();
-  const currency = currencyInput === "IDR" ? "IDR" : "USD";
-
-  if (!name) {
-    return { success: false as const, message: t("Nama akun tidak boleh kosong.") };
-  }
-
-  if (!Number.isFinite(initialBalance) || Math.abs(initialBalance) > 1_000_000_000) {
-    return { success: false as const, message: t("Saldo awal tidak valid.") };
-  }
-
-  const { error } = await supabase.from("trading_accounts").insert({
-    user_id: user.id,
-    name,
-    initial_balance: initialBalance,
-    currency,
-  });
-
-  if (error) {
-    return { success: false as const, message: error.message };
-  }
-
-  revalidatePath("/accounts");
-  revalidatePath("/dashboard");
-  revalidatePath("/trades");
-  revalidatePath("/reports");
-
+  const result = await createAccountCore(supabase, user.id, formGetter(formData), t);
+  if (!result.success) return result;
+  revalidateJournal();
   return { success: true as const };
 }
 
@@ -78,31 +50,9 @@ export async function deleteAccount(accountId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, message: "Not authenticated" };
 
-  const { count } = await supabase
-    .from("trading_accounts")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
-
-  if ((count ?? 0) <= 1) {
-    return { success: false as const, message: t("Minimal harus ada 1 akun journaling.") };
-  }
-
-  const { error } = await supabase
-    .from("trading_accounts")
-    .delete()
-    .eq("id", accountId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    return { success: false as const, message: error.message };
-  }
-
-  revalidatePath("/accounts");
-  revalidatePath("/dashboard");
-  revalidatePath("/trades");
-  revalidatePath("/reports");
-
-  return { success: true as const };
+  const result = await deleteAccountCore(supabase, user.id, accountId, t);
+  if (result.success) revalidateJournal();
+  return result;
 }
 
 /** Simpan aturan risiko & target untuk satu akun. Field kosong = aturan/target tidak dipakai. */
