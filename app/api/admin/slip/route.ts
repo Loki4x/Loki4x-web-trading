@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPrivateR2Object } from "@/lib/r2";
+import { getMobileUser } from "@/lib/mobile-auth";
 
 // Hanya admin yang boleh membuka bukti transfer. Kunci dibatasi ke pola yang kita buat sendiri,
 // jadi endpoint ini tidak bisa dipakai membaca objek lain di bucket.
 const KEY_RE = /^usdt-slips\/[0-9a-f-]{36}-\d{10,16}\.(jpg|png|webp|gif|pdf)$/i;
 
 export async function GET(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Web memakai cookie login; aplikasi Android mengirim Authorization: Bearer.
+  const mobile = request.headers.get("authorization") ? await getMobileUser(request) : null;
+  const supabase = mobile ? mobile.supabase : await createClient();
+  const user = mobile ? mobile.user : (await supabase.auth.getUser()).data.user;
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
