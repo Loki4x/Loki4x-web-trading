@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getMobileUser } from "@/lib/mobile-auth";
 import { getUserT } from "@/lib/i18n/server";
@@ -26,3 +27,8 @@ export async function adminRun(fn: () => Promise<{ ok: boolean; message?: string
 }
 
 export const fileOf = (v: FormDataEntryValue | null): File | null => (v instanceof File && v.size > 0 ? v : null);
+
+/** Segarkan halaman web yang terdampak perubahan dari aplikasi. */
+export function revalidate(...paths: string[]) {
+  for (const p of paths) revalidatePath(p);
+}
