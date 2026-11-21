@@ -34,6 +34,13 @@ import {
   updateUserTierCore,
   upsertPositioningCore,
 } from "@/lib/admin-ops-core";
+import {
+  deleteLinkItemCore,
+  reorderLinksCore,
+  saveLinkItemCore,
+  saveLinkProfileCore,
+  setLinkActiveCore,
+} from "@/lib/link-page-core";
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -232,5 +239,44 @@ export async function rejectUsdtPayment(paymentId: string, reason?: string) {
   const res = await rejectUsdtPaymentCore(await adminCtx(), paymentId, reason);
   revalidatePath("/admin/usdt-payments");
   revalidatePath("/upgrade");
+  return res;
+}
+
+// ---------------------------------------------------------------------------
+// Halaman link (/links)
+// ---------------------------------------------------------------------------
+
+function revalidateLinks() {
+  revalidatePath("/links");
+  revalidatePath("/admin/links");
+}
+
+export async function saveLinkProfile(formData: FormData): Promise<ActionResult> {
+  const res = await saveLinkProfileCore(await adminCtx(), (k) => formData.get(k));
+  if (res.ok) revalidateLinks();
+  return res;
+}
+
+export async function saveLinkItem(formData: FormData): Promise<ActionResult> {
+  const res = await saveLinkItemCore(await adminCtx(), (k) => formData.get(k));
+  if (res.ok) revalidateLinks();
+  return res;
+}
+
+export async function setLinkActive(id: string, active: boolean): Promise<ActionResult> {
+  const res = await setLinkActiveCore(await adminCtx(), id, active);
+  if (res.ok) revalidateLinks();
+  return res;
+}
+
+export async function deleteLinkItem(id: string): Promise<ActionResult> {
+  const res = await deleteLinkItemCore(await adminCtx(), id);
+  if (res.ok) revalidateLinks();
+  return res;
+}
+
+export async function reorderLinks(ids: string[]): Promise<ActionResult> {
+  const res = await reorderLinksCore(await adminCtx(), ids);
+  if (res.ok) revalidateLinks();
   return res;
 }

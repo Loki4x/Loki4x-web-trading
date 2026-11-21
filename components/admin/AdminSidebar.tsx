@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound, Newspaper, GraduationCap, LogOut, BadgeCheck, Bell, Coins, ScrollText, PenLine, Ticket, Gift, MessagesSquare } from "lucide-react";
+import { LayoutDashboard, Users, LineChart, Compass, ArrowLeft, Menu, X, CircleUserRound, Newspaper, GraduationCap, LogOut, BadgeCheck, Bell, Coins, ScrollText, PenLine, Ticket, Gift, MessagesSquare, Link2 } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 import { createClient } from "@/lib/supabase/client";
@@ -25,6 +25,7 @@ const links = [
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/promo-codes", label: "Kode Promo", icon: Ticket },
   { href: "/admin/referrals", label: "Referral", icon: Gift },
+  { href: "/admin/links", label: "Link Page", icon: Link2 },
   { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
 ];
 
