@@ -153,6 +153,8 @@ export interface VipIbRequest {
   status: "PENDING" | "APPROVED" | "REJECTED";
   created_at: string;
   reviewed_at: string | null;
+  /** Alasan penolakan admin (kolom opsional, lihat supabase/rejection-reason.sql). */
+  rejection_reason?: string | null;
 }
 
 export interface Payment {

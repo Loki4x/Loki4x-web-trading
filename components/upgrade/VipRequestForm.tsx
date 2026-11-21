@@ -228,6 +228,11 @@ export function VipRequestForm({
           {existingRequest?.status === "REJECTED" && (
             <p className="mt-4 rounded-lg bg-error-subtle px-4 py-3 text-body-sm text-error">
               {t("Pengajuan sebelumnya ditolak. Silakan cek kembali data akunmu dan ajukan ulang.")}
+              {existingRequest.rejection_reason && (
+                <span className="mt-1 block">
+                  {t("Alasan:")} {existingRequest.rejection_reason}
+                </span>
+              )}
             </p>
           )}
 

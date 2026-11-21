@@ -6,6 +6,7 @@ import { Check, X, FileImage } from "lucide-react";
 import { approveUsdtPayment, rejectUsdtPayment } from "@/app/admin/actions";
 import type { Plan } from "@/lib/payment-constants";
 import { useT } from "@/lib/i18n/client";
+import { RejectReasonModal } from "@/components/admin/RejectReasonModal";
 
 interface PaymentRow {
   id: string;
@@ -16,6 +17,7 @@ interface PaymentRow {
   status: "PENDING" | "COMPLETED" | "FAILED";
   slip_url: string | null;
   note: string | null;
+  rejection_reason?: string | null;
   payment_method: string | null;
   promo_code?: string | null;
   discount_amount?: number | null;
@@ -45,6 +47,7 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
   const t = useT();
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<PaymentRow | null>(null);
 
   async function handleApprove(p: PaymentRow) {
     setLoadingId(p.id);
@@ -53,9 +56,10 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
     setLoadingId(null);
   }
 
-  async function handleReject(id: string) {
+  async function handleReject(id: string, reason: string) {
     setLoadingId(id);
-    await rejectUsdtPayment(id);
+    await rejectUsdtPayment(id, reason);
+    setRejecting(null);
     router.refresh();
     setLoadingId(null);
   }
@@ -109,7 +113,12 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
                 )}
               </td>
               <td className="px-4 py-3 max-w-[160px] truncate text-text-muted">{p.note || "-"}</td>
-              <td className={`px-4 py-3 font-medium ${statusClass[p.status]}`}>{p.status}</td>
+              <td className={`px-4 py-3 font-medium ${statusClass[p.status]}`}>
+                {p.status}
+                {p.status === "FAILED" && p.rejection_reason && (
+                  <p className="mt-1 max-w-[200px] text-caption font-normal text-text-muted">{p.rejection_reason}</p>
+                )}
+              </td>
               <td className="px-4 py-3">
                 {p.status === "PENDING" && (
                   <div className="flex gap-2">
@@ -121,7 +130,7 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
                       <Check className="h-4 w-4" /> Approve
                     </button>
                     <button
-                      onClick={() => handleReject(p.id)}
+                      onClick={() => setRejecting(p)}
                       disabled={loadingId === p.id}
                       className="flex items-center gap-1 rounded-lg bg-error-subtle px-3 py-1.5 text-error hover:bg-error/25"
                     >
@@ -134,6 +143,14 @@ export function UsdtPaymentsTable({ payments }: { payments: PaymentRow[] }) {
           ))}
         </tbody>
       </table>
+      {rejecting && (
+        <RejectReasonModal
+          title={t("Tolak pembayaran USDT")}
+          subtitle={`${rejecting.profiles?.full_name || rejecting.profiles?.email || rejecting.user_id} · ${rejecting.amount} USDT`}
+          onCancel={() => setRejecting(null)}
+          onConfirm={(reason) => handleReject(rejecting.id, reason)}
+        />
+      )}
     </div>
   );
 }

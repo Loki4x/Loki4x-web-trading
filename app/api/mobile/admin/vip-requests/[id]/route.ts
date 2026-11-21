@@ -5,13 +5,13 @@ import { approveVipRequestCore, rejectVipRequestCore } from "@/lib/admin-ops-cor
 
 export const dynamic = "force-dynamic";
 
-// POST {action: "approve" | "reject"}
+// POST {action: "approve" | "reject", reason?: string}  (alasan dikirim ke user lewat notifikasi, push & email)
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const ctx = await adminAuth(request);
   if (ctx instanceof NextResponse) return ctx;
   const body = (await readJson(request)) ?? {};
   return adminRun(async () => {
-    const res = body.action === "approve" ? await approveVipRequestCore(ctx, params.id) : await rejectVipRequestCore(ctx, params.id);
+    const res = body.action === "approve" ? await approveVipRequestCore(ctx, params.id) : await rejectVipRequestCore(ctx, params.id, body.reason);
     if (res.ok) revalidate("/admin/vip-requests", "/upgrade", "/admin");
     return res;
   });

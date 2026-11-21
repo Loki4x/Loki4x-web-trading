@@ -15,7 +15,12 @@ export type AudienceTier = "ALL" | "FREE" | "VIP" | "MEMBERSHIP";
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-function emailHtml(title: string, message: string) {
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** Isi email. Judul & pesan berupa teks biasa (bisa berisi input admin), jadi di-escape; baris baru jadi <br>. */
+function emailHtml(rawTitle: string, rawMessage: string) {
+  const title = escapeHtml(rawTitle);
+  const message = escapeHtml(rawMessage).replace(/\n/g, "<br>");
   return `
     <div style="background-color:#0d0f14; padding:40px 20px; font-family:Arial, sans-serif;">
       <div style="max-width:480px; margin:0 auto; background-color:#161920; border-radius:12px; padding:32px; border:1px solid #2a2e38;">
