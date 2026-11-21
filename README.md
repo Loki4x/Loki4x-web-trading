@@ -54,6 +54,8 @@ Masa aktif dihitung dari `vip_expires_at`; tier berbayar yang sudah lewat masa a
 
 Dashboard (signup, konversi, pendapatan, member yang segera berakhir) · Users (tier, masa aktif, suspend) · VIP Requests · Pembayaran USDT · Kode Promo · Referral · Sinyal · Akademi (video & soal kuis) · Economic News · Actual Berita · Positioning · Live Chat · Kirim Notifikasi · Audit Log.
 
+Halaman **/links** (ala Linktree) diatur dari Admin → Link Page: foto profil, bio, tema, ikon sosmed, link dengan foto pratinjau, urutan, statistik klik.
+
 Penolakan VIP request / pembayaran USDT bisa disertai alasan yang dikirim ke user lewat notifikasi, push, dan email. Semua aksi admin tercatat di `audit_logs`.
 
 ---
@@ -168,7 +170,7 @@ File SQL ada di folder `supabase/`. Jalankan di **Supabase → SQL Editor**; sem
    - `journal-extras.sql`, `discipline-import.sql`
    - `push.sql`, `mobile-push.sql`, `signal-pairs.sql`
    - `signal-result-photo.sql`, `vip-broker.sql`, `rejection-reason.sql`
-   - `academy-progress-quiz.sql`
+   - `academy-progress-quiz.sql`, `link-page.sql`
    - `community-chat.sql` → `community-chat-images.sql` → `community-extras.sql` → `community-reply.sql`
 
 > ⚠️ Beberapa tabel lama (mis. `signals`, `payments`, `vip_ib_requests`, `notifications`, `academy_videos`, `promo_codes`, `referrals`, `audit_logs`, `chat_threads`) dibuat langsung di dashboard Supabase dan belum punya file SQL lengkap di repo. Untuk membuat environment baru, ekspor skemanya dulu dari project produksi (`pg_dump --schema-only`).
@@ -207,7 +209,7 @@ Route di `app/api/mobile/**` dipakai aplikasi [Loki4x-apk](https://github.com/Lo
 | `/api/mobile/community`, `/chat` | Komunitas & chat admin |
 | `/api/mobile/upgrade`, `/referral` | Pembayaran & referral |
 | `/api/mobile/push-token` | Token push FCM perangkat |
-| `/api/mobile/admin/**` | Menu admin (cek `profiles.is_admin`) |
+| `/api/mobile/admin/**` | Menu admin (cek `profiles.is_admin`), termasuk `/admin/links/*` untuk Link Page |
 
 ---
 
