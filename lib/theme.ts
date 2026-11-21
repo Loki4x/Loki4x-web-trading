@@ -63,3 +63,54 @@ export function useThemeMode(): [ThemeMode | null, (next: ThemeMode) => void] {
 
   return [mode, setMode];
 }
+
+// ---------------------------------------------------------------------------
+// Gaya tampilan: Normal (solid) atau Glassmorphism (kartu kaca transparan + blur di atas latar gradasi).
+// Disimpan di browser, diterapkan lewat atribut data-style di <html> (lihat app/globals.css).
+// ---------------------------------------------------------------------------
+
+export const THEME_STYLE_KEY = "loki4x-theme-style";
+export type ThemeStyle = "normal" | "glass";
+const STYLE_SYNC_EVENT = "loki4x:theme-style";
+
+export function applyThemeStyle(style: ThemeStyle) {
+  if (style === "glass") document.documentElement.setAttribute("data-style", "glass");
+  else document.documentElement.removeAttribute("data-style");
+}
+
+function readSavedStyle(): ThemeStyle {
+  try {
+    return localStorage.getItem(THEME_STYLE_KEY) === "glass" ? "glass" : "normal";
+  } catch {
+    return "normal";
+  }
+}
+
+/** Pilihan gaya tampilan; semua pemakai (Pengaturan & sidebar) sinkron lewat event window. */
+export function useThemeStyle(): [ThemeStyle | null, (next: ThemeStyle) => void] {
+  const [style, setStyleState] = useState<ThemeStyle | null>(null);
+
+  useEffect(() => {
+    setStyleState(readSavedStyle());
+    const onSync = (e: Event) => setStyleState((e as CustomEvent<ThemeStyle>).detail);
+    window.addEventListener(STYLE_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(STYLE_SYNC_EVENT, onSync);
+  }, []);
+
+  useEffect(() => {
+    if (style) applyThemeStyle(style);
+  }, [style]);
+
+  const setStyle = useCallback((next: ThemeStyle) => {
+    setStyleState(next);
+    try {
+      if (next === "glass") localStorage.setItem(THEME_STYLE_KEY, "glass");
+      else localStorage.removeItem(THEME_STYLE_KEY);
+    } catch {
+      // penyimpanan browser tidak tersedia: gaya tetap dipakai, hanya tidak diingat
+    }
+    window.dispatchEvent(new CustomEvent<ThemeStyle>(STYLE_SYNC_EVENT, { detail: next }));
+  }, []);
+
+  return [style, setStyle];
+}

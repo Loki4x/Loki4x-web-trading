@@ -1,7 +1,7 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "lucide-react";
-import { useThemeMode, type ThemeMode } from "@/lib/theme";
+import { Monitor, Moon, Sparkles, Sun } from "lucide-react";
+import { useThemeMode, useThemeStyle, type ThemeMode } from "@/lib/theme";
 import { useT } from "@/lib/i18n/client";
 import { cx } from "@/lib/utils";
 
@@ -39,5 +39,28 @@ export function ThemeSwitch({ className }: { className?: string }) {
         </button>
       ))}
     </div>
+  );
+}
+
+/** Tombol cepat Glassmorphism (aktif/nonaktif) di bawah sidebar, sinkron dengan Pengaturan → Tampilan. */
+export function GlassToggle({ className }: { className?: string }) {
+  const t = useT();
+  const [style, setStyle] = useThemeStyle();
+  const on = style === "glass";
+  return (
+    <button
+      type="button"
+      title={t("appearance.styleGlass")}
+      aria-label={t("appearance.styleGlass")}
+      aria-pressed={on}
+      onClick={() => setStyle(on ? "normal" : "glass")}
+      className={cx(
+        "btn-fx flex h-8 w-8 items-center justify-center rounded-full border border-border",
+        on ? "bg-primary text-text-on-primary" : "bg-surface-2 text-text-muted hover:text-text-primary",
+        className
+      )}
+    >
+      <Sparkles className="h-3.5 w-3.5" />
+    </button>
   );
 }
