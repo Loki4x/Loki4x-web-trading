@@ -44,7 +44,7 @@ export function DashboardShell({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-shell min-h-screen bg-background">
       <Sidebar
         isAdmin={isAdmin}
         notifications={notifications}

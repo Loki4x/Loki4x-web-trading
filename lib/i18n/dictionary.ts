@@ -125,6 +125,10 @@ const id = {
   "appearance.light": "Terang",
   "appearance.dark": "Gelap",
   "appearance.system": "Sistem",
+  "appearance.style": "Gaya tampilan",
+  "appearance.styleNormal": "Normal",
+  "appearance.styleGlass": "Glassmorphism",
+  "appearance.styleHint": "Glassmorphism: kartu kaca transparan dengan efek blur di atas latar gradasi. Berlaku di browser ini.",
 
   // Signals
   "signals.title": "Signals & Track Record",
@@ -315,6 +319,10 @@ const en: Record<DictKey, string> = {
   "appearance.light": "Light",
   "appearance.dark": "Dark",
   "appearance.system": "System",
+  "appearance.style": "Display style",
+  "appearance.styleNormal": "Normal",
+  "appearance.styleGlass": "Glassmorphism",
+  "appearance.styleHint": "Glassmorphism: translucent glass cards with a blur effect over a gradient background. Applies in this browser.",
 
   "signals.title": "Signals & Track Record",
   "signals.subtitle": "Trading signals and performance track record.",

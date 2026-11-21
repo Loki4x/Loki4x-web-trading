@@ -355,3 +355,95 @@
     background-size: 48px 48px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Gaya tampilan Glassmorphism (Pengaturan → Tampilan → Gaya tampilan).
+   Hanya di area aplikasi (.app-shell: dashboard & admin), landing page tidak berubah.
+   Kartu & panel jadi kaca transparan dengan blur di atas latar gradasi berwarna.
+   --------------------------------------------------------------------------- */
+@layer components {
+  html[data-style="glass"] {
+    --glass-surface: 0.4;
+    --glass-surface-2: 0.45;
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.16);
+    --glass-blur: 18px;
+  }
+
+  html[data-style="glass"][data-theme="light"] {
+    --glass-surface: 0.55;
+    --glass-surface-2: 0.55;
+    --glass-border: rgba(255, 255, 255, 0.85);
+    --glass-highlight: rgba(255, 255, 255, 1);
+  }
+
+  /* Latar gradasi: beberapa "cahaya" berwarna lembut, tetap diam saat halaman di-scroll. */
+  html[data-style="glass"] .app-shell {
+    position: relative;
+    isolation: isolate;
+    background-color: rgb(var(--color-background));
+  }
+
+  html[data-style="glass"] .app-shell::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(50% 45% at 30% 0%, rgba(95, 133, 219, 0.55), transparent 70%),
+      radial-gradient(40% 40% at 100% 35%, rgba(6, 182, 212, 0.4), transparent 70%),
+      radial-gradient(50% 45% at 20% 95%, rgba(139, 92, 246, 0.45), transparent 70%),
+      radial-gradient(40% 40% at 85% 100%, rgba(16, 185, 129, 0.35), transparent 70%);
+  }
+
+  html[data-style="glass"][data-theme="light"] .app-shell::before {
+    background:
+      radial-gradient(50% 45% at 30% 0%, rgba(95, 133, 219, 0.45), transparent 70%),
+      radial-gradient(40% 40% at 100% 35%, rgba(6, 182, 212, 0.35), transparent 70%),
+      radial-gradient(50% 45% at 20% 95%, rgba(167, 139, 250, 0.42), transparent 70%),
+      radial-gradient(40% 40% at 85% 100%, rgba(16, 185, 129, 0.3), transparent 70%);
+  }
+
+  /* Panel kaca: kartu, sidebar, topbar, menu dropdown, modal.
+     Blur dipasang di ::before (bukan di elemennya) supaya elemen position:fixed di dalam kartu
+     (mis. modal / dialog) tetap memenuhi layar: backdrop-filter pada induk akan "mengurung" anak fixed. */
+  html[data-style="glass"] .app-shell :is(.card, .bg-surface) {
+    background-color: transparent;
+    border-color: var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 10px 30px rgb(0 0 0 / 0.12);
+    isolation: isolate;
+  }
+
+  html[data-style="glass"] .app-shell :is(.card, .bg-surface):not(.fixed):not(.absolute):not(.sticky) {
+    position: relative;
+  }
+
+  html[data-style="glass"] .app-shell :is(.card, .bg-surface)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-color: rgb(var(--color-surface) / var(--glass-surface));
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  }
+
+  html[data-style="glass"] .app-shell .bg-surface-2,
+  html[data-style="glass"] .app-shell .input-field {
+    background-color: rgb(var(--color-surface-2) / var(--glass-surface-2));
+  }
+
+  /* Area yang tadinya memakai warna latar polos dibuat transparan supaya gradasi terlihat. */
+  html[data-style="glass"] .app-shell .bg-background,
+  html[data-style="glass"] .app-shell .bg-background\/80 {
+    background-color: rgb(var(--color-background) / 0.25);
+  }
+
+  html[data-style="glass"] .app-shell tbody tr:hover,
+  html[data-style="glass"] .app-shell .hover\:bg-surface-hover:hover {
+    background-color: rgb(var(--color-surface-hover) / 0.5);
+  }
+}
