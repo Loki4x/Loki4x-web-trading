@@ -15,7 +15,8 @@ export async function GET(request: Request) {
   const status = await membershipStatusOf(ctx.supabase, ctx.userId);
   const { data: vipRequest } = await ctx.supabase
     .from("vip_ib_requests")
-    .select("status, broker, created_at")
+    // "*" supaya tetap jalan walau kolom rejection_reason belum ditambahkan.
+    .select("*")
     .eq("user_id", ctx.userId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -27,6 +28,13 @@ export async function GET(request: Request) {
     priceUsdt: USDT_PRICE,
     wallets: USDT_WALLETS,
     brokers: IB_BROKERS,
-    vipRequest: vipRequest ?? null,
+    vipRequest: vipRequest
+      ? {
+          status: vipRequest.status,
+          broker: vipRequest.broker ?? null,
+          created_at: vipRequest.created_at,
+          rejection_reason: (vipRequest as { rejection_reason?: string | null }).rejection_reason ?? null,
+        }
+      : null,
   });
 }

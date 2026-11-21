@@ -315,7 +315,26 @@ export async function approveVipRequestCore(ctx: AdminCtx, requestId: string): P
   return { ok: true };
 }
 
-export async function rejectVipRequestCore(ctx: AdminCtx, requestId: string): Promise<ActionResult> {
+export const REJECTION_REASON_MAX = 500;
+
+/** Alasan penolakan dari admin: dirapikan & dibatasi panjangnya. Kosong = null. */
+export function cleanReason(raw: unknown): string | null {
+  const s = typeof raw === "string" ? raw.replace(/\r\n/g, "\n").trim() : "";
+  return s ? s.slice(0, REJECTION_REASON_MAX) : null;
+}
+
+/**
+ * Simpan alasan penolakan (kolom rejection_reason, lihat supabase/rejection-reason.sql).
+ * Dipisah dari update status supaya penolakan tetap jalan walau kolomnya belum ditambahkan.
+ */
+async function saveRejectionReason(ctx: AdminCtx, table: "vip_ib_requests" | "payments", id: string, reason: string | null) {
+  if (!reason) return;
+  const { error } = await ctx.supabase.from(table).update({ rejection_reason: reason }).eq("id", id);
+  if (error) console.warn(`[admin] rejection_reason ${table} tidak tersimpan:`, error.message);
+}
+
+export async function rejectVipRequestCore(ctx: AdminCtx, requestId: string, rawReason?: unknown): Promise<ActionResult> {
+  const reason = cleanReason(rawReason);
   const { data: rejected } = await ctx.supabase
     .from("vip_ib_requests")
     .update({ status: "REJECTED", reviewed_at: new Date().toISOString() })
@@ -324,8 +343,30 @@ export async function rejectVipRequestCore(ctx: AdminCtx, requestId: string): Pr
     .select("id, user_id")
     .maybeSingle();
   if (!rejected) return { ok: false, message: ctx.t("Pengajuan sudah diproses atau tidak ditemukan.") };
+  const userId = rejected.user_id as string;
+  await saveRejectionReason(ctx, "vip_ib_requests", requestId, reason);
 
-  await logAudit(ctx.supabase, { actor: ctx.actor, action: "VIP_REQUEST_REJECTED", targetUserId: rejected.user_id as string, targetId: requestId });
+  const { data: target } = await ctx.supabase.from("profiles").select("email").eq("id", userId).maybeSingle();
+  const { t: tu } = await getUserT(ctx.supabase, userId);
+  await notifyUser({
+    userId,
+    email: (target?.email as string | null) ?? null,
+    type: "ANNOUNCEMENT",
+    title: tu("Pengajuan VIP kamu ditolak"),
+    message: reason
+      ? tu("Pengajuan upgrade VIP via IB kamu ditolak admin. Alasan: {reason}", { reason })
+      : tu("Pengajuan upgrade VIP via IB kamu ditolak admin. Silakan cek kembali data akunmu dan ajukan ulang."),
+    channels: { website: true, email: true, push: true },
+    pushUrl: "/upgrade",
+  });
+
+  await logAudit(ctx.supabase, {
+    actor: ctx.actor,
+    action: "VIP_REQUEST_REJECTED",
+    targetUserId: userId,
+    targetId: requestId,
+    details: { target_email: (target?.email as string | null) ?? null, reason },
+  });
   return { ok: true };
 }
 
@@ -399,23 +440,41 @@ export async function approveUsdtPaymentCore(ctx: AdminCtx, paymentId: string): 
   return { ok: true };
 }
 
-export async function rejectUsdtPaymentCore(ctx: AdminCtx, paymentId: string): Promise<ActionResult> {
+export async function rejectUsdtPaymentCore(ctx: AdminCtx, paymentId: string, rawReason?: unknown): Promise<ActionResult> {
+  const reason = cleanReason(rawReason);
   const { data: rejected } = await ctx.supabase
     .from("payments")
     .update({ status: "FAILED" })
     .eq("id", paymentId)
     .eq("currency", "USDT")
     .eq("status", "PENDING")
-    .select("id, user_id, plan")
+    .select("id, user_id, plan, order_id, amount")
     .maybeSingle();
   if (!rejected) return { ok: false, message: ctx.t("Pembayaran sudah diproses atau tidak ditemukan.") };
+  const userId = rejected.user_id as string;
+  await saveRejectionReason(ctx, "payments", paymentId, reason);
+
+  const { data: target } = await ctx.supabase.from("profiles").select("email").eq("id", userId).maybeSingle();
+  const { t: tu } = await getUserT(ctx.supabase, userId);
+  const vars = { plan: String(rejected.plan), amount: String(rejected.amount), order: String(rejected.order_id ?? "-") };
+  await notifyUser({
+    userId,
+    email: (target?.email as string | null) ?? null,
+    type: "ANNOUNCEMENT",
+    title: tu("Pembayaran USDT {plan} ditolak", vars),
+    message: reason
+      ? tu("Pembayaran {amount} USDT untuk paket {plan} (order {order}) ditolak admin. Alasan: {reason}", { ...vars, reason })
+      : tu("Pembayaran {amount} USDT untuk paket {plan} (order {order}) ditolak admin. Hubungi admin lewat chat kalau ada pertanyaan.", vars),
+    channels: { website: true, email: true, push: true },
+    pushUrl: "/upgrade",
+  });
 
   await logAudit(ctx.supabase, {
     actor: ctx.actor,
     action: "USDT_REJECTED",
-    targetUserId: rejected.user_id as string,
+    targetUserId: userId,
     targetId: paymentId,
-    details: { plan: rejected.plan },
+    details: { target_email: (target?.email as string | null) ?? null, plan: rejected.plan, reason },
   });
   return { ok: true };
 }

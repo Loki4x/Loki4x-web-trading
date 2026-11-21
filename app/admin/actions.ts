@@ -208,9 +208,11 @@ export async function approveVipRequest(requestId: string, _clientUserId?: strin
   return res;
 }
 
-export async function rejectVipRequest(requestId: string) {
-  await rejectVipRequestCore(await adminCtx(), requestId);
+export async function rejectVipRequest(requestId: string, reason?: string) {
+  const res = await rejectVipRequestCore(await adminCtx(), requestId, reason);
   revalidatePath("/admin/vip-requests");
+  revalidatePath("/upgrade");
+  return res;
 }
 
 export async function sendAdminNotification(formData: FormData) {
@@ -226,7 +228,9 @@ export async function approveUsdtPayment(paymentId: string, _clientUserId?: stri
   return res;
 }
 
-export async function rejectUsdtPayment(paymentId: string) {
-  await rejectUsdtPaymentCore(await adminCtx(), paymentId);
+export async function rejectUsdtPayment(paymentId: string, reason?: string) {
+  const res = await rejectUsdtPaymentCore(await adminCtx(), paymentId, reason);
   revalidatePath("/admin/usdt-payments");
+  revalidatePath("/upgrade");
+  return res;
 }
