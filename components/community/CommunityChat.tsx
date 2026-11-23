@@ -1,5 +1,6 @@
 "use client";
 
+import { linkify } from "@/components/chat/Linkify";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CornerUpLeft, Flag, Lock, Megaphone, Paperclip, Pin, PinOff, Send, Trash2, X } from "lucide-react";
@@ -267,16 +268,24 @@ export function CommunityChat({
   }, [mentionQuery, people, remote]);
 
   function renderBody(text: string, mine: boolean) {
-    if (!mentionRe) return text;
-    return text.split(mentionRe).map((part, i) =>
-      i % 2 === 1 ? (
-        <span key={i} className={mine ? "font-bold underline" : "font-semibold text-primary"}>
-          {part}
-        </span>
+    const mentions = (chunk: string, key: string) =>
+      !mentionRe ? (
+        <span key={key}>{chunk}</span>
       ) : (
-        part
-      )
-    );
+        <span key={key}>
+          {chunk.split(mentionRe).map((part, i) =>
+            i % 2 === 1 ? (
+              <span key={i} className={mine ? "font-bold underline" : "font-semibold text-primary"}>
+                {part}
+              </span>
+            ) : (
+              part
+            )
+          )}
+        </span>
+      );
+    // Link di pesan bisa diklik (biru), sisanya tetap menyorot @mention.
+    return linkify(text, mentions, mine ? "font-semibold underline break-all" : undefined);
   }
 
   function onInputChange(value: string) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { linkify } from "@/components/chat/Linkify";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Paperclip, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -271,7 +272,7 @@ export function AdminChat({ initialThreads }: { initialThreads: AdminChatThread[
                           <ChatImage imageKey={m.image_key} alt="Foto" />
                         </div>
                       )}
-                      {m.body}
+                      {linkify(m.body)}
                     </div>
                     <p className="mt-1 text-caption text-text-muted">
                       {fromAdmin ? "Admin · " : ""}
