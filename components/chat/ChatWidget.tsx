@@ -1,5 +1,6 @@
 "use client";
 
+import { linkify } from "@/components/chat/Linkify";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, Paperclip, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -251,7 +252,7 @@ export function ChatWidget() {
                         <ChatImage imageKey={m.image_key} alt={t("Foto")} />
                       </div>
                     )}
-                    {m.body}
+                    {linkify(m.body)}
                   </div>
                   <p className="mt-1 text-caption text-text-muted">{formatTime(m.created_at)}</p>
                 </div>
