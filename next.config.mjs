@@ -42,6 +42,11 @@ const nextConfig = {
         ],
       },
       {
+        // API aplikasi Android: data selalu terbaru, jangan disimpan di cache HP / CDN.
+        source: "/api/mobile/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+      },
+      {
         // Service worker harus selalu diambil terbaru supaya update tidak tertahan di cache.
         source: "/sw.js",
         headers: [
